@@ -19,7 +19,7 @@ public struct KeyCapability: Codable, Equatable, Sendable {
 public struct Capabilities: Codable, Equatable, Sendable {
     /// Phương thức chặn sạc đang dùng: "CHTE", "CH0B/CH0C", "BCLM" hoặc nil (không hỗ trợ).
     public var chargeMethod: String?
-    /// Phương thức ngắt adapter đang dùng: "CHIE", "CH0J", "CH0I" hoặc nil.
+    /// Phương thức ngắt adapter đang dùng: "CHIE", "CH0I" hoặc nil (CH0J chỉ được xóa khi khôi phục).
     public var adapterMethod: String?
     public var keys: [KeyCapability]
 

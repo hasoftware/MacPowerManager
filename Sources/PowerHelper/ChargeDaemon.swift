@@ -418,14 +418,12 @@ final class ChargeDaemon {
         suspendedUntil = nil
         let old = config
         config = newConfig.sanitized()
-        let startedDischarge = config.dischargeEnabled && !old.dischargeEnabled
-        let startedPause = config.pauseCharging && !old.pauseCharging
-        if startedDischarge {
+        if config.dischargeEnabled && !old.dischargeEnabled {
             runtime.controller.holdingAtLimit = false
         }
-        if runtime.controller.topUp != nil, startedDischarge || startedPause {
-            ControllerCommands.cancelTopUp(state: &runtime.controller)
-            log("Hủy sạc đầy một lần vì bật \(startedDischarge ? "xả pin" : "tạm dừng sạc")")
+        // Bật tạm dừng/xả hủy sạc đầy một lần; nâng giới hạn thì sạc tới giới hạn mới; tắt giới hạn bỏ "sạc tới giới hạn ngay".
+        for effect in ControllerCommands.configDidChange(from: old, to: config, state: &runtime.controller) {
+            if case .topUpEnded = effect { log("Hủy sạc đầy một lần vì bật tạm dừng sạc hoặc xả pin") }
         }
         saveConfig()
         evaluate()
@@ -446,9 +444,9 @@ final class ChargeDaemon {
             }
             log("Bắt đầu sạc đầy một lần, hết hạn lúc \(runtime.controller.topUp.map { "\($0.expiresAt)" } ?? "?")")
             // Sạc đầy thay cho tạm dừng sạc và xả pin.
-            if config.pauseCharging || config.dischargeEnabled {
-                config.pauseCharging = false
-                config.dischargeEnabled = false
+            let topUpConfig = ControllerCommands.configForTopUp(config)
+            if topUpConfig != config {
+                config = topUpConfig
                 saveConfig()
             }
             evaluate()
@@ -459,8 +457,11 @@ final class ChargeDaemon {
             evaluate()
         case .chargeToLimitNow:
             suspendedUntil = nil
+            guard ControllerCommands.chargeToLimitNow(state: &runtime.controller, config: config) else {
+                return HelperResponse(ok: false, error: .invalidArgument,
+                                      message: "Giới hạn sạc đang tắt hoặc ở 100%", status: status())
+            }
             log("Sạc tới giới hạn ngay")
-            ControllerCommands.chargeToLimitNow(state: &runtime.controller)
             evaluate()
         }
         saveRuntimeIfChanged()
