@@ -9,6 +9,8 @@ import Foundation
     func apply(config: Data, reply: @escaping (String?) -> Void)
     /// Khôi phục mặc định (bật sạc, bật adapter) trước khi gỡ helper.
     func restoreDefaults(reply: @escaping () -> Void)
+    /// Nhận `HelperCommand` dạng JSON, trả về `HelperResponse` dạng JSON.
+    func perform(command: Data, reply: @escaping (Data?) -> Void)
 }
 
 public struct HelperStatus: Codable, Equatable, Sendable {
@@ -23,6 +25,17 @@ public struct HelperStatus: Codable, Equatable, Sendable {
     public var lastError: String?
     /// Máy Intel: giá trị `BCLM` hiện tại (firmware tự giữ giới hạn này).
     public var firmwareLimit: Int?
+
+    // v0.3.0 (đều optional để giải mã được trạng thái từ helper cũ hơn)
+    public var capabilities: Capabilities?
+    public var effect: EffectState?
+    public var effectiveLimit: Int?
+    public var topUp: TopUpState?
+    public var chargeToLimitOnce: Bool?
+    public var foreignWrites: [ForeignWrite]?
+    public var lidClosed: Bool?
+    /// Ví dụ "iBoot-11881.121.1".
+    public var firmware: String?
 
     public init(version: String, config: PowerConfig, chargingKeys: String?, adapterKeys: String?,
                 chargingEnabled: Bool?, adapterEnabled: Bool?, reason: ChargeReason,

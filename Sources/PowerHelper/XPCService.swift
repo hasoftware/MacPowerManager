@@ -46,6 +46,11 @@ final class HelperService: NSObject, PowerHelperProtocol {
         }
     }
 
+    /// STUB của giai đoạn 0: gói việc "helper" sẽ xử lý `HelperCommand`.
+    func perform(command: Data, reply: @escaping (Data?) -> Void) {
+        reply(try? JSONEncoder().encode(HelperResponse(ok: false, error: .unsupported)))
+    }
+
     func restoreDefaults(reply: @escaping () -> Void) {
         DispatchQueue.main.async {
             self.daemon.restoreDefaults(forUninstall: true)

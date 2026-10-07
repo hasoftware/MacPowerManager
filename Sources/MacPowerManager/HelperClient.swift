@@ -82,6 +82,28 @@ final class HelperClient {
         await refresh()
     }
 
+    // MARK: Lệnh
+
+    /// Gửi `HelperCommand` tới helper. Trả về phản hồi, hoặc nil nếu không liên lạc được.
+    @discardableResult
+    func perform(_ command: HelperCommand) async -> HelperResponse? {
+        guard let data = try? JSONEncoder().encode(command) else { return nil }
+        do {
+            let reply: Data? = try await call { proxy, reply in proxy.perform(command: data, reply: reply) }
+            let response = reply.flatMap { try? JSONDecoder().decode(HelperResponse.self, from: $0) }
+            if let response, !response.ok {
+                errorMessage = response.message ?? response.error?.rawValue
+            } else {
+                errorMessage = nil
+            }
+            await refresh()
+            return response
+        } catch {
+            errorMessage = "Không gửi được lệnh tới helper: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
     // MARK: Cài đặt / gỡ
 
     func install() async {
@@ -91,7 +113,8 @@ final class HelperClient {
             errorMessage = "Không tìm thấy helper trong app bundle. Hãy build bằng `make app`."
             return
         }
-        await runPrivileged(script: script, arguments: ["install", helper.path, plist.path])
+        // Đối số thứ 4: đường dẫn app, để script ghi cdhash của app vào danh sách client được tin cậy.
+        await runPrivileged(script: script, arguments: ["install", helper.path, plist.path, Bundle.main.bundlePath])
         resetConnection()
         try? await Task.sleep(for: .seconds(1))
         await refresh()
