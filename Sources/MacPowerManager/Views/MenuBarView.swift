@@ -11,8 +11,12 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            if !Platform.isAppleSilicon {
-                IntelNotice()
+            if AppMover.needsMove {
+                MoveToApplicationsBanner()
+            }
+
+            if model.controlUnsupported {
+                UnsupportedNotice()
             } else if !helper.isReady {
                 HelperBanner()
             } else {
@@ -23,12 +27,20 @@ struct MenuBarView: View {
                 if helper.config.chargeLimitEnabled {
                     Slider(value: helper.intBinding(\.chargeLimit), in: 50...100, step: 5)
                 }
-                Toggle("Tạm dừng sạc (chỉ dùng adapter)", isOn: helper.binding(\.pauseCharging))
-                Toggle(isOn: helper.binding(\.dischargeEnabled)) {
-                    Text("Xả pin về \(helper.config.dischargeTarget)%")
+                Toggle(Platform.isAppleSilicon ? "Tạm dừng sạc (chỉ dùng adapter)" : "Tạm dừng sạc (từ 50% trở lên)",
+                       isOn: helper.binding(\.pauseCharging))
+                if Platform.isAppleSilicon {
+                    Toggle(isOn: helper.binding(\.dischargeEnabled)) {
+                        Text("Xả pin về \(helper.config.dischargeTarget)%")
+                    }
                 }
                 Toggle(isOn: helper.binding(\.thermalProtectionEnabled)) {
                     Text("Dừng sạc khi pin > \(Int(helper.config.thermalPauseAbove))°C")
+                }
+                if !Platform.isAppleSilicon {
+                    Text("Máy Intel (thử nghiệm): firmware giữ giới hạn, pin có thể vượt khoảng 3%.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -143,6 +155,7 @@ struct BatteryGauge: View {
 
 struct HelperBanner: View {
     @Environment(AppModel.self) private var model
+    @State private var confirmIntel = false
 
     var body: some View {
         let helper = model.helper
@@ -153,27 +166,62 @@ struct HelperBanner: View {
             default:
                 Text("Chưa cài helper điều khiển sạc").font(.callout.weight(.medium))
             }
-            Text("Giới hạn sạc, xả pin và bảo vệ nhiệt cần một helper chạy quyền quản trị để ghi vào SMC.")
+            Text(Platform.isAppleSilicon
+                 ? "Giới hạn sạc, xả pin và bảo vệ nhiệt cần một helper chạy quyền quản trị để ghi vào SMC."
+                 : "Máy Intel: điều khiển sạc đang ở chế độ thử nghiệm và cần một helper chạy quyền quản trị.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button(helper.isBusy ? "Đang cài…" : "Cài helper") {
-                Task { await helper.install() }
+            Button(helper.isBusy ? "Đang cài…" : (Platform.isAppleSilicon ? "Cài helper" : "Cài helper (thử nghiệm)")) {
+                if Platform.isAppleSilicon {
+                    Task { await helper.install() }
+                } else {
+                    confirmIntel = true
+                }
             }
             .disabled(helper.isBusy)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.yellow.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
+        .intelInstallConfirmation(isPresented: $confirmIntel, helper: helper)
     }
 }
 
-/// Máy Intel: chỉ hiển thị thông tin, chưa điều khiển sạc.
-struct IntelNotice: View {
+extension View {
+    /// Hộp thoại xác nhận trước khi cài helper thử nghiệm trên máy Intel.
+    func intelInstallConfirmation(isPresented: Binding<Bool>, helper: HelperClient) -> some View {
+        alert("Điều khiển sạc trên Intel (thử nghiệm)", isPresented: isPresented) {
+            Button("Cài helper") { Task { await helper.install() } }
+            Button("Hủy", role: .cancel) {}
+        } message: {
+            Text("App sẽ ghi giới hạn vào firmware (key BCLM, 50–100%). Firmware giữ giới hạn cả khi máy ngủ hoặc tắt, kể cả khi đã xóa app, nên hãy gỡ helper trong app trước khi xóa app (gỡ helper trả giới hạn về 100%). Pin có thể vượt khoảng 3%; không dừng sạc được dưới 50%. Tính năng chưa được kiểm chứng trên mọi máy Intel. Nên tắt \"Optimized Battery Charging\" trong System Settings → Battery.")
+        }
+    }
+}
+
+/// App đang chạy từ file .dmg hoặc vị trí tạm.
+struct MoveToApplicationsBanner: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("App đang chạy từ vị trí tạm").font(.callout.weight(.medium))
+            Text("Chuyển vào Applications để app hoạt động ổn định.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Chuyển vào Applications") { AppMover.moveAndRelaunch() }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// Helper đã cài nhưng không tìm thấy key điều khiển sạc nào dùng được trên máy này.
+struct UnsupportedNotice: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Máy Intel: chế độ chỉ xem").font(.callout.weight(.medium))
-            Text("Điều khiển sạc trên Intel đang được phát triển (thử nghiệm). Bạn có thể giúp bằng cách gửi kết quả `make probe` lên GitHub Issues.")
+            Text("Máy này chưa hỗ trợ điều khiển sạc").font(.callout.weight(.medium))
+            Text("App vẫn hiển thị thông tin pin. Bạn có thể giúp mở rộng hỗ trợ bằng cách gửi kết quả `make probe` lên GitHub Issues.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

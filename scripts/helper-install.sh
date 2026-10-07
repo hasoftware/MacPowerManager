@@ -2,7 +2,8 @@
 # Cài hoặc gỡ PowerHelper dưới dạng LaunchDaemon. Cần chạy bằng root.
 #   helper-install.sh install <đường-dẫn-helper> <đường-dẫn-plist>
 #   helper-install.sh uninstall [<helper-đi-kèm-app>]
-# Mã thoát 3 khi gỡ: đã gỡ nhưng chưa xác minh được việc khôi phục sạc.
+# Mã thoát khi gỡ: 3 = Apple Silicon, đã gỡ nhưng chưa xác minh được việc khôi phục (khởi động lại sẽ reset SMC);
+#                  4 = Intel, chưa trả được BCLM về 100% (BCLM được lưu trong firmware), helper được giữ lại để chạy lại.
 set -eu
 
 LABEL="com.hasoftware.MacPowerManager.helper"
@@ -81,7 +82,13 @@ uninstall)
             break
         fi
     done
-    rm -f "$HELPER_DST" "$PLIST_DST"
+    rm -f "$PLIST_DST"
+    if [ $restored -ne 0 ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" != "1" ]; then
+        # Intel: BCLM vẫn còn sau khi khởi động lại, nên giữ helper để người dùng chạy lại lệnh khôi phục.
+        echo "MPM-E4: Chưa trả được giới hạn sạc của firmware (BCLM) về 100%. Chạy: sudo $HELPER_DST --restore-defaults" >&2
+        exit 4
+    fi
+    rm -f "$HELPER_DST"
     rm -rf "/Library/Application Support/MacPowerManager"
     if [ $restored -ne 0 ]; then
         echo "MPM-E3: Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định." >&2

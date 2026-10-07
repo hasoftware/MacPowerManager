@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
     @State private var confirmUninstall = false
+    @State private var confirmIntel = false
 
     var body: some View {
         @Bindable var model = model
@@ -31,32 +32,34 @@ struct SettingsView: View {
                     .disabled(!model.prefs.notifyLowBattery)
             }
 
-            if Platform.isAppleSilicon {
-                Section {
-                    LabeledContent("Trạng thái") {
-                        switch helper.installState {
-                        case .installed: Text("Đã cài (v\(AppVersion.current))").foregroundStyle(.green)
-                        case .outdated(let v): Text("Phiên bản cũ (v\(v))").foregroundStyle(.orange)
-                        case .notInstalled: Text("Chưa cài").foregroundStyle(.secondary)
-                        case .unknown: Text("Đang kiểm tra…").foregroundStyle(.secondary)
-                        }
+            Section {
+                LabeledContent("Trạng thái") {
+                    switch helper.installState {
+                    case .installed: Text("Đã cài (v\(AppVersion.current))").foregroundStyle(.green)
+                    case .outdated(let v): Text("Phiên bản cũ (v\(v))").foregroundStyle(.orange)
+                    case .notInstalled: Text("Chưa cài").foregroundStyle(.secondary)
+                    case .unknown: Text("Đang kiểm tra…").foregroundStyle(.secondary)
                     }
-                    HStack {
-                        Button(helper.isReady ? "Cài lại helper" : "Cài helper") {
-                            Task { await helper.install() }
-                        }
-                        Button("Gỡ helper", role: .destructive) { confirmUninstall = true }
-                            .disabled(helper.installState == .notInstalled)
-                        if helper.isBusy { ProgressView().controlSize(.small) }
-                    }
-                    if let error = helper.errorMessage {
-                        Text(error).font(.caption).foregroundStyle(.red)
-                    }
-                } header: {
-                    Text("Helper điều khiển sạc")
-                } footer: {
-                    Text("Helper chạy nền với quyền root (\(PowerConstants.helperInstallPath)) để ghi SMC. Gỡ helper sẽ trả việc sạc về mặc định của macOS.")
                 }
+                HStack {
+                    Button(helper.isReady ? "Cài lại helper" : (Platform.isAppleSilicon ? "Cài helper" : "Cài helper (thử nghiệm)")) {
+                        if Platform.isAppleSilicon || helper.isReady {
+                            Task { await helper.install() }
+                        } else {
+                            confirmIntel = true
+                        }
+                    }
+                    Button("Gỡ helper", role: .destructive) { confirmUninstall = true }
+                        .disabled(helper.installState == .notInstalled)
+                    if helper.isBusy { ProgressView().controlSize(.small) }
+                }
+                if let error = helper.errorMessage {
+                    Text(error).font(.caption).foregroundStyle(.red)
+                }
+            } header: {
+                Text("Helper điều khiển sạc")
+            } footer: {
+                Text("Helper chạy nền với quyền root (\(PowerConstants.helperInstallPath)) để ghi SMC. Gỡ helper sẽ trả việc sạc về mặc định của macOS.")
             }
 
             Section("Dữ liệu") {
@@ -66,6 +69,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .intelInstallConfirmation(isPresented: $confirmIntel, helper: helper)
         // Người dùng có thể đổi Login Items trong System Settings, nên đọc lại mỗi khi mở trang.
         .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
         .confirmationDialog("Gỡ helper điều khiển sạc?", isPresented: $confirmUninstall) {

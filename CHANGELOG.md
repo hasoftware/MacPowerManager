@@ -6,6 +6,22 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Điều khiển sạc trên máy Intel (thử nghiệm)** cho MacBook 2018–2020 (chip T2) qua key `BCLM`:
+  giới hạn sạc 50–100%, tạm dừng sạc và bảo vệ nhiệt (giữ ở mức pin hiện tại, tối thiểu 50%).
+  Firmware tự giữ giới hạn cả khi máy ngủ hoặc tắt; pin có thể vượt khoảng 3%.
+  Xả pin chưa hỗ trợ trên Intel. Helper xác minh mỗi lần ghi và tự ghi lại nếu giá trị bị thay đổi.
+  Gỡ helper trả giới hạn về 100%; tắt máy không xóa giới hạn. Nếu chưa trả được, helper được giữ lại kèm lệnh khôi phục.
+- Tự phát hiện khi app chạy từ file `.dmg` hoặc vị trí tạm của macOS (App Translocation) và đề nghị chuyển vào
+  Applications, mở lại bản ở đó rồi thoát (có tùy chọn "Không hỏi lại"; ổ đĩa ngoài ghi được không bị coi là vị trí tạm).
+
+### Sửa lỗi
+- Sau khi app yêu cầu khôi phục để gỡ helper, vòng điều khiển không còn ghi đè lại giới hạn trước khi helper dừng.
+- README: hướng dẫn gỡ thủ công chạy `--restore-defaults` (bắt buộc trên Intel).
+
+### Cải tiến
+- `smc-probe` hiển thị trạng thái `BCLM` và phần trăm pin phần cứng trên máy Intel.
+
 ## [0.1.1] - 2026-10-07
 
 ### Sửa lỗi

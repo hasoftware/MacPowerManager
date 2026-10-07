@@ -35,6 +35,14 @@ do {
     print("Key adapter: \(control.adapterKeys?.rawValue ?? "không hỗ trợ")")
     print("Sạc đang bật: \(control.isChargingEnabled.map(String.init) ?? "?")")
     print("Adapter đang bật: \(control.isAdapterEnabled.map(String.init) ?? "?")")
+    if !Platform.isAppleSilicon {
+        if let intel = IntelChargeLimiter(smc: smc) {
+            print("Intel BCLM (thử nghiệm): giới hạn hiện tại \(intel.currentLimit.map { "\($0)%" } ?? "?"),"
+                  + " pin phần cứng \(intel.hardwarePercent.map { "\($0)%" } ?? "?")")
+        } else {
+            print("Intel: không tìm thấy BCLM dạng ui8 ghi được, chưa hỗ trợ điều khiển sạc")
+        }
+    }
 } catch {
     print("Không mở được SMC: \(error)")
     exit(1)

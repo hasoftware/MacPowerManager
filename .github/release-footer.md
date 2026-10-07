@@ -13,7 +13,8 @@
    Khi cập nhật lên bản mới, app sẽ nhắc **cài lại helper**.
 
 > ⚠️ Không chạy song song với AlDente, batt hoặc app giới hạn sạc khác. Hãy gỡ helper của app kia trước.
-> Máy Intel: hiện chỉ xem thông tin pin, điều khiển sạc đang thử nghiệm.
+> Máy Intel (2018–2020): điều khiển sạc **thử nghiệm** qua `BCLM` (giới hạn 50–100%, chưa hỗ trợ xả pin).
+> Hãy báo lỗi hoặc trải nghiệm qua GitHub Issues để giúp hoàn thiện.
 
 **Gỡ cài đặt:** vào app → **Cài đặt → Gỡ helper** *trước khi* xóa app, nếu không helper vẫn giữ giới hạn sạc.
 Nếu đã lỡ xóa app, xem mục [Gỡ cài đặt](https://github.com/hasoftware/MacPowerManager#gỡ-cài-đặt) trong README.
@@ -23,4 +24,4 @@ Nếu đã lỡ xóa app, xem mục [Gỡ cài đặt](https://github.com/hasoft
 2. Open the app and allow it in **System Settings → Privacy & Security → Open Anyway** (not notarized yet).
 3. Click the menu bar icon → **Cài helper** (Install helper).
 
-Requires macOS 14+. Charge control works on Apple Silicon only for now. To uninstall, use **Cài đặt → Gỡ helper** (Settings → Uninstall helper) before deleting the app.
+Requires macOS 14+. Charge control: full on Apple Silicon, experimental on Intel T2 MacBooks (BCLM, 50–100%). To uninstall, use **Cài đặt → Gỡ helper** (Settings → Uninstall helper) before deleting the app.

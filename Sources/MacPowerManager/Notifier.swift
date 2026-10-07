@@ -20,8 +20,12 @@ final class Notifier {
         center?.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    func evaluate(battery: BatteryInfo, temperature: Double?, helper: HelperStatus?, prefs: Preferences) {
-        if let reason = helper?.reason, reason != lastReason {
+    func evaluate(battery: BatteryInfo, temperature: Double?, helper: HelperStatus?, prefs: Preferences,
+                  firmwareControlled: Bool = false) {
+        // Intel: firmware còn sạc (vượt giới hạn ~3% hoặc sạc bù) thì chưa thực sự "đạt giới hạn" hay "tạm dừng";
+        // đang rút sạc thì cũng không có gì để báo. Bỏ qua để không báo nhầm và không báo lại sau mỗi lần sạc bù.
+        let skipReason = firmwareControlled && (battery.isCharging || !battery.externalConnected)
+        if !skipReason, let reason = helper?.reason, reason != lastReason {
             if lastReason != nil {
                 if reason == .limitReached, prefs.notifyLimitReached {
                     post(id: "limit-reached", "Đã đạt giới hạn sạc", "Pin ở mức \(battery.percent)%. Máy sẽ dùng điện trực tiếp từ adapter.")

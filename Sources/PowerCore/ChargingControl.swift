@@ -84,12 +84,7 @@ public final class ChargingControl {
     // MARK: Cảm biến
 
     /// Nhiệt độ pin cao nhất trong các cảm biến TB0T…TB2T (°C).
-    public var batteryTemperature: Double? {
-        ["TB0T", "TB1T", "TB2T"]
-            .compactMap { smc.read($0)?.doubleValue }
-            .filter { $0 > 0 && $0 < 120 }
-            .max()
-    }
+    public var batteryTemperature: Double? { SMCSensors.batteryTemperature(smc) }
 
     /// Các key ngắt adapter đã biết. Khi gỡ cài đặt, xóa hết về 0 dù không phải do app ghi.
     static let allAdapterKeys = ["CHIE", "CH0I", "CH0J"]

@@ -24,6 +24,10 @@ final class AppModel {
         started = true
         notifier.requestAuthorization()
         refresh()
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            AppMover.promptIfNeeded()
+        }
         Task { await helper.refresh() }
 
         observer = BatteryReader.observeChanges { [weak self] in
@@ -42,12 +46,21 @@ final class AppModel {
         smcTemperature = sensors?.batteryTemperature
         guard let battery else { return }
         history.record(battery: battery, temperature: temperature)
-        notifier.evaluate(battery: battery, temperature: temperature, helper: helper.status, prefs: prefs)
+        notifier.evaluate(battery: battery, temperature: temperature, helper: helper.status, prefs: prefs,
+                          firmwareControlled: isIntelBackend)
     }
 
-    /// Cấu hình đang được helper thực thi, hoặc nil nếu chưa có helper (hoặc máy Intel).
+    /// Máy Intel dùng `BCLM`: firmware tự quyết định ngừng sạc theo phần trăm phần cứng.
+    var isIntelBackend: Bool { helper.status?.chargingKeys == "BCLM" }
+
+    /// Helper đã cài nhưng máy không có key điều khiển sạc nào dùng được.
+    var controlUnsupported: Bool {
+        helper.isReady && helper.status?.chargingKeys == nil
+    }
+
+    /// Cấu hình đang được helper thực thi, hoặc nil nếu chưa có helper / máy không hỗ trợ.
     var activeConfig: PowerConfig? {
-        Platform.isAppleSilicon && helper.isReady ? helper.config : nil
+        helper.isReady && !controlUnsupported ? helper.config : nil
     }
 
     /// Ưu tiên cảm biến SMC (sát thực tế hơn), dự phòng bằng giá trị từ IOKit.
@@ -69,6 +82,10 @@ final class AppModel {
     var statusText: String {
         guard let battery else { return "Không tìm thấy pin" }
         if let status = helper.status, status.reason != .normal {
+            // Intel: firmware vẫn sạc tới mức BCLM (vượt giới hạn ~3%, hoặc tạm dừng dưới 50%).
+            if isIntelBackend && battery.isCharging {
+                return "Đang sạc tới \(status.firmwareLimit.map { "\($0)%" } ?? "giới hạn") (giới hạn firmware)"
+            }
             return status.reason.label
         }
         if battery.isCharging {

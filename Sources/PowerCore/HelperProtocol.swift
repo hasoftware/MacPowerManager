@@ -21,10 +21,12 @@ public struct HelperStatus: Codable, Equatable, Sendable {
     public var reason: ChargeReason
     public var temperature: Double?
     public var lastError: String?
+    /// Máy Intel: giá trị `BCLM` hiện tại (firmware tự giữ giới hạn này).
+    public var firmwareLimit: Int?
 
     public init(version: String, config: PowerConfig, chargingKeys: String?, adapterKeys: String?,
                 chargingEnabled: Bool?, adapterEnabled: Bool?, reason: ChargeReason,
-                temperature: Double?, lastError: String?) {
+                temperature: Double?, lastError: String?, firmwareLimit: Int? = nil) {
         self.version = version
         self.config = config
         self.chargingKeys = chargingKeys
@@ -34,5 +36,6 @@ public struct HelperStatus: Codable, Equatable, Sendable {
         self.reason = reason
         self.temperature = temperature
         self.lastError = lastError
+        self.firmwareLimit = firmwareLimit
     }
 }

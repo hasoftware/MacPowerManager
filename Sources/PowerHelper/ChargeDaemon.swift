@@ -16,12 +16,18 @@ private let kCapabilityGraphics = 0x2
 final class ChargeDaemon {
     private let smc: SMC
     private let control: ChargingControl
+    /// Máy Intel: firmware tự giữ giới hạn qua `BCLM` (thử nghiệm). Nil trên Apple Silicon.
+    private let intel: IntelChargeLimiter?
+    private var lastIntelLimit: Int?
     private(set) var config: PowerConfig
     private var state = ControllerState()
     private var lastDecision: ControlDecision?
     private var lastTemperature: Double?
     private var lastError: String?
     private var phase: WakePhase = .awake
+    /// Sau khi app yêu cầu khôi phục để gỡ cài đặt, ngừng ghi SMC một lúc để vòng lặp không ghi đè
+    /// trước khi script gỡ dừng helper. Tự hết hạn nếu người dùng hủy việc gỡ.
+    private var suspendedUntil: Date?
     private var sleepPendingSince: Date?
 
     private var timer: DispatchSourceTimer?
@@ -34,8 +40,13 @@ final class ChargeDaemon {
     init() throws {
         smc = try SMC()
         control = ChargingControl(smc: smc)
+        intel = IntelChargeLimiter(smc: smc)
         config = Self.loadConfig()
-        log("Key sạc: \(control.chargingKeys?.rawValue ?? "không có"), adapter: \(control.adapterKeys?.rawValue ?? "không có")")
+        if let intel {
+            log("Máy Intel: dùng BCLM (thử nghiệm), hiện tại \(intel.currentLimit.map(String.init) ?? "?")%")
+        } else {
+            log("Key sạc: \(control.chargingKeys?.rawValue ?? "không có"), adapter: \(control.adapterKeys?.rawValue ?? "không có")")
+        }
 
         // Trạng thái an toàn khi khởi động: nếu lần chạy trước bị dừng đột ngột lúc đang xả pin,
         // adapter có thể vẫn bị ngắt. Bật lại ngay, giữ nguyên trạng thái chặn sạc để tránh sạc thoáng qua.
@@ -61,16 +72,24 @@ final class ChargeDaemon {
     // MARK: Vòng điều khiển
 
     func evaluate() {
+        if let until = suspendedUntil {
+            guard Date() >= until else { return }
+            suspendedUntil = nil
+            log("Tiếp tục điều khiển sạc (không có việc gỡ cài đặt nào diễn ra)")
+        }
         updatePhase()
         guard let battery = BatteryReader.read() else {
             lastError = "Không đọc được thông tin pin"
             return
         }
-        let temperature = control.batteryTemperature ?? battery.temperature
+        let temperature = intel?.batteryTemperature ?? control.batteryTemperature ?? battery.temperature
         lastTemperature = temperature
 
+        // Intel không xả pin được: bỏ qua chế độ xả.
+        var effective = config
+        if intel != nil { effective.dischargeEnabled = false }
         let decision = ChargeController.decide(percent: battery.percent, temperature: temperature,
-                                               config: config, state: &state)
+                                               config: effective, state: &state)
         if decision.dischargeFinished && config.dischargeEnabled {
             log("Đã xả xong tới \(battery.percent)%")
             config.dischargeEnabled = false
@@ -80,6 +99,10 @@ final class ChargeDaemon {
             log("\(battery.percent)% \(temperature.map { String(format: "%.1f°C", $0) } ?? "") -> \(decision.reason.rawValue)")
         }
         lastDecision = decision
+        if let intel {
+            applyIntel(intel, decision: decision, battery: battery)
+            return
+        }
         let gated = SleepGate.constrain(charging: decision.chargingEnabled, adapter: decision.adapterEnabled,
                                         currentCharging: control.isChargingEnabled,
                                         currentAdapter: control.isAdapterEnabled, phase: phase,
@@ -87,6 +110,31 @@ final class ChargeDaemon {
                                         holdsLevelDuringSleep: SleepGate.holdsLevelDuringSleep(config))
         applyToHardware(charging: gated.charging, adapter: gated.adapter)
         updateSleepAssertion(preventSleep: !gated.adapter)
+    }
+
+    /// Intel: ghi mức `BCLM` mong muốn. Firmware tự ngừng sạc khi đạt mức đó, kể cả lúc ngủ hoặc tắt máy,
+    /// nên không cần cổng ngủ. Ghi lại nếu firmware/macOS tự đổi giá trị (ví dụ sau khi reset SMC).
+    private func applyIntel(_ intel: IntelChargeLimiter, decision: ControlDecision, battery: BatteryInfo) {
+        let target = IntelPolicy.firmwareLimit(config: config, reason: decision.reason,
+                                               hardwarePercent: intel.hardwarePercent, percent: battery.percent)
+        let current = intel.currentLimit
+        guard current != target else {
+            lastIntelLimit = target
+            lastError = nil
+            return
+        }
+        if let last = lastIntelLimit, current != last {
+            log("BCLM bị đổi từ bên ngoài: \(last)% -> \(current.map(String.init) ?? "?")%, ghi lại")
+        }
+        do {
+            try intel.setLimit(target)
+            lastIntelLimit = target
+            lastError = nil
+            log("BCLM = \(target)%")
+        } catch {
+            lastError = "Không ghi được BCLM: \(error)"
+            log("Ghi BCLM thất bại: \(error)")
+        }
     }
 
     /// Chuyển từ dark wake / sắp ngủ về trạng thái thức khi máy đã thức hẳn.
@@ -181,6 +229,7 @@ final class ChargeDaemon {
     }
 
     private func prepareForSleep() {
+        guard intel == nil else { return }  // Intel: firmware tự giữ giới hạn khi ngủ.
         // Không bao giờ để máy ngủ khi adapter đang bị ngắt.
         let state = SleepGate.sleepState(config: config, currentCharging: control.isChargingEnabled,
                                          percent: BatteryReader.read()?.percent)
@@ -192,6 +241,7 @@ final class ChargeDaemon {
     // MARK: Cấu hình
 
     func update(config newConfig: PowerConfig) {
+        suspendedUntil = nil
         let wasDischarging = config.dischargeEnabled
         config = newConfig.sanitized()
         if config.dischargeEnabled && !wasDischarging {
@@ -201,23 +251,33 @@ final class ChargeDaemon {
         evaluate()
     }
 
-    func restoreDefaults() {
+    /// - forUninstall false (tắt máy, launchd dừng helper): Apple Silicon trả SMC về mặc định để không
+    ///   kẹt ở trạng thái chặn sạc/ngắt adapter; Intel giữ nguyên `BCLM` để firmware tiếp tục giới hạn khi máy tắt.
+    /// - forUninstall true: trả mọi thứ về mặc định của macOS, kể cả `BCLM` = 100.
+    func restoreDefaults(forUninstall: Bool) {
         updateSleepAssertion(preventSleep: false)
         if !control.restoreDefaults() {
             log("Khôi phục mặc định chưa xác minh được")
+        }
+        if forUninstall, let intel, !intel.restoreDefaults() {
+            log("Không trả được BCLM về 100%")
+        }
+        if forUninstall {
+            suspendedUntil = Date().addingTimeInterval(120)
         }
     }
 
     func status() -> HelperStatus {
         HelperStatus(version: AppVersion.current,
                      config: config,
-                     chargingKeys: control.chargingKeys?.rawValue,
+                     chargingKeys: intel != nil ? "BCLM" : control.chargingKeys?.rawValue,
                      adapterKeys: control.adapterKeys?.rawValue,
                      chargingEnabled: control.isChargingEnabled,
                      adapterEnabled: control.isAdapterEnabled,
                      reason: lastDecision?.reason ?? .normal,
                      temperature: lastTemperature,
-                     lastError: lastError)
+                     lastError: lastError,
+                     firmwareLimit: intel?.currentLimit)
     }
 
     private static func loadConfig() -> PowerConfig {

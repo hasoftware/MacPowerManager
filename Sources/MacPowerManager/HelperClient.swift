@@ -106,7 +106,10 @@ final class HelperClient {
         // Truyền helper đi kèm app để script dùng nó khôi phục (helper đang cài có thể là bản cũ).
         let bundledHelper = Bundle.main.url(forAuxiliaryExecutable: "PowerHelper")?.path
         let output = await runPrivileged(script: script, arguments: ["uninstall"] + [bundledHelper].compactMap { $0 })
-        if output.contains("MPM-E3") {
+        if output.contains("MPM-E4") {
+            errorMessage = "Đã tắt helper nhưng chưa trả được giới hạn sạc của firmware (BCLM) về 100%. "
+                + "Chạy trong Terminal: sudo \(PowerConstants.helperInstallPath) --restore-defaults"
+        } else if output.contains("MPM-E3") {
             errorMessage = "Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định."
         }
         resetConnection()

@@ -10,9 +10,14 @@ guard getuid() == 0 else {
 }
 
 /// Trả SMC về mặc định của macOS mà không cần daemon (dùng khi gỡ cài đặt hoặc khi bị dừng sớm).
-func restoreSMCDefaults() -> Bool {
+/// Trên Intel chỉ trả `BCLM` về 100% khi gỡ cài đặt (xem `ChargeDaemon.restoreDefaults`).
+func restoreSMCDefaults(forUninstall: Bool) -> Bool {
     guard let smc = try? SMC() else { return false }
-    return ChargingControl(smc: smc).restoreDefaults()
+    var ok = ChargingControl(smc: smc).restoreDefaults()
+    if forUninstall, let intel = IntelChargeLimiter(smc: smc) {
+        ok = intel.restoreDefaults() && ok
+    }
+    return ok
 }
 
 // 1. Cài handler tín hiệu trước tiên: khi bị dừng (gỡ cài đặt, launchctl bootout) phải trả SMC
@@ -25,9 +30,9 @@ let signalSources = [SIGTERM, SIGINT].map { sig in
     source.setEventHandler {
         log("Nhận tín hiệu \(sig), khôi phục mặc định và thoát")
         if let daemon {
-            daemon.restoreDefaults()
+            daemon.restoreDefaults(forUninstall: false)
         } else {
-            _ = restoreSMCDefaults()
+            _ = restoreSMCDefaults(forUninstall: false)
         }
         exit(0)
     }
@@ -43,7 +48,7 @@ if !arguments.isEmpty && arguments != ["--restore-defaults"] {
     exit(64)
 }
 if arguments == ["--restore-defaults"] {
-    let ok = restoreSMCDefaults()
+    let ok = restoreSMCDefaults(forUninstall: true)
     print(ok ? "Đã khôi phục sạc và adapter về mặc định." : "Không xác minh được việc khôi phục.")
     exit(ok ? 0 : 1)
 }

@@ -29,8 +29,10 @@ Vòng điều khiển chạy trong một helper nền (LaunchDaemon), nên giớ
 
 - macOS 14 Sonoma trở lên
 - **Apple Silicon (M1 trở lên)**: đầy đủ tính năng
-- **Intel**: hiện chỉ xem thông tin pin, lịch sử, thông báo. Điều khiển sạc trên Intel đang thử nghiệm,
-  bạn có thể giúp bằng cách gửi kết quả `make probe` qua [Issues](https://github.com/hasoftware/MacPowerManager/issues).
+- **Intel (2018–2020, chip T2)**: thông tin pin, lịch sử, thông báo, và **điều khiển sạc thử nghiệm** qua `BCLM`
+  (giới hạn 50–100%, tạm dừng, bảo vệ nhiệt; chưa hỗ trợ xả pin). Firmware giữ giới hạn cả khi máy tắt,
+  pin có thể vượt khoảng 3%. Nếu bạn dùng máy Intel, hãy gửi kết quả `make probe` và trải nghiệm qua
+  [Issues](https://github.com/hasoftware/MacPowerManager/issues) để giúp hoàn thiện.
 
 ## Tải về (không cần build)
 
@@ -71,15 +73,20 @@ make package   # build universal và tạo dist/*.dmg, dist/*.zip
 1. Mở app → **Cài đặt** → **Gỡ helper** (hoặc `make uninstall-helper` nếu build từ mã nguồn). Sạc sẽ trở về mặc định của macOS.
 2. Xóa `/Applications/MacPowerManager.app` và `~/Library/Application Support/MacPowerManager`.
 
-Nếu đã lỡ xóa app trước khi gỡ helper, chạy trong Terminal (helper sẽ tự khôi phục sạc khi bị dừng;
-nếu không chắc, khởi động lại máy để SMC trở về mặc định):
+Nếu đã lỡ xóa app trước khi gỡ helper, chạy trong Terminal:
 
 ```sh
+H=/Library/PrivilegedHelperTools/com.hasoftware.MacPowerManager.helper
 sudo launchctl bootout system/com.hasoftware.MacPowerManager.helper
-sudo rm -f /Library/PrivilegedHelperTools/com.hasoftware.MacPowerManager.helper \
-           /Library/LaunchDaemons/com.hasoftware.MacPowerManager.helper.plist
+grep -q -- --restore-defaults "$H" && sudo "$H" --restore-defaults
+sudo rm -f "$H" /Library/LaunchDaemons/com.hasoftware.MacPowerManager.helper.plist
 sudo rm -rf "/Library/Application Support/MacPowerManager"
 ```
+
+- **Apple Silicon**: helper tự khôi phục sạc khi bị dừng; nếu không chắc, khởi động lại máy để SMC trở về mặc định.
+- **Intel**: dòng `--restore-defaults` là bắt buộc. Giới hạn `BCLM` được lưu trong firmware và **không** mất khi
+  khởi động lại. Nếu đã lỡ xóa helper, cài lại app rồi chạy
+  `sudo /Applications/MacPowerManager.app/Contents/MacOS/PowerHelper --restore-defaults`, hoặc reset SMC.
 
 ## Kiến trúc
 
@@ -91,11 +98,13 @@ sudo rm -rf "/Library/Application Support/MacPowerManager"
 | `MacPowerManager` | App SwiftUI: `MenuBarExtra` và cửa sổ chi tiết |
 | `smc-probe` | CLI chẩn đoán SMC key |
 
-SMC key được dò theo firmware: `CHTE`/`CHIE` (mới) hoặc `CH0B`+`CH0C`/`CH0I` (cũ).
+SMC key được dò theo firmware: `CHTE`/`CHIE` (mới) hoặc `CH0B`+`CH0C`/`CH0I` (cũ) trên Apple Silicon,
+`BCLM` trên Intel (thử nghiệm; firmware tự giữ giới hạn, helper không khôi phục khi tắt máy mà chỉ khi gỡ cài đặt).
 
 ### Cơ chế an toàn
 - Pin ≤ 10% thì luôn bật adapter và cho phép sạc.
-- Helper nhận SIGTERM (gỡ, `launchctl bootout`) thì khôi phục sạc + adapter về mặc định.
+- Apple Silicon: helper nhận SIGTERM (gỡ, `launchctl bootout`, tắt máy) thì khôi phục sạc + adapter về mặc định.
+  Intel: giới hạn `BCLM` được firmware giữ cả khi helper dừng hoặc máy tắt; chỉ gỡ helper mới trả về 100%.
 - Trước khi ngủ luôn bật lại adapter. Chế độ xả không được khôi phục sau khi helper khởi động lại.
 - Helper chỉ nhận kết nối XPC từ client có identifier `com.hasoftware.MacPowerManager`, và mọi cấu hình nhận được đều bị kẹp về khoảng an toàn.
 
@@ -143,7 +152,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 - battery details and history charts
 - notifications
 
-A root LaunchDaemon helper writes the SMC charging keys (`CHTE`/`CHIE`, or `CH0B`/`CH0C`/`CH0I` on older firmware) and keeps enforcing the limit when the app is closed.
+A root LaunchDaemon helper writes the SMC charging keys (`CHTE`/`CHIE`, or `CH0B`/`CH0C`/`CH0I` on older firmware) and keeps enforcing the limit when the app is closed. Intel T2 MacBooks get experimental support via `BCLM` (50–100% limit, enforced by firmware even when off).
 Build with `make install`, open the app, then click **Install helper**. Don't run it alongside other charge limiters. The UI is currently in Vietnamese.
 
 ## Giấy phép

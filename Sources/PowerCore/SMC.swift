@@ -70,8 +70,14 @@ public struct SMCReading: Sendable {
     }
 }
 
+/// Đọc/ghi SMC. Tách thành protocol để kiểm thử các backend bằng SMC giả lập.
+public protocol SMCAccess: AnyObject {
+    func read(_ key: String) -> SMCReading?
+    func write(_ key: String, _ bytes: [UInt8]) throws
+}
+
 /// Kết nối tới AppleSMC. Đọc không cần quyền root, ghi thì cần.
-public final class SMC {
+public final class SMC: SMCAccess {
     private var connection: io_connect_t = 0
 
     public init() throws {

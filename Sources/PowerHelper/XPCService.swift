@@ -48,7 +48,7 @@ final class HelperService: NSObject, PowerHelperProtocol {
 
     func restoreDefaults(reply: @escaping () -> Void) {
         DispatchQueue.main.async {
-            self.daemon.restoreDefaults()
+            self.daemon.restoreDefaults(forUninstall: true)
             reply()
         }
     }
