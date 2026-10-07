@@ -1,7 +1,8 @@
 #!/bin/sh
 # Cài hoặc gỡ PowerHelper dưới dạng LaunchDaemon. Cần chạy bằng root.
-#   helper-install.sh install <đường-dẫn-helper> <đường-dẫn-plist>
+#   helper-install.sh install <đường-dẫn-helper> <đường-dẫn-plist> [<đường-dẫn-app>]
 #   helper-install.sh uninstall [<helper-đi-kèm-app>]
+# Khi cài có đường dẫn app: ghi cdhash của app vào trusted-clients.json để helper chỉ nhận lệnh từ đúng bản app này.
 # Mã thoát khi gỡ: 3 = Apple Silicon, đã gỡ nhưng chưa xác minh được việc khôi phục (khởi động lại sẽ reset SMC);
 #                  4 = Intel, chưa trả được BCLM về 100% (BCLM được lưu trong firmware), helper được giữ lại để chạy lại.
 set -eu
@@ -9,6 +10,8 @@ set -eu
 LABEL="com.hasoftware.MacPowerManager.helper"
 HELPER_DST="/Library/PrivilegedHelperTools/$LABEL"
 PLIST_DST="/Library/LaunchDaemons/$LABEL.plist"
+SUPPORT_DIR="/Library/Application Support/MacPowerManager"
+TRUSTED_CLIENTS="$SUPPORT_DIR/trusted-clients.json"
 
 stop_daemon() {
     launchctl bootout "system/$LABEL" 2>/dev/null || true
@@ -53,9 +56,44 @@ run_restore() {
     return $rc
 }
 
+# Ghi cdhash của từng kiến trúc trong file chạy chính của app (bản universal có 2 cdhash).
+# Không tính được cdhash nào thì xóa file cũ: helper quay về chỉ kiểm tra bundle identifier,
+# thay vì ghim theo một bản app khác và từ chối bản vừa cài.
+write_trusted_clients() {
+    app="$1"
+    hashes=""
+    for arch in arm64 x86_64; do
+        h="$(codesign -dvvv --arch "$arch" "$app" 2>&1 | sed -n 's/^CDHash=\([0-9a-fA-F]\{40\}\)$/\1/p' | head -n 1)"
+        [ -n "$h" ] || continue
+        case " $hashes " in *" $h "*) ;; *) hashes="$hashes $h" ;; esac
+    done
+    if [ -z "$hashes" ]; then
+        echo "Không đọc được cdhash của $app, helper chỉ kiểm tra bundle identifier" >&2
+        rm -f "$TRUSTED_CLIENTS"
+        return 0
+    fi
+    json=""
+    for h in $hashes; do
+        json="$json${json:+,}\"$h\""
+    done
+    mkdir -p "$SUPPORT_DIR"
+    chown root:wheel "$SUPPORT_DIR"
+    chmod 755 "$SUPPORT_DIR"
+    tmp="$(mktemp "$SUPPORT_DIR/.trusted-clients.XXXXXX")"
+    printf '{"cdhashes":[%s]}\n' "$json" >"$tmp"
+    chown root:wheel "$tmp"
+    chmod 644 "$tmp"
+    mv -f "$tmp" "$TRUSTED_CLIENTS"
+}
+
 case "${1:-}" in
 install)
     [ -f "${2:-}" ] && [ -f "${3:-}" ] || { echo "Thiếu helper hoặc plist" >&2; exit 1; }
+    # Ghi danh sách client trước khi dừng helper cũ: lỗi ở bước này không để máy thiếu helper.
+    if [ -n "${4:-}" ]; then
+        [ -d "$4" ] || { echo "Không tìm thấy app: $4" >&2; exit 1; }
+        write_trusted_clients "$4"
+    fi
     stop_daemon
     mkdir -p /Library/PrivilegedHelperTools
     # -X: không chép extended attributes (kể cả com.apple.quarantine của bản tải từ GitHub),
@@ -89,7 +127,7 @@ uninstall)
         exit 4
     fi
     rm -f "$HELPER_DST"
-    rm -rf "/Library/Application Support/MacPowerManager"
+    rm -rf "$SUPPORT_DIR"
     if [ $restored -ne 0 ]; then
         echo "MPM-E3: Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định." >&2
         exit 3
@@ -97,7 +135,7 @@ uninstall)
     echo "Đã gỡ $LABEL"
     ;;
 *)
-    echo "Cách dùng: $0 install <helper> <plist> | uninstall" >&2
+    echo "Cách dùng: $0 install <helper> <plist> [<app>] | uninstall [<helper>]" >&2
     exit 1
     ;;
 esac

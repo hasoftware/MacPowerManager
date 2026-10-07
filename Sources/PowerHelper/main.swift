@@ -13,7 +13,9 @@ guard getuid() == 0 else {
 /// Trên Intel chỉ trả `BCLM` về 100% khi gỡ cài đặt (xem `ChargeDaemon.restoreDefaults`).
 func restoreSMCDefaults(forUninstall: Bool) -> Bool {
     guard let smc = try? SMC() else { return false }
-    var ok = ChargingControl(smc: smc).restoreDefaults()
+    // Xóa cả các key chặn sạc helper từng ghi (ví dụ CH0B khi dùng phương thức cũ).
+    let written = Set(ChargeDaemon.loadRuntime()?.lastWritten.keys.map { $0 } ?? [])
+    var ok = ChargingControl(smc: smc).restoreDefaults(clearing: written)
     if forUninstall, let intel = IntelChargeLimiter(smc: smc) {
         ok = intel.restoreDefaults() && ok
     }
@@ -30,7 +32,7 @@ let signalSources = [SIGTERM, SIGINT].map { sig in
     source.setEventHandler {
         log("Nhận tín hiệu \(sig), khôi phục mặc định và thoát")
         if let daemon {
-            daemon.restoreDefaults(forUninstall: false)
+            daemon.prepareForExit()
         } else {
             _ = restoreSMCDefaults(forUninstall: false)
         }

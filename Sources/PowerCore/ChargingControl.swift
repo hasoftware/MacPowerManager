@@ -2,38 +2,86 @@ import Foundation
 
 /// Bật/tắt sạc và adapter qua SMC.
 ///
-/// Apple không có API công khai cho việc này. Key được dò theo firmware:
-/// - Firmware mới (macOS 26+): `CHTE` (sạc) và `CHIE` (adapter).
-/// - Firmware cũ hơn: `CH0B`/`CH0C` (sạc) và `CH0I` (adapter).
+/// Apple không có API công khai cho việc này. Phương thức được chọn theo khả năng của từng key
+/// (`CapabilityProbe`), không theo phiên bản macOS:
+/// - Sạc: `CHTE`, nếu không có thì `CH0B` + `CH0C`.
+/// - Adapter: `CHIE`, nếu không có thì `CH0I`. `CH0J` chưa rõ giá trị ngắt nên chỉ được xóa khi khôi phục.
+///
+/// Firmware có thể khóa key (ghi bị từ chối với kIOReturnNotPrivileged dù chạy bằng root). Khi đó key bị đánh dấu
+/// khóa và chuyển sang phương thức kế tiếp; key bị khóa không bao giờ được thử ghi lại trong vòng điều khiển.
 public final class ChargingControl {
-    public enum ChargingKeys: String, Codable, Sendable { case chte = "CHTE", ch0bc = "CH0B/CH0C" }
-    public enum AdapterKeys: String, Codable, Sendable { case chie = "CHIE", ch0i = "CH0I" }
+    public enum ChargingKeys: String, Codable, Sendable, CaseIterable {
+        case chte = "CHTE", ch0bc = "CH0B/CH0C"
 
-    private let smc: SMC
-    public let chargingKeys: ChargingKeys?
-    public let adapterKeys: AdapterKeys?
+        var keys: [String] {
+            switch self {
+            case .chte: ["CHTE"]
+            case .ch0bc: ["CH0B", "CH0C"]
+            }
+        }
+    }
 
-    public init(smc: SMC) {
+    public enum AdapterKeys: String, Codable, Sendable, CaseIterable {
+        case chie = "CHIE", ch0i = "CH0I"
+
+        var key: String { rawValue }
+    }
+
+    private let smc: SMCAccess
+    private let isAppleSilicon: Bool
+    public private(set) var chargingKeys: ChargingKeys?
+    public private(set) var adapterKeys: AdapterKeys?
+    /// Khả năng của các control key; cờ `locked` được cập nhật khi ghi bị firmware từ chối.
+    public private(set) var keys: [KeyCapability]
+
+    public convenience init(smc: SMCAccess) {
+        self.init(smc: smc, isAppleSilicon: Platform.isAppleSilicon)
+    }
+
+    public init(smc: SMCAccess, isAppleSilicon: Bool) {
         self.smc = smc
-        guard Platform.isAppleSilicon else {
+        self.isAppleSilicon = isAppleSilicon
+        keys = CapabilityProbe.probe(smc)
+        selectMethods()
+    }
+
+    public var capabilities: Capabilities {
+        Capabilities(chargeMethod: chargingKeys?.rawValue, adapterMethod: adapterKeys?.rawValue, keys: keys)
+    }
+
+    public var lockedKeys: Set<String> { Set(keys.filter(\.locked).map(\.name)) }
+
+    private func capability(_ key: String) -> KeyCapability? { keys.first { $0.name == key } }
+
+    private func usable(_ key: String) -> Bool { CapabilityProbe.isUsable(capability(key)) }
+
+    private func selectMethods() {
+        guard isAppleSilicon else {
             chargingKeys = nil
             adapterKeys = nil
             return
         }
-        if smc.hasKey("CHTE") {
-            chargingKeys = .chte
-        } else if smc.hasKey("CH0B") && smc.hasKey("CH0C") {
-            chargingKeys = .ch0bc
-        } else {
-            chargingKeys = nil
-        }
-        if smc.hasKey("CHIE") {
-            adapterKeys = .chie
-        } else if smc.hasKey("CH0I") {
-            adapterKeys = .ch0i
-        } else {
-            adapterKeys = nil
-        }
+        chargingKeys = ChargingKeys.allCases.first { $0.keys.allSatisfy(usable) }
+        adapterKeys = AdapterKeys.allCases.first { usable($0.key) }
+    }
+
+    /// Đánh dấu key bị firmware khóa và chọn lại phương thức.
+    private func lock(_ key: String) {
+        guard let index = keys.firstIndex(where: { $0.name == key }) else { return }
+        keys[index].locked = true
+        selectMethods()
+    }
+
+    private static func isNotPrivileged(_ error: Error) -> Bool {
+        (error as? SMCError)?.code == kIOReturnNotPrivileged
+    }
+
+    /// Ghi rồi đọc lại để xác minh; sai thì thử lại một lần.
+    private func write(_ key: String, _ bytes: [UInt8]) throws {
+        try smc.write(key, bytes)
+        guard smc.read(key)?.bytes != bytes else { return }
+        try smc.write(key, bytes)
+        guard smc.read(key)?.bytes == bytes else { throw SMCError(key: key, code: kIOReturnError) }
     }
 
     // MARK: Sạc
@@ -51,34 +99,68 @@ public final class ChargingControl {
     }
 
     public func setChargingEnabled(_ enabled: Bool) throws {
-        switch chargingKeys {
+        // Mỗi phương thức chỉ được thử một lần: key bị khóa thì chuyển sang phương thức kế tiếp.
+        while let method = chargingKeys {
+            do {
+                try write(method, enabled: enabled)
+                return
+            } catch let error as SMCError where Self.isNotPrivileged(error) {
+                lock(error.key)
+                if chargingKeys == method { throw error }
+            }
+        }
+        throw SMCError(key: "charging", code: kIOReturnUnsupported)
+    }
+
+    private func write(_ method: ChargingKeys, enabled: Bool) throws {
+        switch method {
         case .chte:
-            try smc.write("CHTE", enabled ? [0x00, 0x00, 0x00, 0x00] : [0x01, 0x00, 0x00, 0x00])
+            try write("CHTE", enabled ? [0x00, 0x00, 0x00, 0x00] : [0x01, 0x00, 0x00, 0x00])
         case .ch0bc:
             let v: UInt8 = enabled ? 0x00 : 0x02
-            try smc.write("CH0B", [v])
-            try smc.write("CH0C", [v])
-        case nil:
-            throw SMCError(key: "charging", code: kIOReturnUnsupported)
+            try write("CH0B", [v])
+            do {
+                try write("CH0C", [v])
+            } catch {
+                // Không để CH0B chặn sạc một mình khi phương thức này không dùng được.
+                if !enabled { try? write("CH0B", [0x00]) }
+                throw error
+            }
         }
     }
 
     // MARK: Adapter (tắt adapter = máy chạy bằng pin dù đang cắm sạc)
 
     public var isAdapterEnabled: Bool? {
-        switch adapterKeys {
-        case .chie: return smc.read("CHIE").map { $0.bytes.allSatisfy { $0 == 0 } }
-        case .ch0i: return smc.read("CH0I").map { $0.bytes.allSatisfy { $0 == 0 } }
-        case nil: return nil
-        }
+        guard let adapterKeys else { return nil }
+        return smc.read(adapterKeys.key).map { $0.bytes.allSatisfy { $0 == 0 } }
     }
 
     public func setAdapterEnabled(_ enabled: Bool) throws {
-        switch adapterKeys {
-        case .chie: try smc.write("CHIE", [enabled ? 0x00 : 0x08])
-        case .ch0i: try smc.write("CH0I", [enabled ? 0x00 : 0x01])
-        case nil: throw SMCError(key: "adapter", code: kIOReturnUnsupported)
+        guard adapterKeys != nil else { throw SMCError(key: "adapter", code: kIOReturnUnsupported) }
+        do {
+            try writeAdapter(enabled: enabled)
+        } catch let error where enabled {
+            // Không bật lại được adapter: xóa mọi key ngắt adapter để máy không kẹt ở chế độ chạy pin.
+            clearAdapterKeys()
+            guard Self.allAdapterKeys.allSatisfy(isZeroOrAbsent) else { throw error }
         }
+    }
+
+    private func writeAdapter(enabled: Bool) throws {
+        while let method = adapterKeys {
+            do {
+                switch method {
+                case .chie: try write("CHIE", [enabled ? 0x00 : 0x08])
+                case .ch0i: try write("CH0I", [enabled ? 0x00 : 0x01])
+                }
+                return
+            } catch let error as SMCError where Self.isNotPrivileged(error) {
+                lock(error.key)
+                if adapterKeys == method { throw error }
+            }
+        }
+        throw SMCError(key: "adapter", code: kIOReturnUnsupported)
     }
 
     // MARK: Cảm biến
@@ -86,22 +168,50 @@ public final class ChargingControl {
     /// Nhiệt độ pin cao nhất trong các cảm biến TB0T…TB2T (°C).
     public var batteryTemperature: Double? { SMCSensors.batteryTemperature(smc) }
 
-    /// Các key ngắt adapter đã biết. Khi gỡ cài đặt, xóa hết về 0 dù không phải do app ghi.
+    /// Dòng điện vào pin (mA, dương = đang sạc) từ `B0AC` (si16). Nil nếu không có key.
+    public var batteryCurrentmA: Int? {
+        guard let reading = smc.read("B0AC"), reading.type == "si16", let value = reading.doubleValue else { return nil }
+        return Int(value)
+    }
+
+    // MARK: Khôi phục
+
+    /// Các key ngắt adapter đã biết. Khi khôi phục, xóa hết về 0 dù không phải do app ghi.
     static let allAdapterKeys = ["CHIE", "CH0I", "CH0J"]
 
-    /// Đưa mọi thứ về mặc định của macOS: bật adapter (mọi key ngắt adapter) và cho phép sạc.
-    /// Trả về true nếu đọc lại thấy đúng trạng thái mặc định.
+    private func isZeroOrAbsent(_ key: String) -> Bool {
+        smc.read(key).map { $0.bytes.allSatisfy { $0 == 0 } } ?? true
+    }
+
+    /// Xóa mọi key ngắt adapter đang khác 0, kể cả key không thuộc phương thức đang dùng
+    /// (ví dụ `CH0I` còn lại sau khi phiên trước chuyển phương thức). Trả về các key đã xóa được.
     @discardableResult
-    public func restoreDefaults() -> Bool {
-        guard Platform.isAppleSilicon else { return true }
+    public func clearAdapterKeys() -> [String] {
+        guard isAppleSilicon else { return [] }
+        var cleared: [String] = []
         for key in Self.allAdapterKeys {
             guard let r = smc.read(key), r.bytes.contains(where: { $0 != 0 }) else { continue }
-            try? smc.write(key, Array(repeating: 0, count: r.bytes.count))
+            if (try? write(key, Array(repeating: 0, count: r.bytes.count))) != nil { cleared.append(key) }
         }
+        return cleared
+    }
+
+    /// Đưa mọi thứ về mặc định của macOS: bật adapter (mọi key ngắt adapter) và cho phép sạc.
+    /// - extraKeys: các key chặn sạc helper từng ghi (`RuntimeState.lastWritten`), ví dụ `CH0B` khi phiên trước
+    ///   dùng phương thức cũ. `CH0C` luôn được xóa; `CH0B` chỉ xóa khi có trong danh sách này
+    ///   (macOS cũng dùng nó cho Sạc tối ưu).
+    /// Trả về true nếu đọc lại thấy đúng trạng thái mặc định.
+    @discardableResult
+    public func restoreDefaults(clearing extraKeys: Set<String> = []) -> Bool {
+        guard isAppleSilicon else { return true }
+        clearAdapterKeys()
         if chargingKeys != nil { try? setChargingEnabled(true) }
-        let adaptersClear = Self.allAdapterKeys.allSatisfy { key in
-            smc.read(key).map { $0.bytes.allSatisfy { $0 == 0 } } ?? true
+        let chargeKeys = ["CHTE", "CH0C"] + (extraKeys.contains("CH0B") ? ["CH0B"] : [])
+        for key in chargeKeys where !isZeroOrAbsent(key) {
+            guard let r = smc.read(key), r.isWritable else { continue }
+            try? write(key, Array(repeating: 0, count: r.bytes.count))
         }
+        let adaptersClear = Self.allAdapterKeys.allSatisfy(isZeroOrAbsent)
         return adaptersClear && (chargingKeys == nil || isChargingEnabled == true)
     }
 }

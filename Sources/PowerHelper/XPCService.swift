@@ -9,8 +9,11 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
-        // Chỉ chấp nhận app có đúng bundle identifier đã ký.
-        connection.setCodeSigningRequirement("identifier \"\(PowerConstants.appBundleID)\"")
+        // Chỉ chấp nhận app có đúng bundle identifier đã ký. Nếu script cài đặt đã ghi cdhash của app
+        // (`trusted-clients.json`, root 0644) thì ghim thêm theo cdhash. Đọc lại ở mỗi kết nối để cài lại app
+        // không cần khởi động lại helper.
+        let hashes = TrustedClients.hashes(from: try? Data(contentsOf: PowerConstants.trustedClientsURL))
+        connection.setCodeSigningRequirement(TrustedClients.requirement(cdhashes: hashes))
         connection.exportedInterface = NSXPCInterface(with: PowerHelperProtocol.self)
         connection.exportedObject = HelperService(daemon: daemon)
         connection.resume()
@@ -46,9 +49,14 @@ final class HelperService: NSObject, PowerHelperProtocol {
         }
     }
 
-    /// STUB của giai đoạn 0: gói việc "helper" sẽ xử lý `HelperCommand`.
-    func perform(command: Data, reply: @escaping (Data?) -> Void) {
-        reply(try? JSONEncoder().encode(HelperResponse(ok: false, error: .unsupported)))
+    func perform(command data: Data, reply: @escaping (Data?) -> Void) {
+        guard let command = try? JSONDecoder().decode(HelperCommand.self, from: data) else {
+            reply(try? JSONEncoder().encode(HelperResponse(ok: false, error: .invalidArgument, message: "Lệnh không hợp lệ")))
+            return
+        }
+        DispatchQueue.main.async {
+            reply(try? JSONEncoder().encode(self.daemon.handle(command)))
+        }
     }
 
     func restoreDefaults(reply: @escaping () -> Void) {

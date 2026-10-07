@@ -31,12 +31,19 @@ do {
     }
     let control = ChargingControl(smc: smc)
     print("---")
-    print("Key sạc:     \(control.chargingKeys?.rawValue ?? "không hỗ trợ")")
-    print("Key adapter: \(control.adapterKeys?.rawValue ?? "không hỗ trợ")")
+    print("[Khả năng] (chỉ đọc; key bị firmware khóa chỉ phát hiện được khi helper ghi)")
+    for key in control.keys {
+        let state = key.present ? (key.writable ? "ghi được" : "không ghi được") : "không có"
+        print("  \(key.name)  \(state)\(key.locked ? ", bị khóa" : "")")
+    }
+    let caps = control.capabilities
+    let intelLimiter = Platform.isAppleSilicon ? nil : IntelChargeLimiter(smc: smc)
+    print("Phương thức chặn sạc: \(intelLimiter != nil ? "BCLM" : caps.chargeMethod ?? "không hỗ trợ")")
+    print("Phương thức ngắt adapter: \(caps.adapterMethod ?? "không hỗ trợ")")
     print("Sạc đang bật: \(control.isChargingEnabled.map(String.init) ?? "?")")
     print("Adapter đang bật: \(control.isAdapterEnabled.map(String.init) ?? "?")")
     if !Platform.isAppleSilicon {
-        if let intel = IntelChargeLimiter(smc: smc) {
+        if let intel = intelLimiter {
             print("Intel BCLM (thử nghiệm): giới hạn hiện tại \(intel.currentLimit.map { "\($0)%" } ?? "?"),"
                   + " pin phần cứng \(intel.hardwarePercent.map { "\($0)%" } ?? "?")")
         } else {
