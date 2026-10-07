@@ -31,33 +31,36 @@ struct SettingsView: View {
                     .disabled(!model.prefs.notifyLowBattery)
             }
 
-            Section {
-                LabeledContent("Trạng thái") {
-                    switch helper.installState {
-                    case .installed: Text("Đã cài (v\(PowerConstants.helperVersion))").foregroundStyle(.green)
-                    case .outdated(let v): Text("Phiên bản cũ (v\(v))").foregroundStyle(.orange)
-                    case .notInstalled: Text("Chưa cài").foregroundStyle(.secondary)
-                    case .unknown: Text("Đang kiểm tra…").foregroundStyle(.secondary)
+            if Platform.isAppleSilicon {
+                Section {
+                    LabeledContent("Trạng thái") {
+                        switch helper.installState {
+                        case .installed: Text("Đã cài (v\(AppVersion.current))").foregroundStyle(.green)
+                        case .outdated(let v): Text("Phiên bản cũ (v\(v))").foregroundStyle(.orange)
+                        case .notInstalled: Text("Chưa cài").foregroundStyle(.secondary)
+                        case .unknown: Text("Đang kiểm tra…").foregroundStyle(.secondary)
+                        }
                     }
-                }
-                HStack {
-                    Button(helper.isReady ? "Cài lại helper" : "Cài helper") {
-                        Task { await helper.install() }
+                    HStack {
+                        Button(helper.isReady ? "Cài lại helper" : "Cài helper") {
+                            Task { await helper.install() }
+                        }
+                        Button("Gỡ helper", role: .destructive) { confirmUninstall = true }
+                            .disabled(helper.installState == .notInstalled)
+                        if helper.isBusy { ProgressView().controlSize(.small) }
                     }
-                    Button("Gỡ helper", role: .destructive) { confirmUninstall = true }
-                        .disabled(helper.installState == .notInstalled)
-                    if helper.isBusy { ProgressView().controlSize(.small) }
+                    if let error = helper.errorMessage {
+                        Text(error).font(.caption).foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("Helper điều khiển sạc")
+                } footer: {
+                    Text("Helper chạy nền với quyền root (\(PowerConstants.helperInstallPath)) để ghi SMC. Gỡ helper sẽ trả việc sạc về mặc định của macOS.")
                 }
-                if let error = helper.errorMessage {
-                    Text(error).font(.caption).foregroundStyle(.red)
-                }
-            } header: {
-                Text("Helper điều khiển sạc")
-            } footer: {
-                Text("Helper chạy nền với quyền root (\(PowerConstants.helperInstallPath)) để ghi SMC. Gỡ helper sẽ trả việc sạc về mặc định của macOS.")
             }
 
             Section("Dữ liệu") {
+                LabeledContent("Phiên bản", value: AppVersion.current)
                 LabeledContent("Số mẫu lịch sử", value: "\(model.history.samples.count)")
                 Button("Xóa lịch sử") { model.history.clear() }
             }

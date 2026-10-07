@@ -15,6 +15,11 @@ public final class ChargingControl {
 
     public init(smc: SMC) {
         self.smc = smc
+        guard Platform.isAppleSilicon else {
+            chargingKeys = nil
+            adapterKeys = nil
+            return
+        }
         if smc.hasKey("CHTE") {
             chargingKeys = .chte
         } else if smc.hasKey("CH0B") && smc.hasKey("CH0C") {

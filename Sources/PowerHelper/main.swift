@@ -38,5 +38,5 @@ let signalSources = [SIGTERM, SIGINT].map { sig in
     return source
 }
 
-log("PowerHelper \(PowerConstants.helperVersion) đã khởi động")
+log("PowerHelper \(AppVersion.current) đã khởi động")
 dispatchMain()

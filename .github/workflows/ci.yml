@@ -9,12 +9,14 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Swift version
         run: swift --version
-      - name: Build
-        run: swift build
       - name: Test
         run: swift test
-      - name: Build app bundle
-        run: ./scripts/build-app.sh
+      - name: Build universal app bundle
+        run: UNIVERSAL=1 ./scripts/build-app.sh
+      - name: Package
+        run: ./scripts/package.sh

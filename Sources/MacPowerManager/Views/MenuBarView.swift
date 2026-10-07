@@ -11,7 +11,9 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            if !helper.isReady {
+            if !Platform.isAppleSilicon {
+                IntelNotice()
+            } else if !helper.isReady {
                 HelperBanner()
             } else {
                 Divider()
@@ -56,8 +58,7 @@ struct MenuBarView: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             BatteryGauge(percent: model.battery?.percent ?? 0,
-                         limit: model.helper.isReady && model.helper.config.chargeLimitEnabled
-                             ? model.helper.config.chargeLimit : nil)
+                         limit: model.activeConfig.flatMap { $0.chargeLimitEnabled ? $0.chargeLimit : nil })
                 .frame(width: 56, height: 56)
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(model.battery?.percent ?? 0)%")
@@ -74,7 +75,7 @@ struct MenuBarView: View {
         return Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
             GridRow {
                 StatLabel(title: "Nhiệt độ", value: Format.temperature(model.temperature),
-                          warning: (model.temperature ?? 0) >= model.helper.config.thermalPauseAbove)
+                          warning: (model.temperature ?? 0) >= (model.activeConfig?.thermalPauseAbove ?? 45))
                 StatLabel(title: "Sức khỏe", value: battery.map { String(format: "%.0f%%", $0.health) } ?? "—")
             }
             GridRow {
@@ -164,6 +165,24 @@ struct HelperBanner: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.yellow.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// Máy Intel: chỉ hiển thị thông tin, chưa điều khiển sạc.
+struct IntelNotice: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Máy Intel: chế độ chỉ xem").font(.callout.weight(.medium))
+            Text("Điều khiển sạc trên Intel đang được phát triển (thử nghiệm). Bạn có thể giúp bằng cách gửi kết quả `make probe` lên GitHub Issues.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Link("Mở GitHub Issues", destination: URL(string: "https://github.com/hasoftware/MacPowerManager/issues")!)
+                .font(.caption)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

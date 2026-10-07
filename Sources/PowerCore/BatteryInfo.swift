@@ -58,8 +58,9 @@ public enum BatteryReader {
         info.cycleCount = int("CycleCount") ?? 0
         info.designCycleCount = int("DesignCycleCount9C") ?? 1000
         info.designCapacity = int("DesignCapacity") ?? 0
-        info.maxCapacity = int("AppleRawMaxCapacity") ?? int("NominalChargeCapacity") ?? 0
-        info.currentCapacity = int("AppleRawCurrentCapacity") ?? 0
+        let capacityInMAh = max > 100
+        info.maxCapacity = int("AppleRawMaxCapacity") ?? int("NominalChargeCapacity") ?? (capacityInMAh ? max : 0)
+        info.currentCapacity = int("AppleRawCurrentCapacity") ?? (capacityInMAh ? current : 0)
         info.voltage = int("Voltage") ?? 0
         info.amperage = int("InstantAmperage") ?? int("Amperage") ?? 0
         info.temperature = int("Temperature").map { Double($0) / 100 }

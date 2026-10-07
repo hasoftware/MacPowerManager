@@ -45,6 +45,11 @@ final class AppModel {
         notifier.evaluate(battery: battery, temperature: temperature, helper: helper.status, prefs: prefs)
     }
 
+    /// Cấu hình đang được helper thực thi, hoặc nil nếu chưa có helper (hoặc máy Intel).
+    var activeConfig: PowerConfig? {
+        Platform.isAppleSilicon && helper.isReady ? helper.config : nil
+    }
+
     /// Ưu tiên cảm biến SMC (sát thực tế hơn), dự phòng bằng giá trị từ IOKit.
     var temperature: Double? { smcTemperature ?? battery?.temperature }
 

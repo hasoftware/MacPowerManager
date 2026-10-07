@@ -23,10 +23,13 @@ install)
     [ -f "${2:-}" ] && [ -f "${3:-}" ] || { echo "Thiếu helper hoặc plist" >&2; exit 1; }
     stop_daemon
     mkdir -p /Library/PrivilegedHelperTools
-    cp -f "$2" "$HELPER_DST"
+    # -X: không chép extended attributes (kể cả com.apple.quarantine của bản tải từ GitHub),
+    # nếu không Gatekeeper có thể chặn launchd chạy helper.
+    cp -fX "$2" "$HELPER_DST"
+    xattr -c "$HELPER_DST" 2>/dev/null || true
     chown root:wheel "$HELPER_DST"
     chmod 755 "$HELPER_DST"
-    cp -f "$3" "$PLIST_DST"
+    cp -fX "$3" "$PLIST_DST"
     chown root:wheel "$PLIST_DST"
     chmod 644 "$PLIST_DST"
     launchctl bootstrap system "$PLIST_DST"

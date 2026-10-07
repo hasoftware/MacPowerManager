@@ -26,7 +26,7 @@ final class HelperService: NSObject, PowerHelperProtocol {
     }
 
     func version(reply: @escaping (String) -> Void) {
-        reply(PowerConstants.helperVersion)
+        reply(AppVersion.current)
     }
 
     func status(reply: @escaping (Data?) -> Void) {

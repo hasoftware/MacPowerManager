@@ -37,8 +37,8 @@ struct HistoryView: View {
                             .foregroundStyle(.green.opacity(0.15))
                         LineMark(x: .value("Thời gian", s.date), y: .value("%", s.percent))
                             .foregroundStyle(.green)
-                        if model.helper.config.chargeLimitEnabled {
-                            RuleMark(y: .value("Giới hạn", model.helper.config.chargeLimit))
+                        if let config = model.activeConfig, config.chargeLimitEnabled {
+                            RuleMark(y: .value("Giới hạn", config.chargeLimit))
                                 .foregroundStyle(.secondary)
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                         }
@@ -50,8 +50,8 @@ struct HistoryView: View {
                     Chart(samples.filter { $0.temperature != nil }) { s in
                         LineMark(x: .value("Thời gian", s.date), y: .value("°C", s.temperature ?? 0))
                             .foregroundStyle(.orange)
-                        if model.helper.config.thermalProtectionEnabled {
-                            RuleMark(y: .value("Ngưỡng", model.helper.config.thermalPauseAbove))
+                        if let config = model.activeConfig, config.thermalProtectionEnabled {
+                            RuleMark(y: .value("Ngưỡng", config.thermalPauseAbove))
                                 .foregroundStyle(.red.opacity(0.6))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                         }

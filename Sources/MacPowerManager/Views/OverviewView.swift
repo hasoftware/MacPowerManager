@@ -10,7 +10,7 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(spacing: 16) {
                         BatteryGauge(percent: b.percent,
-                                     limit: model.helper.config.chargeLimitEnabled ? model.helper.config.chargeLimit : nil)
+                                     limit: model.activeConfig.flatMap { $0.chargeLimitEnabled ? $0.chargeLimit : nil })
                             .frame(width: 72, height: 72)
                         VStack(alignment: .leading) {
                             Text("\(b.percent)%").font(.system(size: 34, weight: .semibold, design: .rounded))
@@ -37,8 +37,9 @@ struct OverviewView: View {
                             InfoRow("Cảm biến pin (SMC)", Format.temperature(model.smcTemperature))
                             InfoRow("Gas gauge (IOKit)", Format.temperature(b.temperature))
                             InfoRow("Ngưỡng dừng sạc",
-                                    model.helper.config.thermalProtectionEnabled
-                                        ? Format.temperature(model.helper.config.thermalPauseAbove) : "Tắt")
+                                    model.activeConfig.map {
+                                        $0.thermalProtectionEnabled ? Format.temperature($0.thermalPauseAbove) : "Tắt"
+                                    } ?? "—")
                         }
                         InfoCard(title: "Adapter", icon: "powerplug") {
                             InfoRow("Đang cắm", b.externalConnected ? "Có" : "Không")

@@ -27,7 +27,7 @@ final class HelperClient {
     func refresh() async {
         do {
             let version: String = try await call { proxy, reply in proxy.version(reply: reply) }
-            guard version == PowerConstants.helperVersion else {
+            guard version == AppVersion.current else {
                 installState = .outdated(version)
                 return
             }

@@ -151,7 +151,7 @@ final class ChargeDaemon {
     }
 
     func status() -> HelperStatus {
-        HelperStatus(version: PowerConstants.helperVersion,
+        HelperStatus(version: AppVersion.current,
                      config: config,
                      chargingKeys: control.chargingKeys?.rawValue,
                      adapterKeys: control.adapterKeys?.rawValue,
