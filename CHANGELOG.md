@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-07
+
 ### Tính năng
 - **Điều khiển sạc trên máy Intel (thử nghiệm)** cho MacBook 2018–2020 (chip T2) qua key `BCLM`:
   giới hạn sạc 50–100%, tạm dừng sạc và bảo vệ nhiệt (giữ ở mức pin hiện tại, tối thiểu 50%).
@@ -65,6 +67,7 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hasoftware/MacPowerManager/releases/tag/v0.1.0
