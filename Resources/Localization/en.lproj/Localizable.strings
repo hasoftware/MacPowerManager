@@ -1,0 +1,4 @@
+/*
+  English translations. Keys are the Vietnamese source strings used in the code
+  (SwiftUI format specifiers: %lld for Int, %@ for String, %% for a literal %).
+*/

@@ -18,6 +18,11 @@
     <string>1</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>vi</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>vi</string>
+        <string>en</string>
+    </array>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>
