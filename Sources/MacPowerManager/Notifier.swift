@@ -1,0 +1,70 @@
+import Foundation
+import PowerCore
+import UserNotifications
+
+/// Gửi thông báo khi trạng thái pin thay đổi đáng chú ý. Mỗi sự kiện chỉ báo một lần
+/// cho tới khi điều kiện kết thúc.
+@MainActor
+final class Notifier {
+    private var lastReason: ChargeReason?
+    private var lowBatteryNotified = false
+    private var fullNotified = false
+    private var wasDischarging = false
+
+    /// UNUserNotificationCenter chỉ dùng được khi chạy trong app bundle.
+    private var center: UNUserNotificationCenter? {
+        Bundle.main.bundleIdentifier == nil ? nil : .current()
+    }
+
+    func requestAuthorization() {
+        center?.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    func evaluate(battery: BatteryInfo, temperature: Double?, helper: HelperStatus?, prefs: Preferences) {
+        if let reason = helper?.reason, reason != lastReason {
+            if lastReason != nil {
+                if reason == .limitReached, prefs.notifyLimitReached {
+                    post("Đã đạt giới hạn sạc", "Pin ở mức \(battery.percent)%. Máy sẽ dùng điện trực tiếp từ adapter.")
+                } else if reason == .thermal, prefs.notifyThermal {
+                    post("Tạm dừng sạc do pin nóng",
+                         "Nhiệt độ pin \(Format.temperature(temperature)). Sẽ sạc lại khi pin nguội.")
+                }
+            }
+            lastReason = reason
+        }
+
+        let discharging = helper?.config.dischargeEnabled ?? false
+        if wasDischarging && !discharging && prefs.notifyDischargeDone {
+            post("Đã xả pin xong", "Pin hiện ở mức \(battery.percent)%.")
+        }
+        wasDischarging = discharging
+
+        if !battery.externalConnected && battery.percent <= prefs.lowBatteryThreshold {
+            if !lowBatteryNotified && prefs.notifyLowBattery {
+                post("Pin yếu", "Còn \(battery.percent)%. Hãy cắm sạc.")
+            }
+            lowBatteryNotified = true
+        } else if battery.externalConnected || battery.percent > prefs.lowBatteryThreshold + 5 {
+            lowBatteryNotified = false
+        }
+
+        let limitActive = helper?.config.chargeLimitEnabled ?? false
+        if battery.externalConnected && battery.percent >= 100 && !limitActive {
+            if !fullNotified && prefs.notifyLimitReached {
+                post("Pin đã đầy", "Có thể rút sạc.")
+            }
+            fullNotified = true
+        } else if battery.percent < 95 {
+            fullNotified = false
+        }
+    }
+
+    private func post(_ title: String, _ body: String) {
+        guard let center else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+    }
+}
