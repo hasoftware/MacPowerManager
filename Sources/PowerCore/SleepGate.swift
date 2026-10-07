@@ -25,14 +25,16 @@ public enum SleepGate {
     }
 
     /// Có áp dụng quy tắc "chỉ siết lại" cho việc sạc khi ngủ hay không.
-    public static func holdsLevelDuringSleep(_ config: PowerConfig) -> Bool {
-        config.disableChargingBeforeSleep && config.holdsLevel
+    /// Đang sạc đầy một lần (`topUpActive`) thì giới hạn hiệu lực là 100%, không cần giữ mức.
+    public static func holdsLevelDuringSleep(_ config: PowerConfig, topUpActive: Bool = false) -> Bool {
+        config.disableChargingBeforeSleep && config.holdsLevel && !topUpActive
     }
 
     /// Trạng thái khi chuẩn bị ngủ: luôn bật adapter; giữ mức pin nếu người dùng chọn và đang có giới hạn;
     /// không bật sạc nếu đang tắt (ví dụ đang nóng); pin nguy hiểm thì luôn sạc.
-    public static func sleepState(config: PowerConfig, currentCharging: Bool?, percent: Int?) -> (charging: Bool, adapter: Bool) {
+    public static func sleepState(config: PowerConfig, currentCharging: Bool?, percent: Int?,
+                                  topUpActive: Bool = false) -> (charging: Bool, adapter: Bool) {
         if let percent, percent <= PowerConstants.criticalPercent { return (true, true) }
-        return (!holdsLevelDuringSleep(config) && (currentCharging ?? true), true)
+        return (!holdsLevelDuringSleep(config, topUpActive: topUpActive) && (currentCharging ?? true), true)
     }
 }
