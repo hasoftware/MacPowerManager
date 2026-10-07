@@ -1,7 +1,8 @@
 #!/bin/sh
 # Cài hoặc gỡ PowerHelper dưới dạng LaunchDaemon. Cần chạy bằng root.
 #   helper-install.sh install <đường-dẫn-helper> <đường-dẫn-plist>
-#   helper-install.sh uninstall
+#   helper-install.sh uninstall [<helper-đi-kèm-app>]
+# Mã thoát 3 khi gỡ: đã gỡ nhưng chưa xác minh được việc khôi phục sạc.
 set -eu
 
 LABEL="com.hasoftware.MacPowerManager.helper"
@@ -16,6 +17,39 @@ stop_daemon() {
         sleep 0.1
         i=$((i + 1))
     done
+}
+
+# Chạy `--restore-defaults` với giới hạn thời gian. Trả 0 nếu helper xác minh đã khôi phục.
+run_restore() {
+    bin="$1"
+    [ -x "$bin" ] || return 1
+    # Helper cũ (v0.1.0) không hiểu tham số này và sẽ chạy thành daemon, nên không chạy nó.
+    grep -q -- '--restore-defaults' "$bin" || return 1
+    # set -e không áp dụng trong hàm được gọi từ `if`, nên kiểm tra từng bước: một bản copy rỗng
+    # (ví dụ ổ đĩa đầy) sẽ chạy như script rỗng, thoát 0 và bị coi nhầm là đã khôi phục.
+    tmp="$(mktemp /tmp/mpm-restore.XXXXXX)" || return 1
+    if ! cp -fX "$bin" "$tmp" || ! cmp -s "$bin" "$tmp" || ! chmod 755 "$tmp"; then
+        rm -f "$tmp"
+        return 1
+    fi
+    xattr -c "$tmp" 2>/dev/null || true
+    # Không để tiến trình con giữ stdout/stderr của script, nếu không osascript sẽ chờ nó dù đã bị kill.
+    "$tmp" --restore-defaults </dev/null >/dev/null 2>&1 &
+    pid=$!
+    i=0
+    while kill -0 "$pid" 2>/dev/null && [ $i -lt 50 ]; do
+        sleep 0.1
+        i=$((i + 1))
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid" 2>/dev/null || true
+        rc=1
+    else
+        wait "$pid"
+        rc=$?
+    fi
+    rm -f "$tmp"
+    return $rc
 }
 
 case "${1:-}" in
@@ -37,8 +71,22 @@ install)
     ;;
 uninstall)
     stop_daemon
+    # Helper đã khôi phục khi nhận SIGTERM; chạy lại để xóa mọi key ngắt adapter và xác minh.
+    # Ưu tiên helper đi kèm app vì helper đang cài có thể là bản cũ.
+    restored=1
+    for bin in "${2:-}" "$HELPER_DST"; do
+        [ -n "$bin" ] || continue
+        if run_restore "$bin"; then
+            restored=0
+            break
+        fi
+    done
     rm -f "$HELPER_DST" "$PLIST_DST"
     rm -rf "/Library/Application Support/MacPowerManager"
+    if [ $restored -ne 0 ]; then
+        echo "MPM-E3: Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định." >&2
+        exit 3
+    fi
     echo "Đã gỡ $LABEL"
     ;;
 *)

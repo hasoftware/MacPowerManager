@@ -24,9 +24,9 @@ final class Notifier {
         if let reason = helper?.reason, reason != lastReason {
             if lastReason != nil {
                 if reason == .limitReached, prefs.notifyLimitReached {
-                    post("Đã đạt giới hạn sạc", "Pin ở mức \(battery.percent)%. Máy sẽ dùng điện trực tiếp từ adapter.")
+                    post(id: "limit-reached", "Đã đạt giới hạn sạc", "Pin ở mức \(battery.percent)%. Máy sẽ dùng điện trực tiếp từ adapter.")
                 } else if reason == .thermal, prefs.notifyThermal {
-                    post("Tạm dừng sạc do pin nóng",
+                    post(id: "thermal", "Tạm dừng sạc do pin nóng",
                          "Nhiệt độ pin \(Format.temperature(temperature)). Sẽ sạc lại khi pin nguội.")
                 }
             }
@@ -35,13 +35,13 @@ final class Notifier {
 
         let discharging = helper?.config.dischargeEnabled ?? false
         if wasDischarging && !discharging && prefs.notifyDischargeDone {
-            post("Đã xả pin xong", "Pin hiện ở mức \(battery.percent)%.")
+            post(id: "discharge-done", "Đã xả pin xong", "Pin hiện ở mức \(battery.percent)%.")
         }
         wasDischarging = discharging
 
         if !battery.externalConnected && battery.percent <= prefs.lowBatteryThreshold {
             if !lowBatteryNotified && prefs.notifyLowBattery {
-                post("Pin yếu", "Còn \(battery.percent)%. Hãy cắm sạc.")
+                post(id: "low-battery", "Pin yếu", "Còn \(battery.percent)%. Hãy cắm sạc.")
             }
             lowBatteryNotified = true
         } else if battery.externalConnected || battery.percent > prefs.lowBatteryThreshold + 5 {
@@ -51,7 +51,7 @@ final class Notifier {
         let limitActive = helper?.config.chargeLimitEnabled ?? false
         if battery.externalConnected && battery.percent >= 100 && !limitActive {
             if !fullNotified && prefs.notifyLimitReached {
-                post("Pin đã đầy", "Có thể rút sạc.")
+                post(id: "full", "Pin đã đầy", "Có thể rút sạc.")
             }
             fullNotified = true
         } else if battery.percent < 95 {
@@ -59,12 +59,13 @@ final class Notifier {
         }
     }
 
-    private func post(_ title: String, _ body: String) {
+    /// Định danh cố định theo loại sự kiện: thông báo mới thay thế thông báo cũ cùng loại thay vì chồng lên.
+    private func post(id: String, _ title: String, _ body: String) {
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+        center.add(UNNotificationRequest(identifier: "com.hasoftware.MacPowerManager.\(id)", content: content, trigger: nil))
     }
 }

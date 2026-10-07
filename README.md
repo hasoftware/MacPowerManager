@@ -71,7 +71,8 @@ make package   # build universal và tạo dist/*.dmg, dist/*.zip
 1. Mở app → **Cài đặt** → **Gỡ helper** (hoặc `make uninstall-helper` nếu build từ mã nguồn). Sạc sẽ trở về mặc định của macOS.
 2. Xóa `/Applications/MacPowerManager.app` và `~/Library/Application Support/MacPowerManager`.
 
-Nếu đã lỡ xóa app trước khi gỡ helper, chạy trong Terminal (helper sẽ tự khôi phục sạc khi bị dừng):
+Nếu đã lỡ xóa app trước khi gỡ helper, chạy trong Terminal (helper sẽ tự khôi phục sạc khi bị dừng;
+nếu không chắc, khởi động lại máy để SMC trở về mặc định):
 
 ```sh
 sudo launchctl bootout system/com.hasoftware.MacPowerManager.helper

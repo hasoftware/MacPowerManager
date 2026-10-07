@@ -72,6 +72,12 @@ final class AppModel {
             return status.reason.label
         }
         if battery.isCharging {
+            // Khi có giới hạn, ước tính thời gian tới giới hạn chứ không phải tới 100%.
+            if let config = activeConfig, config.chargeLimitEnabled, config.chargeLimit < 100 {
+                let time = battery.minutesToCharge(to: config.chargeLimit)
+                    .map { " · tới \(config.chargeLimit)% sau \(Format.duration(minutes: $0))" } ?? ""
+                return "Đang sạc\(time)"
+            }
             let time = battery.timeRemaining.map { " · đầy sau \(Format.duration(minutes: $0))" } ?? ""
             return "Đang sạc\(time)"
         }
@@ -92,6 +98,23 @@ struct Preferences: Codable, Equatable {
     var notifyDischargeDone = true
 
     private static let key = "preferences"
+
+    init() {}
+
+    /// Trường thiếu (từ bản cũ) dùng giá trị mặc định thay vì reset toàn bộ cài đặt.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = Preferences()
+        func value<T: Decodable>(_ key: CodingKeys, _ fallback: T) -> T {
+            ((try? c.decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback
+        }
+        showPercentInMenuBar = value(.showPercentInMenuBar, d.showPercentInMenuBar)
+        notifyLimitReached = value(.notifyLimitReached, d.notifyLimitReached)
+        notifyLowBattery = value(.notifyLowBattery, d.notifyLowBattery)
+        lowBatteryThreshold = value(.lowBatteryThreshold, d.lowBatteryThreshold)
+        notifyThermal = value(.notifyThermal, d.notifyThermal)
+        notifyDischargeDone = value(.notifyDischargeDone, d.notifyDischargeDone)
+    }
 
     static func load() -> Preferences {
         guard let data = UserDefaults.standard.data(forKey: key),

@@ -1,6 +1,7 @@
 import Foundation
 import IOKit
 import IOKit.ps
+import notify
 
 public struct BatteryInfo: Codable, Equatable, Sendable {
     public var percent = 0
@@ -19,7 +20,7 @@ public struct BatteryInfo: Codable, Equatable, Sendable {
     public var adapterWatts: Int?
     public var adapterName: String?
     public var systemPowerIn: Double?   // W, công suất từ adapter
-    public var systemLoad: Double?      // W, công suất hệ thống tiêu thụ
+    public var systemLoad: Double?      // W, công suất hệ thống tiêu thụ (không tính phần sạc vào pin)
     public var serial: String?
 
     public init() {}
@@ -32,6 +33,13 @@ public struct BatteryInfo: Codable, Equatable, Sendable {
 
     /// Công suất vào/ra pin (W). Dương = đang nạp.
     public var batteryPower: Double { Double(voltage) * Double(amperage) / 1_000_000 }
+
+    /// Ước tính số phút để sạc từ mức hiện tại tới `limit`%, dựa trên dòng sạc hiện tại.
+    public func minutesToCharge(to limit: Int) -> Int? {
+        guard amperage > 0, maxCapacity > 0, limit > percent else { return nil }
+        let mAhNeeded = Double(limit - percent) / 100 * Double(maxCapacity)
+        return Int((mAhNeeded / Double(amperage) * 60).rounded())
+    }
 }
 
 public enum BatteryReader {
@@ -44,26 +52,34 @@ public enum BatteryReader {
         var props: Unmanaged<CFMutableDictionary>?
         guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dict = props?.takeRetainedValue() as? [String: Any] else { return nil }
+        return parse(dict)
+    }
 
+    /// Tách riêng khỏi IOKit để kiểm thử được.
+    public static func parse(_ dict: [String: Any]) -> BatteryInfo {
         func int(_ key: String) -> Int? { (dict[key] as? NSNumber)?.intValue }
         func bool(_ key: String) -> Bool { (dict[key] as? NSNumber)?.boolValue ?? false }
 
         var info = BatteryInfo()
         let current = int("CurrentCapacity") ?? 0
-        let max = int("MaxCapacity") ?? 100
-        info.percent = max > 0 ? Int((Double(current) / Double(max) * 100).rounded()) : 0
+        let maxCap = int("MaxCapacity") ?? 100
+        info.percent = maxCap > 0 ? Int((Double(current) / Double(maxCap) * 100).rounded()) : 0
         info.isCharging = bool("IsCharging")
         info.externalConnected = bool("ExternalConnected")
         info.fullyCharged = bool("FullyCharged")
         info.cycleCount = int("CycleCount") ?? 0
         info.designCycleCount = int("DesignCycleCount9C") ?? 1000
         info.designCapacity = int("DesignCapacity") ?? 0
-        let capacityInMAh = max > 100
-        info.maxCapacity = int("AppleRawMaxCapacity") ?? int("NominalChargeCapacity") ?? (capacityInMAh ? max : 0)
+        let capacityInMAh = maxCap > 100
+        info.maxCapacity = int("AppleRawMaxCapacity") ?? int("NominalChargeCapacity") ?? (capacityInMAh ? maxCap : 0)
         info.currentCapacity = int("AppleRawCurrentCapacity") ?? (capacityInMAh ? current : 0)
         info.voltage = int("Voltage") ?? 0
         info.amperage = int("InstantAmperage") ?? int("Amperage") ?? 0
-        info.temperature = int("Temperature").map { Double($0) / 100 }
+        // Đơn vị của `Temperature` là 0,1 Kelvin (ví dụ 3071 = 33,95 °C).
+        info.temperature = int("Temperature").flatMap { raw in
+            let celsius = Double(raw) / 10 - 273.15
+            return (-20...100).contains(celsius) ? celsius : nil
+        }
         info.serial = dict["Serial"] as? String
 
         if let t = int("TimeRemaining"), t > 0, t < 65535 { info.timeRemaining = t }
@@ -74,7 +90,9 @@ public enum BatteryReader {
         }
         if let telemetry = dict["PowerTelemetryData"] as? [String: Any] {
             info.systemPowerIn = (telemetry["SystemPowerIn"] as? NSNumber).map { $0.doubleValue / 1000 }
-            info.systemLoad = (telemetry["SystemLoad"] as? NSNumber).map { $0.doubleValue / 1000 }
+            // SystemLoad bao gồm cả công suất đang sạc vào pin, nên trừ phần đó ra.
+            let charging = max(info.batteryPower, 0)
+            info.systemLoad = (telemetry["SystemLoad"] as? NSNumber).map { max($0.doubleValue / 1000 - charging, 0) }
         }
         return info
     }
@@ -86,21 +104,16 @@ public enum BatteryReader {
     }
 }
 
+/// Dùng notify(3) trên main queue thay vì CFRunLoop source: helper chạy `dispatchMain()`
+/// nên run loop chính không được phục vụ, còn main queue thì có.
 public final class PowerSourceObserver {
-    private let handler: () -> Void
-    private var source: CFRunLoopSource?
+    private var token: Int32 = NOTIFY_TOKEN_INVALID
 
     init(handler: @escaping () -> Void) {
-        self.handler = handler
-        let context = Unmanaged.passUnretained(self).toOpaque()
-        source = IOPSNotificationCreateRunLoopSource({ ctx in
-            guard let ctx else { return }
-            Unmanaged<PowerSourceObserver>.fromOpaque(ctx).takeUnretainedValue().handler()
-        }, context)?.takeRetainedValue()
-        if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode) }
+        notify_register_dispatch(kIOPSNotifyAnyPowerSource, &token, .main) { _ in handler() }
     }
 
     deinit {
-        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .defaultMode) }
+        if token != NOTIFY_TOKEN_INVALID { notify_cancel(token) }
     }
 }

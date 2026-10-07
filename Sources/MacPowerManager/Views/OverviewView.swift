@@ -31,7 +31,7 @@ struct OverviewView: View {
                             InfoRow("Dòng điện", "\(b.amperage) mA")
                             InfoRow("Công suất pin", Format.watts(b.batteryPower))
                             InfoRow("Hệ thống tiêu thụ", Format.watts(b.systemLoad))
-                            InfoRow("Thời gian", b.timeRemaining.map { Format.duration(minutes: $0) } ?? "—")
+                            timeRow(b)
                         }
                         InfoCard(title: "Nhiệt độ", icon: "thermometer.medium") {
                             InfoRow("Cảm biến pin (SMC)", Format.temperature(model.smcTemperature))
@@ -62,6 +62,18 @@ struct OverviewView: View {
                 ContentUnavailableView("Không tìm thấy pin", systemImage: "battery.0percent",
                                        description: Text("Máy này có thể không có pin trong."))
             }
+        }
+    }
+}
+
+extension OverviewView {
+    /// Khớp với dòng trạng thái: khi có giới hạn, ước tính thời gian tới giới hạn chứ không phải tới 100%.
+    @ViewBuilder
+    func timeRow(_ b: BatteryInfo) -> some View {
+        if b.isCharging, let config = model.activeConfig, config.chargeLimitEnabled, config.chargeLimit < 100 {
+            InfoRow("Tới \(config.chargeLimit)%", b.minutesToCharge(to: config.chargeLimit).map { Format.duration(minutes: $0) } ?? "—")
+        } else {
+            InfoRow(b.isCharging ? "Tới khi đầy" : "Còn lại", b.timeRemaining.map { Format.duration(minutes: $0) } ?? "—")
         }
     }
 }

@@ -6,7 +6,12 @@ import PowerCore
 // Các hằng số kIOMessage* là macro C nên không được import sang Swift.
 private let kMsgCanSystemSleep: UInt32 = 0xE000_0270
 private let kMsgSystemWillSleep: UInt32 = 0xE000_0280
+private let kMsgSystemWillNotSleep: UInt32 = 0xE000_0290
 private let kMsgSystemHasPoweredOn: UInt32 = 0xE000_0300
+
+/// Bit "Graphics" trong `System Capabilities` của IOPMrootDomain: có nghĩa là máy đã thức hẳn
+/// (màn hình bật), không phải dark wake.
+private let kCapabilityGraphics = 0x2
 
 final class ChargeDaemon {
     private let smc: SMC
@@ -16,6 +21,8 @@ final class ChargeDaemon {
     private var lastDecision: ControlDecision?
     private var lastTemperature: Double?
     private var lastError: String?
+    private var phase: WakePhase = .awake
+    private var sleepPendingSince: Date?
 
     private var timer: DispatchSourceTimer?
     private var powerObserver: PowerSourceObserver?
@@ -29,6 +36,13 @@ final class ChargeDaemon {
         control = ChargingControl(smc: smc)
         config = Self.loadConfig()
         log("Key sạc: \(control.chargingKeys?.rawValue ?? "không có"), adapter: \(control.adapterKeys?.rawValue ?? "không có")")
+
+        // Trạng thái an toàn khi khởi động: nếu lần chạy trước bị dừng đột ngột lúc đang xả pin,
+        // adapter có thể vẫn bị ngắt. Bật lại ngay, giữ nguyên trạng thái chặn sạc để tránh sạc thoáng qua.
+        if control.isAdapterEnabled == false {
+            log("Adapter đang bị ngắt khi khởi động, bật lại")
+            try? control.setAdapterEnabled(true)
+        }
     }
 
     func start() {
@@ -47,6 +61,7 @@ final class ChargeDaemon {
     // MARK: Vòng điều khiển
 
     func evaluate() {
+        updatePhase()
         guard let battery = BatteryReader.read() else {
             lastError = "Không đọc được thông tin pin"
             return
@@ -65,8 +80,40 @@ final class ChargeDaemon {
             log("\(battery.percent)% \(temperature.map { String(format: "%.1f°C", $0) } ?? "") -> \(decision.reason.rawValue)")
         }
         lastDecision = decision
-        applyToHardware(charging: decision.chargingEnabled, adapter: decision.adapterEnabled)
-        updateSleepAssertion(preventSleep: !decision.adapterEnabled)
+        let gated = SleepGate.constrain(charging: decision.chargingEnabled, adapter: decision.adapterEnabled,
+                                        currentCharging: control.isChargingEnabled,
+                                        currentAdapter: control.isAdapterEnabled, phase: phase,
+                                        reason: decision.reason,
+                                        holdsLevelDuringSleep: SleepGate.holdsLevelDuringSleep(config))
+        applyToHardware(charging: gated.charging, adapter: gated.adapter)
+        updateSleepAssertion(preventSleep: !gated.adapter)
+    }
+
+    /// Chuyển từ dark wake / sắp ngủ về trạng thái thức khi máy đã thức hẳn.
+    private func updatePhase() {
+        switch phase {
+        case .awake:
+            break
+        case .darkWake:
+            if isFullWake() {
+                log("Máy đã thức hẳn")
+                phase = .awake
+            }
+        case .sleepPending:
+            // Không nhận được HasPoweredOn hoặc WillNotSleep (ngủ bị hủy): thoát sau 2 phút nếu máy đang thức.
+            if let since = sleepPendingSince, Date().timeIntervalSince(since) > 120, isFullWake() {
+                phase = .awake
+            }
+        }
+    }
+
+    private func isFullWake() -> Bool {
+        let root = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard root != 0 else { return true }
+        defer { IOObjectRelease(root) }
+        guard let caps = IORegistryEntryCreateCFProperty(root, "System Capabilities" as CFString, kCFAllocatorDefault, 0)?
+            .takeRetainedValue() as? NSNumber else { return true }
+        return caps.intValue & kCapabilityGraphics != 0
     }
 
     private func applyToHardware(charging: Bool, adapter: Bool) {
@@ -116,9 +163,17 @@ final class ChargeDaemon {
         case kMsgCanSystemSleep:
             IOAllowPowerChange(rootPort, Int(bitPattern: argument))
         case kMsgSystemWillSleep:
+            phase = .sleepPending
+            sleepPendingSince = Date()
             prepareForSleep()
             IOAllowPowerChange(rootPort, Int(bitPattern: argument))
+        case kMsgSystemWillNotSleep:
+            phase = .awake
+            evaluate()
         case kMsgSystemHasPoweredOn:
+            // Dark wake (Power Nap, sạc, bảo trì): chỉ được siết lại cho tới khi máy thức hẳn.
+            phase = isFullWake() ? .awake : .darkWake
+            log(phase == .awake ? "Máy thức dậy" : "Máy thức ngầm (dark wake)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.evaluate() }
         default:
             break
@@ -127,10 +182,11 @@ final class ChargeDaemon {
 
     private func prepareForSleep() {
         // Không bao giờ để máy ngủ khi adapter đang bị ngắt.
-        let wantsHold = config.chargeLimitEnabled || config.pauseCharging || config.dischargeEnabled
-        let charging = !(config.disableChargingBeforeSleep && wantsHold)
-        log("Chuẩn bị ngủ: adapter bật, sạc \(charging ? "bật" : "tắt")")
-        applyToHardware(charging: charging, adapter: true)
+        let state = SleepGate.sleepState(config: config, currentCharging: control.isChargingEnabled,
+                                         percent: BatteryReader.read()?.percent)
+        log("Chuẩn bị ngủ: adapter bật, sạc \(state.charging ? "bật" : "tắt")")
+        applyToHardware(charging: state.charging, adapter: state.adapter)
+        updateSleepAssertion(preventSleep: false)
     }
 
     // MARK: Cấu hình
@@ -147,7 +203,9 @@ final class ChargeDaemon {
 
     func restoreDefaults() {
         updateSleepAssertion(preventSleep: false)
-        control.restoreDefaults()
+        if !control.restoreDefaults() {
+            log("Khôi phục mặc định chưa xác minh được")
+        }
     }
 
     func status() -> HelperStatus {

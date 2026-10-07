@@ -6,6 +6,26 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- Nhiệt độ từ IOKit bị đọc sai đơn vị (đúng là 0,1 K, không phải 0,01 °C). Tab Tổng quan hiển thị thấp hơn thực tế 4–8 °C, và trên máy không có cảm biến SMC, bảo vệ nhiệt kích hoạt muộn.
+- Pin có thể sạc vượt giới hạn trong lúc máy ngủ: vòng lặp định kỳ có thể bật lại sạc ngay trước khi ngủ hoặc khi máy thức ngầm (dark wake). Helper giờ chỉ được "siết lại" (tắt sạc, bật adapter) trong các giai đoạn này.
+- Giới hạn 100% vẫn bị chặn sạc khi máy ngủ.
+- Helper không nhận sự kiện cắm/rút sạc mà chỉ dựa vào vòng lặp 10 giây.
+- Thêm trường cấu hình mới làm reset toàn bộ cài đặt khi nâng cấp.
+- Giải mã sai một số SMC key (thứ tự byte); lỗi SMC luôn bị báo là "không có quyền".
+- "Hệ thống tiêu thụ" tính cả phần điện đang sạc vào pin.
+- Thời gian sạc được ước tính tới 100% thay vì tới mức giới hạn.
+- Thông báo cùng loại chồng lên nhau; công tắc "Mở cùng macOS" không đồng bộ với System Settings.
+
+### An toàn
+- Helper cài handler tín hiệu trước tiên và bật lại adapter ngay khi khởi động (phòng trường hợp lần chạy trước bị dừng giữa lúc xả pin).
+- Gỡ cài đặt chạy `PowerHelper --restore-defaults` (dùng helper đi kèm app, có giới hạn thời gian) để xóa mọi key ngắt adapter và xác minh. Nếu không xác minh được, app báo rõ và hướng dẫn khởi động lại máy.
+- Pin ≤ 10% luôn được sạc, kể cả khi máy đang ngủ; bảo vệ nhiệt cho phép sạc lại khi pin nguội trong lúc máy ngủ (nếu không bật giữ mức pin).
+- LaunchDaemon dùng `ProcessType = Adaptive` để macOS không hạn chế nhịp của vòng điều khiển.
+
+### Cải tiến
+- `smc-probe` in thêm thông tin máy, firmware, thuộc tính key và nhiều key hơn để cộng đồng gửi báo cáo (đặc biệt máy Intel).
+
 ## [0.1.0] - 2026-10-07
 
 Bản phát hành đầu tiên.

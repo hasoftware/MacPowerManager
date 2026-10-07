@@ -91,9 +91,22 @@ public final class ChargingControl {
             .max()
     }
 
-    /// Đưa mọi thứ về mặc định của macOS: cho phép sạc và bật adapter.
-    public func restoreDefaults() {
-        try? setAdapterEnabled(true)
-        try? setChargingEnabled(true)
+    /// Các key ngắt adapter đã biết. Khi gỡ cài đặt, xóa hết về 0 dù không phải do app ghi.
+    static let allAdapterKeys = ["CHIE", "CH0I", "CH0J"]
+
+    /// Đưa mọi thứ về mặc định của macOS: bật adapter (mọi key ngắt adapter) và cho phép sạc.
+    /// Trả về true nếu đọc lại thấy đúng trạng thái mặc định.
+    @discardableResult
+    public func restoreDefaults() -> Bool {
+        guard Platform.isAppleSilicon else { return true }
+        for key in Self.allAdapterKeys {
+            guard let r = smc.read(key), r.bytes.contains(where: { $0 != 0 }) else { continue }
+            try? smc.write(key, Array(repeating: 0, count: r.bytes.count))
+        }
+        if chargingKeys != nil { try? setChargingEnabled(true) }
+        let adaptersClear = Self.allAdapterKeys.allSatisfy { key in
+            smc.read(key).map { $0.bytes.allSatisfy { $0 == 0 } } ?? true
+        }
+        return adaptersClear && (chargingKeys == nil || isChargingEnabled == true)
     }
 }

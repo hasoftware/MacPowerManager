@@ -27,7 +27,32 @@ public struct PowerConfig: Codable, Equatable, Sendable {
 
     public init() {}
 
+    /// Thiếu trường (cấu hình từ bản cũ) hoặc sai kiểu thì dùng giá trị mặc định cho trường đó,
+    /// thay vì làm hỏng toàn bộ cấu hình.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = PowerConfig()
+        func value<T: Decodable>(_ key: CodingKeys, _ fallback: T) -> T {
+            ((try? c.decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback
+        }
+        chargeLimitEnabled = value(.chargeLimitEnabled, d.chargeLimitEnabled)
+        chargeLimit = value(.chargeLimit, d.chargeLimit)
+        sailingGap = value(.sailingGap, d.sailingGap)
+        pauseCharging = value(.pauseCharging, d.pauseCharging)
+        dischargeEnabled = value(.dischargeEnabled, d.dischargeEnabled)
+        dischargeTarget = value(.dischargeTarget, d.dischargeTarget)
+        thermalProtectionEnabled = value(.thermalProtectionEnabled, d.thermalProtectionEnabled)
+        thermalPauseAbove = value(.thermalPauseAbove, d.thermalPauseAbove)
+        thermalResumeBelow = value(.thermalResumeBelow, d.thermalResumeBelow)
+        disableChargingBeforeSleep = value(.disableChargingBeforeSleep, d.disableChargingBeforeSleep)
+    }
+
     /// Kẹp các giá trị về khoảng hợp lệ.
+    /// Có cần giữ mức pin (không sạc thêm) khi máy ngủ hay không.
+    public var holdsLevel: Bool {
+        (chargeLimitEnabled && chargeLimit < 100) || pauseCharging || dischargeEnabled
+    }
+
     public func sanitized() -> PowerConfig {
         var c = self
         c.chargeLimit = min(max(c.chargeLimit, 20), 100)

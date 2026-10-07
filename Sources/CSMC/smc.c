@@ -6,6 +6,9 @@
 #define SMC_CMD_WRITE_BYTES   6
 #define SMC_CMD_READ_KEYINFO  9
 
+#define SMC_RESULT_SUCCESS        0
+#define SMC_RESULT_KEY_NOT_FOUND  0x84
+
 typedef struct {
     char     major;
     char     minor;
@@ -52,6 +55,15 @@ static kern_return_t smc_call(io_connect_t conn, SMCKeyData_t *in, SMCKeyData_t 
     return IOConnectCallStructMethod(conn, KERNEL_INDEX_SMC, in, sizeof(SMCKeyData_t), out, &outSize);
 }
 
+/// Đổi mã kết quả của SMC (byte `result`) sang kern_return_t.
+static kern_return_t smc_result(char result) {
+    switch ((uint8_t)result) {
+    case SMC_RESULT_SUCCESS: return KERN_SUCCESS;
+    case SMC_RESULT_KEY_NOT_FOUND: return kIOReturnNotFound;
+    default: return kIOReturnError;
+    }
+}
+
 kern_return_t smc_open(io_connect_t *conn) {
     io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
     if (!service) return kIOReturnNotFound;
@@ -72,7 +84,8 @@ static kern_return_t smc_key_info(io_connect_t conn, uint32_t key, SMCKeyData_ke
     in.data8 = SMC_CMD_READ_KEYINFO;
     kern_return_t r = smc_call(conn, &in, &out);
     if (r != KERN_SUCCESS) return r;
-    if (out.result != 0) return kIOReturnNotFound;
+    r = smc_result(out.result);
+    if (r != KERN_SUCCESS) return r;
     *info = out.keyInfo;
     return KERN_SUCCESS;
 }
@@ -92,11 +105,13 @@ kern_return_t smc_read_key(io_connect_t conn, const char *key, SMCValue *value) 
     in.data8 = SMC_CMD_READ_BYTES;
     r = smc_call(conn, &in, &out);
     if (r != KERN_SUCCESS) return r;
-    if (out.result != 0) return kIOReturnError;
+    r = smc_result(out.result);
+    if (r != KERN_SUCCESS) return r;
 
     memset(value, 0, sizeof(*value));
     value->dataSize = info.dataSize;
     value->dataType = info.dataType;
+    value->dataAttributes = (uint8_t)info.dataAttributes;
     memcpy(value->bytes, out.bytes, info.dataSize);
     return KERN_SUCCESS;
 }
@@ -117,6 +132,5 @@ kern_return_t smc_write_key(io_connect_t conn, const char *key, const uint8_t *b
     memcpy(in.bytes, bytes, size);
     r = smc_call(conn, &in, &out);
     if (r != KERN_SUCCESS) return r;
-    if (out.result != 0) return kIOReturnNotPrivileged;
-    return KERN_SUCCESS;
+    return smc_result(out.result);
 }

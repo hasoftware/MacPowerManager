@@ -17,7 +17,15 @@
     <true/>
     <key>KeepAlive</key>
     <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <!-- Background bị macOS hạn chế CPU/timer; Adaptive giữ vòng điều khiển đúng nhịp. -->
     <key>ProcessType</key>
-    <string>Background</string>
+    <string>Adaptive</string>
+    <!-- Hiển thị tên app trong System Settings → General → Login Items. -->
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>com.hasoftware.MacPowerManager</string>
+    </array>
 </dict>
 </plist>

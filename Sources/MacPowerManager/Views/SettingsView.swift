@@ -66,6 +66,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        // Người dùng có thể đổi Login Items trong System Settings, nên đọc lại mỗi khi mở trang.
+        .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
         .confirmationDialog("Gỡ helper điều khiển sạc?", isPresented: $confirmUninstall) {
             Button("Gỡ", role: .destructive) { Task { await helper.uninstall() } }
         } message: {
@@ -74,6 +76,7 @@ struct SettingsView: View {
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
+        guard enabled != (SMAppService.mainApp.status == .enabled) else { return }
         do {
             if enabled {
                 try SMAppService.mainApp.register()

@@ -9,34 +9,58 @@ guard getuid() == 0 else {
     exit(1)
 }
 
-let daemon: ChargeDaemon
-do {
-    daemon = try ChargeDaemon()
-} catch {
-    log("Không khởi tạo được daemon: \(error)")
-    exit(1)
+/// Trả SMC về mặc định của macOS mà không cần daemon (dùng khi gỡ cài đặt hoặc khi bị dừng sớm).
+func restoreSMCDefaults() -> Bool {
+    guard let smc = try? SMC() else { return false }
+    return ChargingControl(smc: smc).restoreDefaults()
 }
-daemon.start()
 
-let listener = NSXPCListener(machServiceName: PowerConstants.helperMachService)
-let listenerDelegate = ListenerDelegate(daemon: daemon)
-listener.delegate = listenerDelegate
-listener.resume()
-
-// Khi bị dừng (gỡ cài đặt, launchctl bootout) phải trả SMC về mặc định,
-// nếu không máy có thể bị kẹt ở trạng thái không sạc hoặc ngắt adapter.
+// 1. Cài handler tín hiệu trước tiên: khi bị dừng (gỡ cài đặt, launchctl bootout) phải trả SMC
+//    về mặc định, nếu không máy có thể bị kẹt ở trạng thái không sạc hoặc ngắt adapter.
+var daemon: ChargeDaemon?
 signal(SIGTERM, SIG_IGN)
 signal(SIGINT, SIG_IGN)
 let signalSources = [SIGTERM, SIGINT].map { sig in
     let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
     source.setEventHandler {
         log("Nhận tín hiệu \(sig), khôi phục mặc định và thoát")
-        daemon.restoreDefaults()
+        if let daemon {
+            daemon.restoreDefaults()
+        } else {
+            _ = restoreSMCDefaults()
+        }
         exit(0)
     }
     source.resume()
     return source
 }
+
+// 2. Chế độ dòng lệnh dùng khi gỡ cài đặt: khôi phục, xác minh rồi thoát.
+//    Tham số lạ thì thoát ngay, để script gỡ không vô tình khởi động một daemon không có launchd quản lý.
+let arguments = Array(CommandLine.arguments.dropFirst())
+if !arguments.isEmpty && arguments != ["--restore-defaults"] {
+    FileHandle.standardError.write("Cách dùng: PowerHelper [--restore-defaults]\n".data(using: .utf8)!)
+    exit(64)
+}
+if arguments == ["--restore-defaults"] {
+    let ok = restoreSMCDefaults()
+    print(ok ? "Đã khôi phục sạc và adapter về mặc định." : "Không xác minh được việc khôi phục.")
+    exit(ok ? 0 : 1)
+}
+
+// 3. Khởi động daemon (mở SMC và bật lại adapter ngay lập tức).
+do {
+    daemon = try ChargeDaemon()
+} catch {
+    log("Không khởi tạo được daemon: \(error)")
+    exit(1)
+}
+daemon?.start()
+
+let listener = NSXPCListener(machServiceName: PowerConstants.helperMachService)
+let listenerDelegate = ListenerDelegate(daemon: daemon!)
+listener.delegate = listenerDelegate
+listener.resume()
 
 log("PowerHelper \(AppVersion.current) đã khởi động")
 dispatchMain()

@@ -14,29 +14,60 @@ public struct SMCError: Error, CustomStringConvertible {
 public struct SMCReading: Sendable {
     public let key: String
     public let type: String
+    public let attributes: UInt8
     public let bytes: [UInt8]
 
-    /// Giải mã các kiểu số thường gặp trên Apple Silicon.
+    public init(key: String, type: String, attributes: UInt8, bytes: [UInt8]) {
+        self.key = key
+        self.type = type
+        self.attributes = attributes
+        self.bytes = bytes
+    }
+
+    public var isWritable: Bool { attributes & 0x40 != 0 }
+
+    /// Trên Apple Silicon, key có bit thuộc tính 0x04 lưu số little-endian, các key còn lại big-endian
+    /// (ví dụ `#KEY`, `B0RM`, `D4MV`). Trên Intel số nguyên là big-endian, riêng `flt ` là little-endian.
+    public var isLittleEndian: Bool {
+        Platform.isAppleSilicon ? attributes & 0x04 != 0 : type == "flt "
+    }
+
     public var doubleValue: Double? {
+        Self.decode(type: type, bytes: bytes, littleEndian: isLittleEndian)
+    }
+
+    public var hex: String { bytes.map { String(format: "%02x", $0) }.joined() }
+
+    /// Giải mã các kiểu số thường gặp của SMC.
+    public static func decode(type: String, bytes: [UInt8], littleEndian: Bool) -> Double? {
+        func unsigned(_ count: Int) -> UInt64? {
+            guard bytes.count == count else { return nil }
+            let ordered = littleEndian ? bytes.reversed() : bytes
+            return ordered.reduce(0) { $0 << 8 | UInt64($1) }
+        }
         switch type {
         case "flt ":
-            guard bytes.count == 4 else { return nil }
-            let bits = UInt32(bytes[0]) | UInt32(bytes[1]) << 8 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 24
-            return Double(Float(bitPattern: bits))
-        case "sp78":
-            guard bytes.count == 2 else { return nil }
-            return Double(Int16(bitPattern: UInt16(bytes[0]) << 8 | UInt16(bytes[1]))) / 256
-        case "ui8 ":
-            return bytes.first.map(Double.init)
+            return unsigned(4).map { Double(Float(bitPattern: UInt32($0))) }
+        case "ui8 ", "flag":
+            return unsigned(1).map { Double($0) }
         case "ui16":
-            guard bytes.count == 2 else { return nil }
-            return Double(UInt16(bytes[0]) << 8 | UInt16(bytes[1]))
+            return unsigned(2).map { Double($0) }
+        case "ui32":
+            return unsigned(4).map { Double($0) }
+        case "si8 ":
+            return unsigned(1).map { Double(Int8(bitPattern: UInt8($0))) }
+        case "si16":
+            return unsigned(2).map { Double(Int16(bitPattern: UInt16($0))) }
+        case "si32":
+            return unsigned(4).map { Double(Int32(bitPattern: UInt32($0))) }
+        case "sp78":
+            return unsigned(2).map { Double(Int16(bitPattern: UInt16($0))) / 256 }
+        case "fp88":
+            return unsigned(2).map { Double($0) / 256 }
         default:
             return nil
         }
     }
-
-    public var hex: String { bytes.map { String(format: "%02x", $0) }.joined() }
 }
 
 /// Kết nối tới AppleSMC. Đọc không cần quyền root, ghi thì cần.
@@ -58,7 +89,7 @@ public final class SMC {
         let t = value.dataType
         let type = String(bytes: [UInt8(t >> 24 & 0xff), UInt8(t >> 16 & 0xff), UInt8(t >> 8 & 0xff), UInt8(t & 0xff)],
                           encoding: .ascii) ?? "????"
-        return SMCReading(key: key, type: type, bytes: bytes)
+        return SMCReading(key: key, type: type, attributes: value.dataAttributes, bytes: bytes)
     }
 
     public func hasKey(_ key: String) -> Bool { read(key) != nil }

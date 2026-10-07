@@ -1,21 +1,37 @@
 import Foundation
 import PowerCore
 
-// Công cụ chẩn đoán: in ra các SMC key liên quan tới sạc trên máy hiện tại.
+// Công cụ chẩn đoán: in ra thông tin máy và các SMC key liên quan tới sạc.
+// Người dùng có thể dán kết quả vào GitHub Issues để mở rộng hỗ trợ cho máy khác.
+
+print("MacPowerManager smc-probe \(AppVersion.current)")
+print("Máy: \(SystemInfo.model) · macOS \(SystemInfo.osVersion) · \(Platform.isAppleSilicon ? "Apple Silicon" : "Intel")"
+      + " · firmware \(SystemInfo.firmwareVersion ?? "?")")
+print("---")
+
 do {
     let smc = try SMC()
-    let keys = ["CHTE", "CH0B", "CH0C", "CHIE", "CH0I", "CH0J", "ACLC", "AC-W", "BUIC", "TB0T", "TB1T", "TB2T"]
-    for key in keys {
-        if let r = smc.read(key) {
+    let groups: [(String, [String])] = [
+        ("Điều khiển sạc", ["CHTE", "CH0B", "CH0C", "CHIE", "CH0I", "CH0J", "CH0K", "BCLM", "BFCL", "CHWA", "CHLS"]),
+        ("LED / adapter", ["ACLC", "AC-W", "ACMg", "PDTR", "PSTR"]),
+        ("Pin", ["BUIC", "BRSC", "B0AC", "B0AP", "B0AV", "B0AT", "B0FC", "B0DC", "B0CT"]),
+        ("Nhiệt độ", ["TB0T", "TB1T", "TB2T"]),
+    ]
+    for (title, keys) in groups {
+        print("[\(title)]")
+        for key in keys {
+            guard let r = smc.read(key) else {
+                print("  \(key)  (không có)")
+                continue
+            }
             let value = r.doubleValue.map { String(format: " = %.2f", $0) } ?? ""
-            print("\(key)  type=\(r.type)  bytes=\(r.hex)\(value)")
-        } else {
-            print("\(key)  (không có)")
+            let attr = String(format: "%02x", r.attributes)
+            print("  \(key)  type=\(r.type)  attr=\(attr)\(r.isWritable ? " (ghi được)" : "")  bytes=\(r.hex)\(value)")
         }
     }
     let control = ChargingControl(smc: smc)
     print("---")
-    print("Key sạc:    \(control.chargingKeys?.rawValue ?? "không hỗ trợ")")
+    print("Key sạc:     \(control.chargingKeys?.rawValue ?? "không hỗ trợ")")
     print("Key adapter: \(control.adapterKeys?.rawValue ?? "không hỗ trợ")")
     print("Sạc đang bật: \(control.isChargingEnabled.map(String.init) ?? "?")")
     print("Adapter đang bật: \(control.isAdapterEnabled.map(String.init) ?? "?")")

@@ -103,14 +103,20 @@ final class HelperClient {
         _ = try? await call { (proxy: PowerHelperProtocol, reply: @escaping (Bool) -> Void) in
             proxy.restoreDefaults { reply(true) }
         }
-        await runPrivileged(script: script, arguments: ["uninstall"])
+        // Truyền helper đi kèm app để script dùng nó khôi phục (helper đang cài có thể là bản cũ).
+        let bundledHelper = Bundle.main.url(forAuxiliaryExecutable: "PowerHelper")?.path
+        let output = await runPrivileged(script: script, arguments: ["uninstall"] + [bundledHelper].compactMap { $0 })
+        if output.contains("MPM-E3") {
+            errorMessage = "Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định."
+        }
         resetConnection()
         status = nil
-        installState = .notInstalled
+        await refresh()
     }
 
-    /// Chạy script bằng quyền admin qua hộp thoại xác thực của macOS.
-    private func runPrivileged(script: URL, arguments: [String]) async {
+    /// Chạy script bằng quyền admin qua hộp thoại xác thực của macOS. Trả về stderr khi lỗi.
+    @discardableResult
+    private func runPrivileged(script: URL, arguments: [String]) async -> String {
         isBusy = true
         defer { isBusy = false }
         let command = (["/bin/sh", script.path] + arguments).map(Self.shellQuote).joined(separator: " ")
@@ -137,6 +143,7 @@ final class HelperClient {
         } else {
             errorMessage = nil
         }
+        return result.1
     }
 
     private static func shellQuote(_ s: String) -> String {

@@ -33,8 +33,10 @@ bump-minor:
 bump-major:
 	./scripts/bump-version.sh major
 
+# Dùng helper vừa build để khôi phục SMC (helper đang cài có thể là bản cũ).
 uninstall-helper:
-	sudo ./scripts/helper-install.sh uninstall
+	swift build -c release --product PowerHelper
+	sudo ./scripts/helper-install.sh uninstall "$$(swift build -c release --show-bin-path)/PowerHelper"
 
 clean:
 	rm -rf .build build dist
