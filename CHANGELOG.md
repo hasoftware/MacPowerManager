@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-07
+
 ### Sửa lỗi
 - Nhiệt độ từ IOKit bị đọc sai đơn vị (đúng là 0,1 K, không phải 0,01 °C). Tab Tổng quan hiển thị thấp hơn thực tế 4–8 °C, và trên máy không có cảm biến SMC, bảo vệ nhiệt kích hoạt muộn.
 - Pin có thể sạc vượt giới hạn trong lúc máy ngủ: vòng lặp định kỳ có thể bật lại sạc ngay trước khi ngủ hoặc khi máy thức ngầm (dark wake). Helper giờ chỉ được "siết lại" (tắt sạc, bật adapter) trong các giai đoạn này.
@@ -47,5 +49,6 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hasoftware/MacPowerManager/releases/tag/v0.1.0
