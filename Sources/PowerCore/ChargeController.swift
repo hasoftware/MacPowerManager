@@ -2,65 +2,68 @@ import Foundation
 
 /// Logic thuần, không đụng phần cứng, để dễ kiểm thử.
 ///
-/// STUB của giai đoạn 0 (v0.3.0): giữ nguyên hành vi v0.2.0. Gói việc "logic" sẽ viết lại theo
-/// ControllerInput/ControlDecision mới (top up, sailing, floors, clamshell, chargeToLimitOnce).
+/// Thứ tự ưu tiên (cao xuống thấp):
+/// 1. Pin nguy hiểm (≤ `criticalPercent`): luôn sạc và bật adapter, thắng mọi thứ khác.
+/// 2. Xả pin: ngắt adapter tới mục tiêu; nắp đóng thì tạm ngừng xả.
+/// 3. Pin nóng: không chặn sạc dưới `thermalFloorPercent`; vẫn áp dụng khi đang sạc đầy một lần.
+/// 4. Tạm dừng sạc thủ công.
+/// 5. Sạc đầy một lần: giới hạn hiệu lực 100%, bỏ qua khoảng sailing.
+/// 6. Giới hạn + khoảng sailing: không chặn sạc dưới `sailingFloorPercent`.
+///
+/// Vòng đời sạc đầy một lần (máy khởi động lại, hết hạn, rút sạc, bật xả) được xét trước tất cả.
+/// Hàm tổng: không throw, không trap với mọi đầu vào; `effectiveLimit` luôn trong `limitRange`.
 public enum ChargeController {
-    public static func decide(input: ControllerInput, config: PowerConfig,
+    public static let limitRange = 20...100
+
+    public static func decide(input: ControllerInput, config rawConfig: PowerConfig,
                               state: inout ControllerState) -> ControlDecision {
+        let config = rawConfig.sanitized()
         let percent = input.percent
-        let effectiveLimit = config.chargeLimitEnabled ? config.chargeLimit : 100
+        var effects: [ControllerEffect] = []
+
+        if let topUp = state.topUp, let reason = topUpEndReason(topUp, input: input, config: config) {
+            state.topUp = nil
+            effects.append(.topUpEnded(reason))
+        }
+        let topUpActive = state.topUp != nil
+        let limitActive = config.chargeLimitEnabled && config.chargeLimit < 100
+        let limit = limitActive ? clampLimit(config.chargeLimit) : 100
+        let effectiveLimit = topUpActive ? 100 : limit
+
+        // Luôn cập nhật trạng thái trễ (nhiệt, giữ mức) để lần sau nhất quán, kể cả khi nhánh khác thắng.
+        updateThermal(input.temperature, config: config, state: &state)
+        updateHolding(percent: percent, limit: limit, limitActive: limitActive, gap: config.sailingGap,
+                      topUpActive: topUpActive, state: &state, effects: &effects)
+
+        func decision(charging: Bool, adapter: Bool = true, _ reason: ChargeReason) -> ControlDecision {
+            ControlDecision(chargingEnabled: charging, adapterEnabled: adapter, reason: reason,
+                            effectiveLimit: effectiveLimit, effects: effects)
+        }
 
         // An toàn trên hết: pin quá yếu thì luôn cho sạc.
         if percent <= PowerConstants.criticalPercent {
-            let topUp = state.topUp
-            state = ControllerState()
-            state.topUp = topUp
-            return ControlDecision(chargingEnabled: true, adapterEnabled: true, reason: .critical,
-                                   effectiveLimit: effectiveLimit,
-                                   effects: config.dischargeEnabled ? [.dischargeFinished] : [])
+            if config.dischargeEnabled { effects.append(.dischargeFinished) }
+            return decision(charging: true, .critical)
         }
 
-        if config.thermalProtectionEnabled, let t = input.temperature {
-            if t >= config.thermalPauseAbove {
-                state.thermalPaused = true
-            } else if t <= config.thermalResumeBelow {
-                state.thermalPaused = false
-            }
-        } else {
-            state.thermalPaused = false
-        }
-
-        if config.chargeLimitEnabled && config.chargeLimit < 100 {
-            if percent >= config.chargeLimit {
-                state.holdingAtLimit = true
-            } else if percent < config.chargeLimit - config.sailingGap {
-                state.holdingAtLimit = false
-            }
-        } else {
-            state.holdingAtLimit = false
-        }
-
-        var effects: [ControllerEffect] = []
         if config.dischargeEnabled {
             if percent > config.dischargeTarget {
-                return ControlDecision(chargingEnabled: false, adapterEnabled: false, reason: .discharging,
-                                       effectiveLimit: effectiveLimit)
+                // Nắp đóng: không ngắt adapter, tránh vòng lặp ngủ/thức.
+                if input.lidClosed { return decision(charging: false, .clamshellSuspended) }
+                return decision(charging: false, adapter: false, .discharging)
             }
             effects.append(.dischargeFinished)
         }
 
-        let reason: ChargeReason
-        if config.pauseCharging {
-            reason = .manualPause
-        } else if state.thermalPaused {
-            reason = .thermal
-        } else if state.holdingAtLimit {
-            reason = .limitReached
-        } else {
-            reason = .normal
+        if state.thermalPaused && percent >= PowerConstants.thermalFloorPercent {
+            return decision(charging: false, .thermal)
         }
-        return ControlDecision(chargingEnabled: reason == .normal, adapterEnabled: true, reason: reason,
-                               effectiveLimit: effectiveLimit, effects: effects)
+        if config.pauseCharging { return decision(charging: false, .manualPause) }
+        if topUpActive { return decision(charging: true, .topUp) }
+        if state.holdingAtLimit {
+            return decision(charging: false, percent >= limit ? .limitReached : .sailing)
+        }
+        return decision(charging: true, .normal)
     }
 
     /// Tương thích với code/test cũ: cắm sạc, mở nắp, thời điểm hiện tại.
@@ -68,5 +71,60 @@ public enum ChargeController {
                               state: inout ControllerState) -> ControlDecision {
         decide(input: ControllerInput(now: Date(), percent: percent, temperature: temperature),
                config: config, state: &state)
+    }
+
+    /// Lý do kết thúc sạc đầy một lần, nil nếu vẫn tiếp tục. Không kết thúc khi pin đầy:
+    /// giữ sạc bật ở 100% cho tới khi rút sạc, hết hạn hoặc bị hủy.
+    static func topUpEndReason(_ topUp: TopUpState, input: ControllerInput,
+                               config: PowerConfig) -> TopUpEndReason? {
+        if !topUp.bootSessionUUID.isEmpty, !input.bootSessionUUID.isEmpty,
+           topUp.bootSessionUUID != input.bootSessionUUID {
+            return .newBoot
+        }
+        if input.now >= topUp.expiresAt { return .expired }
+        if !input.acPresent { return .unplugged }
+        if config.dischargeEnabled { return .cancelled }
+        return nil
+    }
+
+    static func clampLimit(_ value: Int) -> Int {
+        min(max(value, limitRange.lowerBound), limitRange.upperBound)
+    }
+
+    /// Trễ nhiệt: dừng khi ≥ `thermalPauseAbove`, sạc lại khi ≤ `thermalResumeBelow`.
+    /// Không có cảm biến (hoặc giá trị không hợp lệ) thì không dừng.
+    private static func updateThermal(_ temperature: Double?, config: PowerConfig, state: inout ControllerState) {
+        guard config.thermalProtectionEnabled, let t = temperature, t.isFinite else {
+            state.thermalPaused = false
+            return
+        }
+        if t >= config.thermalPauseAbove {
+            state.thermalPaused = true
+        } else if t <= config.thermalResumeBelow {
+            state.thermalPaused = false
+        }
+    }
+
+    /// Giữ mức (holding): bật khi đạt giới hạn, tắt khi xuống dưới `limit - gap` hoặc dưới mức sàn.
+    /// "Sạc tới giới hạn ngay" buộc tắt giữ mức cho tới khi đạt giới hạn rồi tự tắt.
+    private static func updateHolding(percent: Int, limit: Int, limitActive: Bool, gap: Int, topUpActive: Bool,
+                                      state: inout ControllerState, effects: inout [ControllerEffect]) {
+        guard limitActive else {
+            state.holdingAtLimit = false
+            state.chargeToLimitOnce = false
+            return
+        }
+        // Đang sạc đầy một lần thì sẽ vượt giới hạn, lệnh "sạc tới giới hạn" không còn ý nghĩa.
+        if topUpActive { state.chargeToLimitOnce = false }
+        if percent >= limit {
+            state.holdingAtLimit = true
+            if state.chargeToLimitOnce {
+                state.chargeToLimitOnce = false
+                effects.append(.chargeToLimitDone)
+            }
+        } else if state.chargeToLimitOnce || percent < limit - gap
+                    || percent < PowerConstants.sailingFloorPercent {
+            state.holdingAtLimit = false
+        }
     }
 }
