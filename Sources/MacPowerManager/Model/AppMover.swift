@@ -24,17 +24,16 @@ enum AppMover {
     static func promptIfNeeded() {
         guard needsMove else { return }
         let alert = NSAlert()
-        alert.messageText = "Chuyển MacPowerManager vào thư mục Applications?"
-        alert.informativeText = "App đang chạy trực tiếp từ file tải về hoặc ổ đĩa .dmg. "
-            + "Hãy chuyển vào Applications để app hoạt động ổn định (mở cùng macOS, không bị đóng khi eject ổ đĩa)."
+        alert.messageText = String(localized: "Chuyển MacPowerManager vào thư mục Applications?")
         if canWriteApplications {
-            alert.addButton(withTitle: "Chuyển vào Applications")
+            alert.informativeText = String(localized: "App đang chạy trực tiếp từ file tải về hoặc ổ đĩa .dmg. Hãy chuyển vào Applications để app hoạt động ổn định (mở cùng macOS, không bị đóng khi eject ổ đĩa).")
+            alert.addButton(withTitle: String(localized: "Chuyển vào Applications"))
         } else {
-            alert.informativeText += "\n\nTài khoản này không ghi được vào Applications: hãy nhờ tài khoản quản trị kéo app vào Applications trong Finder."
+            alert.informativeText = String(localized: "App đang chạy trực tiếp từ file tải về hoặc ổ đĩa .dmg. Tài khoản này không ghi được vào Applications: hãy nhờ tài khoản quản trị kéo app vào Applications trong Finder.")
         }
-        alert.addButton(withTitle: "Để sau")
+        alert.addButton(withTitle: String(localized: "Để sau"))
         alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = "Không hỏi lại"
+        alert.suppressionButton?.title = String(localized: "Không hỏi lại")
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if alert.suppressionButton?.state == .on {
@@ -152,8 +151,8 @@ enum AppMover {
 
     private static func showManualInstructions(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "Không thể tự chuyển app"
-        alert.informativeText = "Hãy thoát MacPowerManager, kéo app vào thư mục Applications trong Finder, eject ổ đĩa .dmg rồi mở lại app từ Applications.\n\n(\(error.localizedDescription))"
+        alert.messageText = String(localized: "Không thể tự chuyển app")
+        alert.informativeText = String(localized: "Hãy thoát MacPowerManager, kéo app vào thư mục Applications trong Finder, eject ổ đĩa .dmg rồi mở lại app từ Applications.\n\n(\(error.localizedDescription))")
         alert.runModal()
     }
 }

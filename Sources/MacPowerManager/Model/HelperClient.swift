@@ -8,6 +8,7 @@ import SwiftUI
 @Observable
 final class HelperClient {
     enum InstallState: Equatable {
+        /// `outdated("?")`: helper đã cài nhưng không nhận kết nối (thường do app vừa cập nhật), cần cài lại.
         case unknown, notInstalled, outdated(String), installed
     }
 
@@ -15,18 +16,35 @@ final class HelperClient {
     private(set) var installState: InstallState = .unknown
     private(set) var config = PowerConfig()
     private(set) var isBusy = false
+    /// Đang gửi một lệnh (sạc đầy một lần, sạc tới giới hạn…).
+    private(set) var isSending = false
     var errorMessage: String?
 
     @ObservationIgnored private var connection: NSXPCConnection?
     @ObservationIgnored private var applyTask: Task<Void, Never>?
+    /// Tăng mỗi lần người dùng chỉnh: chỉ lần gửi mới nhất được kết thúc phiên chỉnh và đồng bộ lại cấu hình.
+    @ObservationIgnored private var applyGeneration = 0
+    /// Phiên bản helper trả lời lần gần nhất.
+    @ObservationIgnored private var helperVersion: String?
+    @ObservationIgnored private var failures = 0
+    /// Dữ liệu giả (chụp giao diện): không bao giờ liên lạc với helper thật.
+    @ObservationIgnored private var isPreview = false
 
     var isReady: Bool { installState == .installed }
+
+    /// Helper đã cài nhưng không trả lời: app mới cập nhật bị helper (ghim cdhash app lúc cài) từ chối.
+    var needsReinstall: Bool { installState == .outdated("?") }
+
+    var topUpActive: Bool { status?.topUp != nil }
 
     // MARK: Trạng thái
 
     func refresh() async {
+        guard !isPreview else { return }
         do {
             let version: String = try await call { proxy, reply in proxy.version(reply: reply) }
+            failures = 0
+            helperVersion = version
             guard version == AppVersion.current else {
                 installState = .outdated(version)
                 return
@@ -38,8 +56,16 @@ final class HelperClient {
             // Không ghi đè khi người dùng đang chỉnh và chưa gửi xong.
             if applyTask == nil { config = status.config }
         } catch {
+            failures += 1
+            if FileManager.default.fileExists(atPath: PowerConstants.launchDaemonPath) {
+                // Một lần lỗi khi đang chạy tốt có thể chỉ là helper đang khởi động lại.
+                if installState == .installed && failures < 2 { return }
+                // Helper v0.3.0 chỉ nhận app có cdhash được ghi lúc cài: bản app mới bị từ chối tới khi cài lại.
+                installState = .outdated("?")
+            } else {
+                installState = .notInstalled
+            }
             status = nil
-            installState = .notInstalled
         }
     }
 
@@ -63,44 +89,111 @@ final class HelperClient {
 
     private func scheduleApply(delay: Duration = .milliseconds(400)) {
         applyTask?.cancel()
+        applyGeneration += 1
+        let generation = applyGeneration
         applyTask = Task {
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             await apply(config)
+            // Lần chỉnh mới hơn đang chờ gửi thì để nó tự đồng bộ.
+            guard generation == applyGeneration else { return }
             applyTask = nil
+            // Đồng bộ lại từ helper: nếu helper từ chối hoặc kẹp giá trị, giao diện trở về giá trị thật.
+            await refresh()
         }
     }
 
+    /// Helper từ 0.3.0 nhận lệnh qua `perform(command:)`. Helper cũ hơn không có hàm này (XPC sẽ không trả lời).
+    private var supportsCommands: Bool {
+        guard let helperVersion, helperVersion != AppVersion.current else { return true }
+        return InstallLocation.version(helperVersion, isAtLeast: "0.3.0")
+    }
+
+    /// Gửi cấu hình qua `perform(.setConfig)`; helper cũ chưa có lệnh này thì dùng `apply(config:)`.
     private func apply(_ config: PowerConfig) async {
+        guard supportsCommands else {
+            await applyLegacy(config)
+            return
+        }
+        switch await send(.setConfig(config)) {
+        case .success(let response) where response.error == .unsupported:
+            await applyLegacy(config)
+        case .success(let response):
+            errorMessage = response.ok ? nil : Self.message(for: response)
+            if let status = response.status { self.status = status }
+        case .failure(let error):
+            errorMessage = String(localized: "Không gửi được cấu hình tới helper: \(error.localizedDescription)")
+        }
+    }
+
+    private func applyLegacy(_ config: PowerConfig) async {
         guard let data = try? JSONEncoder().encode(config) else { return }
         do {
             let error: String? = try await call { proxy, reply in proxy.apply(config: data, reply: reply) }
             errorMessage = error
         } catch {
-            errorMessage = "Không gửi được cấu hình tới helper: \(error.localizedDescription)"
+            errorMessage = String(localized: "Không gửi được cấu hình tới helper: \(error.localizedDescription)")
         }
-        await refresh()
     }
 
     // MARK: Lệnh
 
+    func startTopUp(hours: Int? = nil) async {
+        await perform(.startTopUp(hours: hours))
+    }
+
+    func cancelTopUp() async {
+        await perform(.cancelTopUp)
+    }
+
+    func chargeToLimitNow() async {
+        await perform(.chargeToLimitNow)
+    }
+
     /// Gửi `HelperCommand` tới helper. Trả về phản hồi, hoặc nil nếu không liên lạc được.
     @discardableResult
     func perform(_ command: HelperCommand) async -> HelperResponse? {
-        guard let data = try? JSONEncoder().encode(command) else { return nil }
+        guard supportsCommands else {
+            errorMessage = Self.message(for: HelperResponse(ok: false, error: .unsupported))
+            return nil
+        }
+        isSending = true
+        defer { isSending = false }
+        let result = await send(command)
+        await refresh()
+        switch result {
+        case .success(let response):
+            errorMessage = response.ok ? nil : Self.message(for: response)
+            return response
+        case .failure(let error):
+            errorMessage = String(localized: "Không gửi được lệnh tới helper: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func send(_ command: HelperCommand) async -> Result<HelperResponse, Error> {
+        guard let data = try? JSONEncoder().encode(command) else {
+            return .failure(CocoaError(.coderInvalidValue))
+        }
         do {
             let reply: Data? = try await call { proxy, reply in proxy.perform(command: data, reply: reply) }
-            let response = reply.flatMap { try? JSONDecoder().decode(HelperResponse.self, from: $0) }
-            if let response, !response.ok {
-                errorMessage = response.message ?? response.error?.rawValue
-            } else {
-                errorMessage = nil
+            guard let reply, let response = try? JSONDecoder().decode(HelperResponse.self, from: reply) else {
+                return .failure(CocoaError(.coderReadCorrupt))
             }
-            await refresh()
-            return response
+            return .success(response)
         } catch {
-            errorMessage = "Không gửi được lệnh tới helper: \(error.localizedDescription)"
-            return nil
+            return .failure(error)
+        }
+    }
+
+    private static func message(for response: HelperResponse) -> String {
+        if let message = response.message, !message.isEmpty { return message }
+        switch response.error {
+        case .invalidArgument: return String(localized: "Giá trị không hợp lệ.")
+        case .notPluggedIn: return String(localized: "Cần cắm sạc để dùng chức năng này.")
+        case .unsupported: return String(localized: "Helper đang cài chưa hỗ trợ lệnh này. Hãy cài lại helper.")
+        case .notAuthorized: return String(localized: "Helper từ chối lệnh từ bản app này. Hãy cài lại helper.")
+        case .failed, nil: return String(localized: "Helper không thực hiện được lệnh.")
         }
     }
 
@@ -110,7 +203,7 @@ final class HelperClient {
         guard let helper = Bundle.main.url(forAuxiliaryExecutable: "PowerHelper"),
               let plist = Bundle.main.url(forResource: PowerConstants.helperLabel, withExtension: "plist"),
               let script = Bundle.main.url(forResource: "helper-install", withExtension: "sh") else {
-            errorMessage = "Không tìm thấy helper trong app bundle. Hãy build bằng `make app`."
+            errorMessage = String(localized: "Không tìm thấy helper trong app bundle. Hãy build bằng `make app`.")
             return
         }
         // Đối số thứ 4: đường dẫn app, để script ghi cdhash của app vào danh sách client được tin cậy.
@@ -130,19 +223,31 @@ final class HelperClient {
         let bundledHelper = Bundle.main.url(forAuxiliaryExecutable: "PowerHelper")?.path
         let output = await runPrivileged(script: script, arguments: ["uninstall"] + [bundledHelper].compactMap { $0 })
         if output.contains("MPM-E4") {
-            errorMessage = "Đã tắt helper nhưng chưa trả được giới hạn sạc của firmware (BCLM) về 100%. "
-                + "Chạy trong Terminal: sudo \(PowerConstants.helperInstallPath) --restore-defaults"
+            let path = PowerConstants.helperInstallPath
+            errorMessage = String(localized: "Đã tắt helper nhưng chưa trả được giới hạn sạc của firmware (BCLM) về 100%. Chạy trong Terminal: sudo \(path) --restore-defaults")
         } else if output.contains("MPM-E3") {
-            errorMessage = "Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định."
+            errorMessage = String(localized: "Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định.")
         }
         resetConnection()
         status = nil
         await refresh()
     }
 
+    #if DEBUG
+    /// Dữ liệu giả cho chế độ chụp giao diện (`--render-snapshots`).
+    func setPreview(status: HelperStatus?, installState: InstallState, error: String? = nil) {
+        isPreview = true
+        self.status = status
+        self.installState = installState
+        config = status?.config ?? PowerConfig()
+        errorMessage = error
+    }
+    #endif
+
     /// Chạy script bằng quyền admin qua hộp thoại xác thực của macOS. Trả về stderr khi lỗi.
     @discardableResult
     private func runPrivileged(script: URL, arguments: [String]) async -> String {
+        guard !isPreview else { return "" }
         isBusy = true
         defer { isBusy = false }
         let command = (["/bin/sh", script.path] + arguments).map(Self.shellQuote).joined(separator: " ")
@@ -165,7 +270,7 @@ final class HelperClient {
         }.value
 
         if result.0 != 0 {
-            errorMessage = result.1.contains("-128") ? "Đã hủy xác thực." : "Lỗi: \(result.1)"
+            errorMessage = result.1.contains("-128") ? String(localized: "Đã hủy xác thực.") : String(localized: "Lỗi: \(result.1)")
         } else {
             errorMessage = nil
         }
@@ -199,10 +304,16 @@ final class HelperClient {
         connection = nil
     }
 
-    private func call<T>(_ body: @escaping (PowerHelperProtocol, @escaping (T) -> Void) -> Void) async throws -> T {
+    /// Gọi helper qua XPC. Không có phản hồi sau `timeout` giây thì coi là lỗi (helper treo hoặc đang khởi động lại).
+    private func call<T>(timeout: TimeInterval = 8,
+                         _ body: @escaping (PowerHelperProtocol, @escaping (T) -> Void) -> Void) async throws -> T {
+        guard !isPreview else { throw CocoaError(.featureUnsupported) }
         let connection = proxyConnection()
         return try await withCheckedThrowingContinuation { continuation in
             let once = ResumeOnce(continuation)
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+                once.resume(with: .failure(CocoaError(.xpcConnectionReplyInvalid)))
+            }
             let proxy = connection.remoteObjectProxyWithErrorHandler { error in
                 once.resume(with: .failure(error))
             }
