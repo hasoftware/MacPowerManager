@@ -108,7 +108,7 @@ sudo rm -rf "/Library/Application Support/MacPowerManager"
 | `MacPowerManager` | App SwiftUI: `MenuBarExtra` và cửa sổ chi tiết |
 | `smc-probe` | CLI chẩn đoán SMC key |
 
-SMC key được dò theo firmware: `CHTE`/`CHIE` (mới) hoặc `CH0B`+`CH0C`/`CH0I` (cũ) trên Apple Silicon,
+SMC key được dò theo firmware: `CHTE`/`CHIE` (mới) hoặc `CH0C`/`CH0I` (cũ; `CH0B` để lại cho Optimized Battery Charging của macOS) trên Apple Silicon,
 `BCLM` trên Intel (thử nghiệm; firmware tự giữ giới hạn, helper không khôi phục khi tắt máy mà chỉ khi gỡ cài đặt).
 
 ### Cơ chế an toàn
@@ -169,7 +169,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 - notifications
 - a sidebar window (Overview, History, Battery Health, Charge Limit, Heat Guard, Discharge, Sleep, Menu Bar, Notifications, System & Helper, About) plus a menu bar popover
 
-A root LaunchDaemon helper writes the SMC charging keys (`CHTE`/`CHIE`, or `CH0B`/`CH0C`/`CH0I` on older firmware) and keeps enforcing the limit when the app is closed. Intel T2 MacBooks get experimental support via `BCLM` (50–100% limit, enforced by firmware even when off).
+A root LaunchDaemon helper writes the SMC charging keys (`CHTE`/`CHIE`, or `CH0C`/`CH0I` on older firmware, leaving `CH0B` to macOS Optimized Battery Charging) and keeps enforcing the limit when the app is closed. Intel T2 MacBooks get experimental support via `BCLM` (50–100% limit, enforced by firmware even when off).
 Build with `make install`, open the app, then click **Install Helper**. Don't run it alongside other charge limiters.
 The UI is available in English and Vietnamese and follows your macOS language; any other language falls back to English.
 To uninstall, open **System & Helper → Uninstall Helper…** *before* deleting the app (see [Gỡ cài đặt](#gỡ-cài-đặt) for the manual steps).

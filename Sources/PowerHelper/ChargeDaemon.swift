@@ -48,6 +48,10 @@ final class ChargeDaemon {
     private var lastKnownAC: Bool?
     /// Thời điểm helper ngắt adapter (đọc lại thấy đã ngắt) và kết quả xác minh việc ngắt.
     private var adapterCutSince: Date?
+    /// Lúc quyết định bắt đầu muốn ngắt adapter (dù lệnh ghi có ăn hay chưa), để hủy xả nếu không bao giờ ngắt được.
+    private var adapterCutWantedSince: Date?
+    /// Lúc helper tự hủy xả, để bỏ qua cấu hình cũ từ app gửi tới ngay sau đó (bật lại xả với lease mới).
+    private var dischargeAbortedAt: Date?
     private var adapterCut: AdapterCutCheck = .notApplicable
     /// Lỗi của chế độ xả (bị từ chối, tự hủy). Giữ tới lần người dùng đổi cấu hình kế tiếp,
     /// vì `lastError` được ghi lại ở mỗi vòng.
@@ -190,6 +194,25 @@ final class ChargeDaemon {
 
     /// Sau khi ngắt adapter, dòng pin phải âm trong `adapterCutVerifySeconds`; nếu không thì hủy xả.
     private func verifyAdapterCut(wanted: Bool, now: Date, battery: BatteryInfo) {
+        // Muốn ngắt nhưng không còn key ngắt adapter nào dùng được (bị khóa) hoặc ghi không ăn:
+        // không có gì để xác minh, nên hủy xả thay vì chặn sạc tới hết lease.
+        if wanted {
+            if adapterCutWantedSince == nil { adapterCutWantedSince = now }
+            let stuck = control.adapterKeys == nil
+                || (control.isAdapterEnabled != false
+                    && now.timeIntervalSince(adapterCutWantedSince ?? now) > PowerConstants.adapterCutVerifySeconds)
+            if stuck {
+                let detail = control.adapterKeys == nil
+                    ? "không còn key ngắt adapter nào dùng được"
+                    : "lệnh ngắt adapter không được SMC chấp nhận"
+                log("CẢNH BÁO: \(detail), hủy xả pin")
+                adapterCutWantedSince = nil
+                abortDischarge(.adapterCutIneffective, detail: detail, percent: battery.percent)
+                return
+            }
+        } else {
+            adapterCutWantedSince = nil
+        }
         if wanted, control.isAdapterEnabled == false {
             if adapterCutSince == nil { adapterCutSince = now }
         } else {
@@ -219,6 +242,7 @@ final class ChargeDaemon {
         }
         adapterCutSince = nil
         adapterCut = .notApplicable
+        dischargeAbortedAt = Date()
         handle(effects: [.dischargeAborted(reason)], percent: percent)
         dischargeError = "Đã hủy xả pin: \(detail)"
     }
@@ -491,9 +515,18 @@ final class ChargeDaemon {
     @discardableResult
     func update(config newConfig: PowerConfig) -> HelperError? {
         suspendedUntil = nil
-        dischargeError = nil
         let old = config
-        let validated = ControllerCommands.validate(newConfig.sanitized(), adapterSupported: control.adapterKeys != nil)
+        var incoming = newConfig.sanitized()
+        // App gửi toàn bộ cấu hình và chỉ đồng bộ lại mỗi 5 giây: một cấu hình cũ tới ngay sau khi helper
+        // tự hủy xả sẽ bật lại xả với lease mới. Bỏ qua cờ xả trong 15 giây sau khi hủy.
+        if incoming.dischargeEnabled && !old.dischargeEnabled,
+           let abortedAt = dischargeAbortedAt, Date().timeIntervalSince(abortedAt) < 15 {
+            incoming.dischargeEnabled = false
+            log("Bỏ qua yêu cầu bật xả ngay sau khi helper vừa hủy xả (cấu hình cũ từ app)")
+        } else {
+            dischargeError = nil
+        }
+        let validated = ControllerCommands.validate(incoming, adapterSupported: control.adapterKeys != nil)
         config = validated.config
         if validated.error != nil {
             dischargeError = "Máy này không ngắt được adapter nên không xả pin được"

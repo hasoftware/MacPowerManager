@@ -82,7 +82,7 @@ final class NotifierTests: XCTestCase {
 
     // MARK: Ghi từ bên ngoài
 
-    func testForeignWriteNotifiedOncePerWrite() {
+    func testForeignWriteNotifiedOncePerIncident() {
         let now = Date()
         let write = ForeignWrite(key: "CHTE", expected: "01000000", found: "00000000", at: now.addingTimeInterval(-60))
         let n = makeNotifier()
@@ -96,9 +96,18 @@ final class NotifierTests: XCTestCase {
         evaluate(relaunched, 80, status(discharging: false, writes: [write]), now: now)
         XCTAssertEqual(posted.filter { $0 == "foreign-controller" }.count, 1)
 
-        // Lần ghi mới thì báo tiếp.
-        let newer = ForeignWrite(key: "CHTE", expected: "01000000", found: "00000000", at: now)
-        evaluate(relaunched, 80, status(discharging: false, writes: [write, newer]), now: now)
+        // Tool khác ghi lại mỗi phút: vẫn chỉ một thông báo trong cửa sổ 30 phút.
+        for minute in 1...20 {
+            let t = now.addingTimeInterval(Double(minute) * 60)
+            let w = ForeignWrite(key: "CHTE", expected: "01000000", found: "00000000", at: t)
+            evaluate(relaunched, 80, status(discharging: false, writes: [w]), now: t)
+        }
+        XCTAssertEqual(posted.filter { $0 == "foreign-controller" }.count, 1)
+
+        // Sau cửa sổ, một sự việc mới thì báo tiếp.
+        let later = now.addingTimeInterval(AppModel.foreignWriteWindow + 120)
+        let newer = ForeignWrite(key: "CHTE", expected: "01000000", found: "00000000", at: later)
+        evaluate(relaunched, 80, status(discharging: false, writes: [newer]), now: later)
         XCTAssertEqual(posted.filter { $0 == "foreign-controller" }.count, 2)
     }
 

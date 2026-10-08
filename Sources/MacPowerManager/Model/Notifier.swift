@@ -21,6 +21,7 @@ final class Notifier {
 
     /// Lần ghi từ bên ngoài đã báo gần nhất (key + thời điểm), lưu lại để không báo lại sau khi mở lại app.
     static let foreignWriteAtKey = "notifier.foreignWrite.at"
+    private static let foreignWritePostedKey = "notifier.foreignWrite.postedAt"
     static let foreignWriteKeyKey = "notifier.foreignWrite.key"
 
     init(defaults: UserDefaults = .standard, sink: ((String, String, String) -> Void)? = nil) {
@@ -102,10 +103,14 @@ final class Notifier {
         }
         notifiedControllers = running
 
-        // Helper thấy key bị ghi đè: báo một lần cho mỗi lần ghi (key + thời điểm), nhớ qua các lần mở app.
-        // Mất kết nối helper (nil) không xóa trạng thái này.
+        // Helper thấy key bị ghi đè: báo theo "sự việc" chứ không theo từng lần ghi. Một tool khác ghi lại key
+        // mỗi phút chỉ tạo một thông báo trong mỗi `AppModel.foreignWriteWindow`; nếu đã biết ứng dụng nào đang
+        // chạy (đã báo ở trên) thì không báo thêm. Nhớ qua các lần mở app; mất kết nối helper (nil) không xóa.
         if let write = newForeignWrite(in: helper?.foreignWrites, now: now) {
-            if freshApp == nil && prefs.notifyForeignController {
+            let lastPosted = defaults.object(forKey: Self.foreignWritePostedKey) as? Double
+            let recentlyPosted = lastPosted.map { now.timeIntervalSinceReferenceDate - $0 < AppModel.foreignWriteWindow } ?? false
+            if running.isEmpty && !recentlyPosted && prefs.notifyForeignController {
+                defaults.set(now.timeIntervalSinceReferenceDate, forKey: Self.foreignWritePostedKey)
                 post(id: "foreign-controller", String(localized: "Có ứng dụng khác đang ghi vào SMC"),
                      String(localized: "Key \(write.key) bị thay đổi ngoài MacPowerManager."))
             }
