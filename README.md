@@ -15,13 +15,21 @@ App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook 
 ## Tính năng
 
 - **Thông tin pin**: %, dung lượng (mAh), sức khỏe, chu kỳ, điện áp, dòng, công suất, nhiệt độ (SMC + IOKit), adapter.
-- **Giới hạn sạc**: dừng sạc ở X% và chỉ sạc lại khi pin giảm dưới `X - gap` (khoảng sạc lại), tránh bật/tắt sạc liên tục.
+- **Giới hạn sạc**: dừng sạc ở X% và chỉ sạc lại khi pin giảm quá **khoảng sạc lại** (chỉnh được), tránh bật/tắt sạc liên tục.
+  - **Sạc tới giới hạn ngay**: bỏ qua khoảng sạc lại một lần, sạc thẳng tới giới hạn rồi tự tắt.
+  - **Sạc đầy một lần**: sạc tới 100% một lần (ví dụ trước chuyến đi); giới hạn trở lại khi rút sạc hoặc hết hạn.
 - **Tạm dừng sạc**: máy chạy hoàn toàn bằng adapter, pin giữ nguyên.
 - **Xả pin**: ngắt adapter bằng phần mềm để xả về mức mục tiêu dù vẫn cắm sạc, sau đó tự tắt.
-- **Bảo vệ nhiệt**: dừng sạc khi pin ≥ ngưỡng nóng và sạc lại khi đã nguội (hysteresis).
+- **Chống nóng**: dừng sạc khi pin ≥ ngưỡng nóng và sạc lại khi đã nguội (hysteresis).
   Apple Silicon không cho phần mềm chỉnh dòng sạc, nên đây là cách giảm công suất và nhiệt khi sạc.
-- **Lịch sử & thông báo**: biểu đồ % / nhiệt độ / công suất trong 7 ngày; thông báo khi đạt giới hạn, pin nóng, xả xong, pin yếu.
-- **Giao diện**: menu bar (popover điều khiển nhanh) và cửa sổ chi tiết.
+- **Kiểm tra hiệu lực**: sau khi chặn sạc, helper đo dòng điện vào pin; nếu pin vẫn nhận sạc, app cảnh báo.
+- **Phát hiện xung đột**: nhận biết ứng dụng điều khiển sạc khác (AlDente, batt, Battery Toolkit, actuallymentor/battery)
+  đang cài hoặc đang chạy, và cảnh báo khi có tiến trình khác ghi vào SMC key mà helper quản lý.
+- **Lịch sử & thông báo**: biểu đồ % / nhiệt độ / công suất trong 7 ngày; thông báo khi đạt giới hạn, pin nóng, xả xong,
+  pin yếu, lệnh dừng sạc chưa có hiệu lực, có ứng dụng khác điều khiển sạc.
+- **Giao diện**: popover trên thanh menu và cửa sổ có thanh bên với các trang Tổng quan, Lịch sử, Tình trạng pin,
+  Giới hạn sạc, Chống nóng, Xả pin, Khi ngủ, Thanh menu, Thông báo, Hệ thống & helper, Giới thiệu.
+- **Tiếng Việt và tiếng Anh**: giao diện theo ngôn ngữ của macOS; ngôn ngữ khác hiển thị tiếng Anh.
 
 Vòng điều khiển chạy trong một helper nền (LaunchDaemon), nên giới hạn sạc vẫn có hiệu lực khi app đã thoát.
 
@@ -41,7 +49,8 @@ Vòng điều khiển chạy trong một helper nền (LaunchDaemon), nên giớ
 3. Mở app. App chưa được ký bằng Apple Developer ID nên macOS sẽ chặn lần đầu:
    vào **System Settings → Privacy & Security**, kéo xuống và bấm **Open Anyway**.
 4. Bấm biểu tượng pin trên thanh menu → **Cài helper** và nhập mật khẩu quản trị.
-   Mỗi khi cập nhật lên bản mới, app sẽ nhắc **cài lại helper**.
+   **Sau mỗi lần cập nhật app phải cài lại helper** (app sẽ nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó
+   (ghim theo cdhash), nên bản app mới chưa điều khiển được sạc cho tới khi cài lại.
 
 ## Build từ mã nguồn
 
@@ -64,13 +73,14 @@ Lần đầu mở app, bấm **Cài helper** và nhập mật khẩu quản tr�
 ```sh
 make run       # build và mở app từ thư mục build/
 make test      # chạy unit test
+make check-l10n  # kiểm tra bản dịch (chạy được với python3 có sẵn của macOS)
 make probe     # xem các SMC key liên quan tới sạc trên máy
 make package   # build universal và tạo dist/*.dmg, dist/*.zip
 ```
 
 ## Gỡ cài đặt
 
-1. Mở app → **Cài đặt** → **Gỡ helper** (hoặc `make uninstall-helper` nếu build từ mã nguồn). Sạc sẽ trở về mặc định của macOS.
+1. Mở app → **Hệ thống & helper** → **Gỡ helper…** (hoặc `make uninstall-helper` nếu build từ mã nguồn). Sạc sẽ trở về mặc định của macOS.
 2. Xóa `/Applications/MacPowerManager.app` và `~/Library/Application Support/MacPowerManager`.
 
 Nếu đã lỡ xóa app trước khi gỡ helper, chạy trong Terminal:
@@ -106,12 +116,13 @@ SMC key được dò theo firmware: `CHTE`/`CHIE` (mới) hoặc `CH0B`+`CH0C`/`
 - Apple Silicon: helper nhận SIGTERM (gỡ, `launchctl bootout`, tắt máy) thì khôi phục sạc + adapter về mặc định.
   Intel: giới hạn `BCLM` được firmware giữ cả khi helper dừng hoặc máy tắt; chỉ gỡ helper mới trả về 100%.
 - Trước khi ngủ luôn bật lại adapter. Chế độ xả không được khôi phục sau khi helper khởi động lại.
-- Helper chỉ nhận kết nối XPC từ client có identifier `com.hasoftware.MacPowerManager`, và mọi cấu hình nhận được đều bị kẹp về khoảng an toàn.
+- Helper chỉ nhận kết nối XPC từ đúng bản app đã cài nó: script cài đặt ghi cdhash của app vào
+  `/Library/Application Support/MacPowerManager/trusted-clients.json` (chỉ root ghi được). Mọi cấu hình nhận được đều bị kẹp về khoảng an toàn.
 
 ### Giới hạn đã biết
-- **Chưa có Apple Developer ID**: app ký ad-hoc nên phải bấm *Open Anyway* lần đầu, và việc kiểm tra client XPC
-  chỉ dựa vào identifier. Một tiến trình khác chạy dưới tài khoản của bạn có thể giả identifier để đổi cấu hình sạc
-  (ví dụ tắt sạc), nhưng không thể ghi SMC tùy ý hay vượt qua mức an toàn 10%.
+- **Chưa có Apple Developer ID**: app ký ad-hoc nên phải bấm *Open Anyway* lần đầu. Helper ghim client XPC theo cdhash
+  của bản app đã cài, vì vậy mỗi bản app mới (cdhash khác) cần **cài lại helper**. Dù vậy, không tiến trình nào qua được
+  mức an toàn 10% hay ghi SMC tùy ý qua helper.
   Khi có Developer ID, có thể build với `SIGN_ID="Developer ID Application: …" make app` và thêm điều kiện Team ID
   (`anchor apple generic and certificate leaf[subject.OU] = "TEAMID"`) vào `Sources/PowerHelper/XPCService.swift`.
 - Helper được cài bằng script chạy quyền admin từ bên trong app bundle (không dùng `SMAppService`).
@@ -120,7 +131,9 @@ SMC key được dò theo firmware: `CHTE`/`CHIE` (mới) hoặc `CH0B`+`CH0C`/`
 ## Đóng góp
 
 Rất hoan nghênh issue và pull request!
-- Chạy `make test` trước khi gửi PR. CI sẽ tự build và test trên macOS.
+- Chạy `make test` và `make check-l10n` trước khi gửi PR. CI sẽ tự kiểm tra bản dịch, build và test trên macOS.
+- Chuỗi giao diện viết bằng tiếng Việt trong mã (đó là khóa); thêm bản dịch tiếng Anh vào
+  `Resources/Localization/en.lproj/Localizable.strings` (số nhiều: `Localizable.stringsdict` của cả `en.lproj` và `vi.lproj`).
 - Ghi thay đổi vào mục `[Unreleased]` trong [CHANGELOG.md](CHANGELOG.md).
 
 ### Version & phát hành
@@ -141,19 +154,26 @@ Khi tag được đẩy lên, GitHub Actions sẽ build bản universal, đóng 
 
 ## English
 
-**Download:** grab the `.dmg` from [Releases](https://github.com/hasoftware/MacPowerManager/releases/latest), drag the app to Applications, and allow it via *System Settings → Privacy & Security → Open Anyway* (not notarized yet). Then click the menu bar icon → **Cài helper** (Install helper).
+**Download:** grab the `.dmg` from [Releases](https://github.com/hasoftware/MacPowerManager/releases/latest), drag the app to Applications, and allow it via *System Settings → Privacy & Security → Open Anyway* (not notarized yet). Then click the menu bar icon → **Install Helper**. **Reinstall the helper after every app update**: the helper only accepts commands from the exact app build that installed it (pinned by cdhash), so a new build cannot control charging until you reinstall.
 
 
 MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon MacBooks. Features:
-- charge limiter with recharge margin
+- charge limit with an adjustable recharge margin
+- Charge to Limit Now (skip the recharge margin once) and Full Charge Once (charge to 100% once; the limit returns when you unplug)
 - pause charging (run from the adapter)
 - discharge while plugged in
-- heat guard (pause charging above a temperature threshold)
-- battery details and history charts
+- Heat Guard (pause charging above a temperature threshold, resume once cool)
+- effect verification: after blocking charging the helper checks that the battery really stopped charging and warns you if not
+- conflict detection: other charge controllers (AlDente, batt, Battery Toolkit, actuallymentor/battery) and foreign writes to the SMC keys the helper manages
+- battery details, health and history charts
 - notifications
+- a sidebar window (Overview, History, Battery Health, Charge Limit, Heat Guard, Discharge, Sleep, Menu Bar, Notifications, System & Helper, About) plus a menu bar popover
 
 A root LaunchDaemon helper writes the SMC charging keys (`CHTE`/`CHIE`, or `CH0B`/`CH0C`/`CH0I` on older firmware) and keeps enforcing the limit when the app is closed. Intel T2 MacBooks get experimental support via `BCLM` (50–100% limit, enforced by firmware even when off).
-Build with `make install`, open the app, then click **Install helper**. Don't run it alongside other charge limiters. The UI is currently in Vietnamese.
+Build with `make install`, open the app, then click **Install Helper**. Don't run it alongside other charge limiters.
+The UI is available in English and Vietnamese and follows your macOS language; any other language falls back to English.
+To uninstall, open **System & Helper → Uninstall Helper…** *before* deleting the app (see [Gỡ cài đặt](#gỡ-cài-đặt) for the manual steps).
+Contributors: run `make test` and `make check-l10n` before opening a PR.
 
 ## Giấy phép
 

@@ -57,12 +57,15 @@ struct LimitPage: View {
                         }
                         LabeledContent {
                             Button("Sạc tới giới hạn ngay") { Task { await helper.chargeToLimitNow() } }
-                                .disabled(helper.isSending || status?.chargeToLimitOnce == true
-                                          || model.battery?.externalConnected != true)
+                                .disabled(helper.isSending || chargeNowBlocker(config: config, status: status) != nil)
+                                .help(chargeNowBlocker(config: config, status: status)
+                                      ?? "Sạc tới giới hạn ngay, không chờ pin xuống dưới khoảng sạc lại. Tự tắt khi đạt giới hạn.")
                         } label: {
                             Text("Bỏ qua khoảng sạc lại một lần")
                             if status?.chargeToLimitOnce == true {
                                 Text("Đang sạc tới \(config.chargeLimit)%…")
+                            } else if status?.topUp != nil {
+                                Text("Không dùng được khi đang sạc đầy một lần.")
                             }
                         }
                     } header: {
@@ -129,5 +132,15 @@ struct LimitPage: View {
 
             HelperErrorSection()
         }
+    }
+
+    /// Lý do không dùng được "Sạc tới giới hạn ngay" (hiện ở chú thích của nút), nil nếu dùng được.
+    /// Helper cũng từ chối các trường hợp này, nhưng thông báo lỗi chung chung không giúp người dùng hiểu vì sao.
+    private func chargeNowBlocker(config: PowerConfig, status: HelperStatus?) -> LocalizedStringKey? {
+        if status?.chargeToLimitOnce == true { return "Đang sạc tới giới hạn." }
+        if status?.topUp != nil { return "Không dùng được khi đang sạc đầy một lần." }
+        if !config.chargeLimitEnabled || config.chargeLimit >= 100 { return "Cần bật giới hạn sạc dưới 100%." }
+        if model.battery?.externalConnected != true { return "Cần cắm sạc." }
+        return nil
     }
 }

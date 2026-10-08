@@ -40,5 +40,9 @@ let package = Package(
             name: "PowerCoreTests",
             dependencies: ["PowerCore"]
         ),
+        .testTarget(
+            name: "MacPowerManagerTests",
+            dependencies: ["MacPowerManager", "PowerCore"]
+        ),
     ]
 )

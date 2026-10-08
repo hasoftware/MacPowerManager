@@ -137,11 +137,27 @@ final class AppModel {
 
     /// Có vấn đề cần người dùng chú ý ở trang Hệ thống & helper.
     var hasSystemIssue: Bool {
-        !helper.isReady || !runningConflicts.isEmpty || !(helper.status?.foreignWrites ?? []).isEmpty
+        !helper.isReady || !runningConflicts.isEmpty || recentForeignWrite != nil
             || !relevantLockedKeys.isEmpty || controlUnsupported || effectIneffective
     }
 
+    /// Lần ghi từ bên ngoài gần nhất còn đáng cảnh báo (trong `foreignWriteWindow`). Helper giữ lại các lần ghi
+    /// cũ để hiển thị ở trang Hệ thống & helper, nhưng banner và huy hiệu chỉ dành cho sự việc vừa xảy ra.
+    var recentForeignWrite: ForeignWrite? {
+        Self.recentForeignWrite(in: helper.status?.foreignWrites, now: Date())
+    }
+
+    /// Banner "có ứng dụng khác ghi vào SMC" chỉ hiện trong 30 phút sau lần ghi gần nhất.
+    nonisolated static let foreignWriteWindow: TimeInterval = 30 * 60
+
+    nonisolated static func recentForeignWrite(in writes: [ForeignWrite]?, now: Date) -> ForeignWrite? {
+        guard let latest = writes?.max(by: { $0.at < $1.at }) else { return nil }
+        return now.timeIntervalSince(latest.at) <= foreignWriteWindow ? latest : nil
+    }
+
     /// Các banner đang áp dụng, theo thứ tự ưu tiên. Giao diện chỉ hiện banner đầu tiên.
+    /// Banner an toàn (pin yếu, pin nóng) luôn đứng trên banner mang tính thông tin (key bị khóa, ghi từ bên
+    /// ngoài, chuyển app vào Applications) để không bị che mất.
     var banners: [AppBanner] {
         var result: [AppBanner] = []
         switch helper.installState {
@@ -151,24 +167,27 @@ final class AppModel {
         }
         if let app = runningConflicts.first {
             result.append(.conflict(app))
-        } else if let write = helper.status?.foreignWrites?.last {
-            result.append(.foreignWrite(write))
         }
         if effectIneffective {
             result.append(.ineffective)
         }
+        // An toàn
+        if let battery, !battery.externalConnected, battery.percent <= prefs.lowBatteryThreshold {
+            result.append(.lowBattery(battery.percent))
+        }
+        if summary.state == .heat {
+            result.append(.heat(temperature, resume: activeConfig?.thermalResumeBelow))
+        }
+        // Thông tin
         if controlUnsupported {
             result.append(.unsupported)
         } else if !relevantLockedKeys.isEmpty {
             result.append(.locked(relevantLockedKeys, fallback: helper.status?.capabilities?.chargeMethod))
         }
+        if runningConflicts.isEmpty, let write = recentForeignWrite {
+            result.append(.foreignWrite(write))
+        }
         if needsMove { result.append(.moveApp) }
-        if summary.state == .heat {
-            result.append(.heat(temperature, resume: activeConfig?.thermalResumeBelow))
-        }
-        if let battery, !battery.externalConnected, battery.percent <= prefs.lowBatteryThreshold {
-            result.append(.lowBattery(battery.percent))
-        }
         return result
     }
 

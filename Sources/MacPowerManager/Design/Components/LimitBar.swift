@@ -15,6 +15,8 @@ struct LimitBar: View {
     /// Màu phần tô mức pin hiện tại (theo trạng thái).
     var fillTint: Color = .green
     var style: Style = .compact
+    /// Nhãn trợ năng (VoiceOver) của thanh trượt.
+    var label: LocalizedStringKey = "Giới hạn sạc"
     var onCommit: (Int) -> Void
 
     @State private var dragValue: Int?
@@ -43,7 +45,7 @@ struct LimitBar: View {
         .accessibilityRepresentation {
             Slider(value: Binding(get: { Double(limit) }, set: { onCommit(Int($0.rounded())) }),
                    in: Double(range.lowerBound)...Double(range.upperBound), step: 1) {
-                Text("Giới hạn sạc")
+                Text(label)
             }
         }
     }

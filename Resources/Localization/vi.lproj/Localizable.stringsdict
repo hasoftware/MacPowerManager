@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld giờ</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@hours@</string>
+		<key>hours</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld giờ</string>
+		</dict>
+	</dict>
+	<key>%lld mẫu</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@samples@</string>
+		<key>samples</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mẫu</string>
+		</dict>
+	</dict>
+	<key>Pin vẫn nhận dòng sạc sau %lld giây kể từ khi chặn sạc.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Pin vẫn nhận dòng sạc sau %#@seconds@ kể từ khi chặn sạc.</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld giây</string>
+		</dict>
+	</dict>
+	<key>Sau khi chặn sạc, helper kiểm tra dòng điện vào pin. Nếu sau %lld giây pin vẫn nhận dòng sạc, app sẽ cảnh báo vì có thể macOS hoặc ứng dụng khác đang can thiệp.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Sau khi chặn sạc, helper kiểm tra dòng điện vào pin. Nếu sau %#@seconds@ pin vẫn nhận dòng sạc, app sẽ cảnh báo vì có thể macOS hoặc ứng dụng khác đang can thiệp.</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld giây</string>
+		</dict>
+	</dict>
+	<key>Pin được thiết kế để giữ khoảng 80%% dung lượng sau %lld lần sạc.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Pin được thiết kế để giữ khoảng 80%% dung lượng sau %#@cycles@.</string>
+		<key>cycles</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld lần sạc</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

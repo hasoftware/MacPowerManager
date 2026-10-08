@@ -306,6 +306,7 @@
 "Tạm ngừng vì nắp máy đang đóng, sẽ xả tiếp khi mở nắp." = "Paused because the lid is closed; resumes when you open it.";
 "Bắt đầu xả" = "Start Discharging";
 "Xả về %lld%%" = "Discharge to %lld%%";
+"Mức xả về" = "Discharge Target";
 "Pin đang ở %lld%%, không cao hơn mục tiêu." = "The battery is at %lld%%, not above the target.";
 "Sẽ bắt đầu khi cắm sạc." = "Starts when the power adapter is plugged in.";
 "Xả pin" = "Discharge";
@@ -336,6 +337,10 @@
 "Khoảng sạc lại: %lld%%" = "Recharge margin: %lld%%";
 "Sạc tới giới hạn ngay" = "Charge to Limit Now";
 "Bỏ qua khoảng sạc lại một lần" = "Skip the recharge margin once";
+"Sạc tới giới hạn ngay, không chờ pin xuống dưới khoảng sạc lại. Tự tắt khi đạt giới hạn." = "Charge to the limit now instead of waiting for the battery to drop below the recharge margin. Turns itself off at the limit.";
+"Không dùng được khi đang sạc đầy một lần." = "Not available while charging to 100% with Full Charge Once.";
+"Đang sạc tới giới hạn." = "Already charging to the limit.";
+"Cần bật giới hạn sạc dưới 100%." = "Turn on a charge limit below 100% first.";
 "Đang sạc tới %lld%%…" = "Charging to %lld%%…";
 "Khoảng sạc lại" = "Recharge Margin";
 "Sau khi đạt giới hạn, máy chỉ sạc lại khi pin giảm quá khoảng này để tránh bật/tắt sạc liên tục. Dưới %lld%% luôn được sạc." = "After reaching the limit, your Mac recharges only once the battery drops by more than this margin, so charging doesn’t switch on and off constantly. Below %lld%% it always charges.";

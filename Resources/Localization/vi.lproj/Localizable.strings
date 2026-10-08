@@ -1,5 +1,8 @@
 /*
   Tiếng Việt là ngôn ngữ gốc: khóa (key) chính là câu tiếng Việt trong mã nguồn,
   nên file này để trống. Thư mục vi.lproj cần tồn tại để macOS chọn tiếng Việt
-  khi ngôn ngữ ưu tiên của hệ thống là tiếng Việt.
+  khi ngôn ngữ ưu tiên của hệ thống là tiếng Việt (ngôn ngữ phát triển của app là
+  tiếng Anh, dùng cho mọi ngôn ngữ khác).
+  Riêng số nhiều nằm trong Localizable.stringsdict, phải có đủ mọi khóa của
+  en.lproj/Localizable.stringsdict; nếu thiếu, macOS lấy bản tiếng Anh ("3 hours").
 */

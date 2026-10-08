@@ -16,7 +16,8 @@ struct DischargePage: View {
                 Section {
                     VStack(alignment: .leading, spacing: Theme.Space.m) {
                         LimitBar(limit: config.dischargeTarget, percent: model.battery?.percent, sailingGap: nil,
-                                 range: 20...95, tint: .purple, fillTint: model.summary.state.tint, style: .large) { value in
+                                 range: 20...95, tint: .purple, fillTint: model.summary.state.tint, style: .large,
+                                 label: "Mức xả về") { value in
                             helper.update { $0.dischargeTarget = value }
                         }
                         HStack {

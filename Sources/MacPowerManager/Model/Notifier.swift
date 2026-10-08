@@ -9,10 +9,24 @@ final class Notifier {
     private var lastReason: ChargeReason?
     private var lowBatteryNotified = false
     private var fullNotified = false
-    private var wasDischarging = false
+    /// Mục tiêu xả ở lần helper báo đang xả gần nhất; nil khi không xả. Không đổi khi mất kết nối helper.
+    private var dischargeTarget: Int?
     private var lastTopUp: TopUpState?
     private var ineffectiveNotified = false
     private var notifiedControllers: Set<String> = []
+
+    private let defaults: UserDefaults
+    /// Thay cho UNUserNotificationCenter (kiểm thử): nhận (id, tiêu đề, nội dung).
+    private let sink: ((String, String, String) -> Void)?
+
+    /// Lần ghi từ bên ngoài đã báo gần nhất (key + thời điểm), lưu lại để không báo lại sau khi mở lại app.
+    static let foreignWriteAtKey = "notifier.foreignWrite.at"
+    static let foreignWriteKeyKey = "notifier.foreignWrite.key"
+
+    init(defaults: UserDefaults = .standard, sink: ((String, String, String) -> Void)? = nil) {
+        self.defaults = defaults
+        self.sink = sink
+    }
 
     /// UNUserNotificationCenter chỉ dùng được khi chạy trong app bundle.
     private var center: UNUserNotificationCenter? {
@@ -30,7 +44,7 @@ final class Notifier {
     }
 
     func evaluate(battery: BatteryInfo, temperature: Double?, helper: HelperStatus?, prefs: Preferences,
-                  firmwareControlled: Bool = false, conflicts: [ConflictFinding] = []) {
+                  firmwareControlled: Bool = false, conflicts: [ConflictFinding] = [], now: Date = Date()) {
         // Intel: firmware còn sạc (vượt giới hạn ~3% hoặc sạc bù) thì chưa thực sự "đạt giới hạn" hay "tạm dừng";
         // đang rút sạc thì cũng không có gì để báo. Bỏ qua để không báo nhầm và không báo lại sau mỗi lần sạc bù.
         let skipReason = firmwareControlled && (battery.isCharging || !battery.externalConnected)
@@ -48,12 +62,16 @@ final class Notifier {
             lastReason = reason
         }
 
-        let discharging = helper?.config.dischargeEnabled ?? false
-        if wasDischarging && !discharging && prefs.notifyDischargeDone {
-            post(id: "discharge-done", String(localized: "Đã xả pin xong"),
-                 String(localized: "Pin hiện ở mức \(battery.percent)%."))
+        // Xả xong: chỉ khi helper tắt chế độ xả mà pin đã về tới mục tiêu. Người dùng dừng xả, sạc đầy một lần
+        // hoặc đổi cấu hình (pin còn trên mục tiêu) không phải "xả xong"; mất kết nối helper thì bỏ qua lần này.
+        if let helper {
+            if let target = dischargeTarget, !helper.config.dischargeEnabled,
+               battery.percent <= target, prefs.notifyDischargeDone {
+                post(id: "discharge-done", String(localized: "Đã xả pin xong"),
+                     String(localized: "Pin hiện ở mức \(battery.percent)%."))
+            }
+            dischargeTarget = helper.config.dischargeEnabled ? helper.config.dischargeTarget : nil
         }
-        wasDischarging = discharging
 
         // Sạc đầy một lần kết thúc (đầy, rút sạc, hết hạn hoặc bị hủy).
         let topUp = helper?.topUp
@@ -75,20 +93,25 @@ final class Notifier {
             ineffectiveNotified = false
         }
 
-        // Ứng dụng điều khiển sạc khác: báo một lần cho mỗi ứng dụng mới chạy hoặc khi helper thấy key bị ghi đè.
-        var controllers = Set(conflicts.filter(\.running).map(\.name))
-        if let write = helper?.foreignWrites?.last { controllers.insert("key:\(write.key)") }
-        let fresh = controllers.subtracting(notifiedControllers)
-        if !fresh.isEmpty && prefs.notifyForeignController {
-            if let app = conflicts.first(where: { $0.running && fresh.contains($0.name) }) {
-                post(id: "foreign-controller", String(localized: "\(app.name) cũng đang điều khiển sạc"),
-                     String(localized: "Hai ứng dụng cùng điều khiển sạc có thể khiến sạc bật/tắt liên tục. Hãy thoát một bên."))
-            } else if let write = helper?.foreignWrites?.last {
+        // Ứng dụng điều khiển sạc khác: báo một lần cho mỗi ứng dụng mới chạy.
+        let running = Set(conflicts.filter(\.running).map(\.name))
+        let freshApp = conflicts.first { $0.running && !notifiedControllers.contains($0.name) }
+        if let app = freshApp, prefs.notifyForeignController {
+            post(id: "foreign-controller", String(localized: "\(app.name) cũng đang điều khiển sạc"),
+                 String(localized: "Hai ứng dụng cùng điều khiển sạc có thể khiến sạc bật/tắt liên tục. Hãy thoát một bên."))
+        }
+        notifiedControllers = running
+
+        // Helper thấy key bị ghi đè: báo một lần cho mỗi lần ghi (key + thời điểm), nhớ qua các lần mở app.
+        // Mất kết nối helper (nil) không xóa trạng thái này.
+        if let write = newForeignWrite(in: helper?.foreignWrites, now: now) {
+            if freshApp == nil && prefs.notifyForeignController {
                 post(id: "foreign-controller", String(localized: "Có ứng dụng khác đang ghi vào SMC"),
                      String(localized: "Key \(write.key) bị thay đổi ngoài MacPowerManager."))
             }
+            defaults.set(write.at.timeIntervalSinceReferenceDate, forKey: Self.foreignWriteAtKey)
+            defaults.set(write.key, forKey: Self.foreignWriteKeyKey)
         }
-        notifiedControllers = controllers
 
         if !battery.externalConnected && battery.percent <= prefs.lowBatteryThreshold {
             if !lowBatteryNotified && prefs.notifyLowBattery {
@@ -111,8 +134,21 @@ final class Notifier {
         }
     }
 
+    /// Lần ghi từ bên ngoài mới nhất chưa được báo, nil nếu đã báo (cùng key và thời điểm, hoặc cũ hơn lần đã
+    /// báo) hoặc đã quá `AppModel.foreignWriteWindow` (sự việc cũ, ví dụ lần đầu chạy bản này).
+    private func newForeignWrite(in writes: [ForeignWrite]?, now: Date) -> ForeignWrite? {
+        guard let write = AppModel.recentForeignWrite(in: writes, now: now) else { return nil }
+        let at = write.at.timeIntervalSinceReferenceDate
+        if let lastAt = defaults.object(forKey: Self.foreignWriteAtKey) as? Double {
+            if at < lastAt { return nil }
+            if at == lastAt && write.key == defaults.string(forKey: Self.foreignWriteKeyKey) { return nil }
+        }
+        return write
+    }
+
     /// Định danh cố định theo loại sự kiện: thông báo mới thay thế thông báo cũ cùng loại thay vì chồng lên.
     private func post(id: String, _ title: String, _ body: String) {
+        if let sink { return sink(id, title, body) }
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title

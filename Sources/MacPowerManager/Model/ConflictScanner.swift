@@ -134,13 +134,64 @@ enum ConflictScanner {
         }
     }
 
-    /// actuallymentor/battery chạy bằng shell script, ghi pid vào ~/.battery/battery.pid.
+    /// actuallymentor/battery chạy bằng shell script, ghi pid vào ~/.battery/battery.pid. File pid có thể còn sót
+    /// lại sau khi script đã dừng (máy khởi động lại, script bị kill) và pid đó có thể đã thuộc về tiến trình khác,
+    /// nên chỉ tin pid khi tiến trình đó đúng là script `battery`.
     private static func batteryScriptPID() -> pid_t? {
         let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".battery/battery.pid")
         guard let text = try? String(contentsOf: url, encoding: .utf8),
               let pid = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0,
               kill(pid, 0) == 0 || errno == EPERM else { return nil }
-        return pid
+        return isBatteryScript(path: executablePath(pid), arguments: processArguments(pid)) ? pid : nil
+    }
+
+    /// Tiến trình là script `battery`: file thực thi tên `battery`, hoặc một shell chạy script `battery`
+    /// (`/bin/bash /usr/local/bin/battery maintain_synchronous 80`).
+    static func isBatteryScript(path: String?, arguments: [String]?) -> Bool {
+        func isBattery(_ value: String) -> Bool { (value as NSString).lastPathComponent == "battery" }
+        if let path, isBattery(path) { return true }
+        guard let arguments, !arguments.isEmpty else { return false }
+        // argv[0] có thể là tên shell; script là đối số đầu tiên không phải tùy chọn của shell.
+        let script = arguments.dropFirst().first { !$0.hasPrefix("-") }
+        return isBattery(arguments[0]) || script.map(isBattery) == true
+    }
+
+    private static func executablePath(_ pid: pid_t) -> String? {
+        var buffer = [CChar](repeating: 0, count: 4096)
+        guard proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
+        return String(cString: buffer)
+    }
+
+    /// argv của tiến trình (KERN_PROCARGS2). Chỉ đọc được tiến trình cùng người dùng; nil nếu không đọc được.
+    private static func processArguments(_ pid: pid_t) -> [String]? {
+        var argMax: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        var mib: [Int32] = [CTL_KERN, KERN_ARGMAX]
+        guard sysctl(&mib, 2, &argMax, &size, nil, 0) == 0, argMax > 0 else { return nil }
+        var buffer = [UInt8](repeating: 0, count: Int(argMax))
+        size = buffer.count
+        mib = [CTL_KERN, KERN_PROCARGS2, pid]
+        guard sysctl(&mib, 3, &buffer, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return nil }
+        return parseProcArgs(Array(buffer.prefix(size)))
+    }
+
+    /// Bố cục KERN_PROCARGS2: argc (Int32), đường dẫn file thực thi, các byte 0 đệm, rồi argv[0..<argc].
+    static func parseProcArgs(_ bytes: [UInt8]) -> [String]? {
+        let header = MemoryLayout<Int32>.size
+        guard bytes.count > header else { return nil }
+        let argc = bytes.withUnsafeBytes { $0.loadUnaligned(as: Int32.self) }
+        guard argc > 0 else { return [] }
+        var i = header
+        while i < bytes.count && bytes[i] != 0 { i += 1 }
+        while i < bytes.count && bytes[i] == 0 { i += 1 }
+        var arguments: [String] = []
+        while arguments.count < Int(argc) && i < bytes.count {
+            let start = i
+            while i < bytes.count && bytes[i] != 0 { i += 1 }
+            arguments.append(String(decoding: bytes[start..<i], as: UTF8.self))
+            i += 1
+        }
+        return arguments
     }
 
     /// Giới hạn sạc trong cài đặt của AlDente (khóa `chargeVal`).

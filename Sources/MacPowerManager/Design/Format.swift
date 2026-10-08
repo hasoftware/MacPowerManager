@@ -5,8 +5,13 @@ import Foundation
 enum Format {
     /// Locale cho số, ngày giờ và cho `.environment(\.locale, …)` của các scene (SwiftUI dùng nó để chọn bản dịch).
     /// Bản dịch tiếng Việt: luôn định dạng kiểu Việt Nam ("12,4"). Ngôn ngữ khác: theo cài đặt của hệ thống.
+    ///
+    /// macOS chọn bản dịch theo danh sách ngôn ngữ ưu tiên trong `CFBundleLocalizations` (en, vi); không có ngôn ngữ
+    /// nào khớp thì dùng `CFBundleDevelopmentRegion` (en). Khóa là câu tiếng Việt và vi.lproj có sẵn, nên người dùng
+    /// tiếng Việt vẫn thấy tiếng Việt; người dùng ngôn ngữ khác (ví dụ tiếng Pháp) thấy tiếng Anh. Mặc định "en"
+    /// giống `CFBundleDevelopmentRegion` khi không xác định được.
     static let locale: Locale = {
-        let language = Bundle.main.preferredLocalizations.first ?? "vi"
+        let language = Bundle.main.preferredLocalizations.first ?? "en"
         if language == "vi" { return Locale(identifier: "vi_VN") }
         let current = Locale.current
         if current.language.languageCode?.identifier == language { return current }

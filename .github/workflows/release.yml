@@ -34,6 +34,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check localization
+        run: make check-l10n
+
       - name: Test
         run: swift test
 

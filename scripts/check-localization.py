@@ -16,7 +16,8 @@ Phần nội suy \\(…) được coi là ký tự đại diện, khớp với %
 suy thì dấu % trong chữ thành %% trong khóa; chuỗi không có nội suy thì giữ nguyên %.
 
 Báo cáo: khóa trong mã chưa có trong en.lproj (lỗi), khóa trong en.lproj không còn dùng (cảnh báo; lỗi khi có
---strict), định dạng của bản dịch không khớp với khóa (lỗi). Mã thoát 1 khi có lỗi.
+--strict), định dạng của bản dịch không khớp với khóa (lỗi), khóa số nhiều của en.lproj chưa có trong
+vi.lproj/Localizable.stringsdict (lỗi). Mã thoát 1 khi có lỗi. Chạy được với python3 có sẵn của macOS (3.9).
 
     python3 scripts/check-localization.py [--strict] [--list]
 """
@@ -34,6 +35,7 @@ SOURCES = ROOT / "Sources"
 APP_SOURCES = SOURCES / "MacPowerManager"
 EXCLUDED = [SOURCES / "PowerHelper", SOURCES / "SMCProbe"]
 EN_DIR = ROOT / "Resources" / "Localization" / "en.lproj"
+VI_DIR = ROOT / "Resources" / "Localization" / "vi.lproj"
 
 WILD = "\x00"  # một tham số nội suy
 
@@ -379,29 +381,48 @@ def load_translations():
         translations[norm] = (key, where)
         problems += check_format(key, value, where)
     stringsdict = EN_DIR / "Localizable.stringsdict"
-    if stringsdict.exists():
-        with stringsdict.open("rb") as f:
-            plurals = plistlib.load(f)
-        for key, entry in plurals.items():
-            where = f"{stringsdict.relative_to(ROOT)}: {key!r}"
-            norm = normalize_key(key)
-            if norm in translations:
-                warnings.append(f"{where}: cũng có trong {translations[norm][1]} (.stringsdict được ưu tiên)")
-            translations[norm] = (key, where)
-            fmt = entry.get("NSStringLocalizedFormatKey")
-            if not isinstance(fmt, str):
-                problems.append(f"{where}: thiếu NSStringLocalizedFormatKey")
-                continue
-            types = {}
-            for name, rule in entry.items():
-                if name == "NSStringLocalizedFormatKey":
-                    continue
-                if rule.get("NSStringFormatSpecTypeKey") != "NSStringPluralRuleType" or "other" not in rule:
-                    problems.append(f"{where}: biến {name!r} cần NSStringPluralRuleType và dạng 'other'")
-                    continue
-                types[name] = spec_kind(rule.get("NSStringFormatValueTypeKey", "@")[-1])
-            problems += check_format(key, fmt, where, types)
+    for key, entry, where in load_plurals(stringsdict):
+        norm = normalize_key(key)
+        if norm in translations:
+            warnings.append(f"{where}: cũng có trong {translations[norm][1]} (.stringsdict được ưu tiên)")
+        translations[norm] = (key, where)
+        problems += check_plural(key, entry, where)
+
+    # vi.lproj cần đủ mọi khóa số nhiều của en.lproj: nếu thiếu, macOS lấy .stringsdict của ngôn ngữ phát triển
+    # (tiếng Anh) và người dùng tiếng Việt sẽ thấy "3 hours" giữa giao diện tiếng Việt.
+    vi_stringsdict = VI_DIR / "Localizable.stringsdict"
+    vi_keys = set()
+    for key, entry, where in load_plurals(vi_stringsdict):
+        vi_keys.add(key)
+        problems += check_plural(key, entry, where)
+    for key, _, _ in load_plurals(stringsdict):
+        if key not in vi_keys:
+            problems.append(f"{vi_stringsdict.relative_to(ROOT)}: thiếu khóa số nhiều {key!r} (có trong en.lproj)")
     return translations, problems, warnings
+
+
+def load_plurals(path):
+    """[(khóa, mục, vị trí)] trong một file .stringsdict; rỗng nếu không có file."""
+    if not path.exists():
+        return []
+    with path.open("rb") as f:
+        plurals = plistlib.load(f)
+    return [(key, entry, f"{path.relative_to(ROOT)}: {key!r}") for key, entry in plurals.items()]
+
+
+def check_plural(key, entry, where):
+    fmt = entry.get("NSStringLocalizedFormatKey")
+    if not isinstance(fmt, str):
+        return [f"{where}: thiếu NSStringLocalizedFormatKey"]
+    problems, types = [], {}
+    for name, rule in entry.items():
+        if name == "NSStringLocalizedFormatKey":
+            continue
+        if rule.get("NSStringFormatSpecTypeKey") != "NSStringPluralRuleType" or "other" not in rule:
+            problems.append(f"{where}: biến {name!r} cần NSStringPluralRuleType và dạng 'other'")
+            continue
+        types[name] = spec_kind(rule.get("NSStringFormatValueTypeKey", "@")[-1])
+    return problems + check_format(key, fmt, where, types)
 
 
 def normalize_key(key):
@@ -436,7 +457,9 @@ def main():
               "(%? = tham số: Int → %lld, String → %@, Double → %lf):")
         for key, sites in sorted(missing.items(), key=lambda kv: (str(kv[1][0].path), kv[1][0].line)):
             site = sites[0]
-            hint = f"   ← \\({'), \\('.join(site.interpolations)})" if site.interpolations else ""
+            # Python < 3.12 (python3 có sẵn trên macOS là 3.9) không cho dấu gạch ngược trong biểu thức của f-string.
+            joined = "), \\(".join(site.interpolations)
+            hint = f"   ← \\({joined})" if site.interpolations else ""
             print(f"  {site.path.relative_to(ROOT)}:{site.line}: {show(key)!r}{hint}")
     if unused:
         label = "Lỗi" if args.strict else "Cảnh báo"
