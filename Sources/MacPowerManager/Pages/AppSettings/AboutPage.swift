@@ -2,11 +2,12 @@ import AppKit
 import PowerCore
 import SwiftUI
 
-/// Giới thiệu: phiên bản, mã nguồn, giấy phép.
+/// Giới thiệu: phiên bản, cập nhật, mã nguồn, giấy phép.
 struct AboutPage: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        @Bindable var model = model
         SettingsPage {
             Section {
                 VStack(spacing: Theme.Space.m) {
@@ -30,6 +31,21 @@ struct AboutPage: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Theme.Space.l)
+            }
+
+            Section {
+                LabeledContent("Phiên bản hiện tại") {
+                    Text(verbatim: AppVersion.current).monospacedDigit()
+                }
+                UpdateStatusRow()
+                Toggle(isOn: $model.prefs.autoCheckUpdates) {
+                    Text("Tự động kiểm tra cập nhật")
+                    Text("Lúc mở app và mỗi 24 giờ khi app đang chạy.")
+                }
+            } header: {
+                Text("Cập nhật")
+            } footer: {
+                Footnote("Kiểm tra cập nhật chỉ đọc thông tin bản phát hành mới nhất từ api.github.com, không gửi dữ liệu cá nhân hay dữ liệu pin. App không tự tải hay cài bản mới.")
             }
 
             Section {
@@ -58,8 +74,85 @@ struct AboutPage: View {
             } header: {
                 Text("Dữ liệu trên máy")
             } footer: {
-                Footnote("Mọi dữ liệu nằm trên máy này; app không gửi gì ra ngoài.")
+                Footnote("Dữ liệu pin chỉ nằm trên máy này. Yêu cầu mạng duy nhất của app là kiểm tra cập nhật tới api.github.com (không kèm dữ liệu cá nhân, tắt được ở mục Cập nhật).")
             }
+        }
+    }
+}
+
+/// Trạng thái kiểm tra cập nhật và nút "Kiểm tra cập nhật".
+private struct UpdateStatusRow: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        let updates = model.updates
+        LabeledContent {
+            HStack(spacing: Theme.Space.s) {
+                if updates.available != nil {
+                    Button("Xem có gì mới") {
+                        openWindow(id: WindowID.whatsNew)
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                Button("Kiểm tra cập nhật") {
+                    Task { await updates.checkNow() }
+                }
+                .disabled(updates.state == .checking)
+            }
+            .fixedSize()
+        } label: {
+            status(updates)
+        }
+    }
+
+    @ViewBuilder
+    private func status(_ updates: UpdateChecker) -> some View {
+        switch updates.state {
+        case .checking:
+            HStack(spacing: Theme.Space.s) {
+                ProgressView().controlSize(.small)
+                Text("Đang kiểm tra cập nhật…")
+            }
+        case .upToDate:
+            label(Text("Bạn đang dùng bản mới nhất"), symbol: "checkmark.circle.fill", tint: .green, detail: lastChecked(updates))
+        case .available(let release):
+            label(Text("Có bản mới v\(release.version?.description ?? release.tagName)"),
+                  symbol: "arrow.down.circle.fill", tint: .blue,
+                  detail: release.publishedAt.map { String(localized: "Phát hành \(Format.date($0))") })
+        case .failed(let message):
+            if let release = updates.available {
+                // Vẫn còn bản mới đã biết: không để lỗi kiểm tra lại che mất nó.
+                label(Text("Có bản mới v\(release.version?.description ?? release.tagName)"),
+                      symbol: "arrow.down.circle.fill", tint: .blue,
+                      detail: String(localized: "Không kiểm tra lại được: \(message)"))
+            } else {
+                label(Text("Không kiểm tra được cập nhật"), symbol: "exclamationmark.triangle.fill", tint: .orange, detail: message)
+            }
+        case .idle:
+            label(Text("Chưa kiểm tra cập nhật"), symbol: "clock", tint: .secondary, detail: lastChecked(updates))
+        }
+    }
+
+    private func lastChecked(_ updates: UpdateChecker) -> String? {
+        updates.lastChecked.map { String(localized: "Kiểm tra lần cuối: \(Format.dateTime($0))") }
+    }
+
+    private func label(_ title: Text, symbol: String, tint: Color, detail: String?) -> some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+            }
+        } icon: {
+            Image(systemName: symbol).foregroundStyle(tint)
         }
     }
 }

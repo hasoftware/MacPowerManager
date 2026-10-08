@@ -200,7 +200,7 @@
 "Giữ trong" = "Retention";
 "7 ngày" = "7 days";
 "Dữ liệu trên máy" = "Data on This Mac";
-"Mọi dữ liệu nằm trên máy này; app không gửi gì ra ngoài." = "All data stays on this Mac; the app sends nothing out.";
+"Dữ liệu pin chỉ nằm trên máy này. Yêu cầu mạng duy nhất của app là kiểm tra cập nhật tới api.github.com (không kèm dữ liệu cá nhân, tắt được ở mục Cập nhật)." = "Battery data stays on this Mac. The app’s only network request is the update check to api.github.com (no personal data; you can turn it off under Updates).";
 
 /* MacPowerManager/Pages/AppSettings/MenuBarPage.swift */
 "Xem trước" = "Preview";
@@ -483,3 +483,55 @@
 /* Giới thiệu: tác giả */
 "Tác giả" = "Author";
 "MacPowerManager được phát triển bởi HASOFTWARE. Liên hệ qua Telegram hoặc Facebook để góp ý, hợp tác hoặc ủng hộ dự án." = "MacPowerManager is developed by HASOFTWARE. Reach out on Telegram or Facebook for feedback, collaboration or to support the project.";
+
+/* Cập nhật: MacPowerManager/App/MacPowerManagerApp.swift, Model/AppBanner.swift, Model/Notifier.swift */
+"Có gì mới" = "What’s New";
+"Có bản cập nhật v%@" = "Update available: v%@";
+"Xem các cải tiến trong bản mới rồi tải về từ GitHub. Sau khi cập nhật, app sẽ nhắc cài lại helper." = "See what’s improved in the new version, then download it from GitHub. After updating, the app will ask you to reinstall the helper.";
+"Xem có gì mới" = "See What’s New";
+"Có phiên bản mới" = "New version available";
+"MacPowerManager v%@ đã sẵn sàng. Bấm để xem có gì mới." = "MacPowerManager v%@ is available. Click to see what’s new.";
+
+/* Cập nhật: MacPowerManager/Model/UpdateChecker.swift */
+"GitHub đang tạm giới hạn số lần kiểm tra. Hãy thử lại sau." = "GitHub is temporarily limiting update checks. Please try again later.";
+"GitHub trả về lỗi %lld. Hãy thử lại sau." = "GitHub returned error %lld. Please try again later.";
+"Không đọc được thông tin bản phát hành từ GitHub." = "Couldn’t read the release information from GitHub.";
+"GitHub không phản hồi. Kiểm tra kết nối mạng rồi thử lại." = "GitHub isn’t responding. Check your internet connection and try again.";
+"Không kết nối được tới GitHub. Kiểm tra kết nối mạng rồi thử lại." = "Couldn’t connect to GitHub. Check your internet connection and try again.";
+
+/* Cập nhật: MacPowerManager/Pages/AppSettings/AboutPage.swift */
+"Phiên bản hiện tại" = "Current version";
+"Tự động kiểm tra cập nhật" = "Check for updates automatically";
+"Lúc mở app và mỗi 24 giờ khi app đang chạy." = "At launch and every 24 hours while the app is running.";
+"Cập nhật" = "Updates";
+"Kiểm tra cập nhật chỉ đọc thông tin bản phát hành mới nhất từ api.github.com, không gửi dữ liệu cá nhân hay dữ liệu pin. App không tự tải hay cài bản mới." = "The update check only reads the latest release information from api.github.com and sends no personal or battery data. The app never downloads or installs updates by itself.";
+"Kiểm tra cập nhật" = "Check for Updates";
+"Đang kiểm tra cập nhật…" = "Checking for updates…";
+"Bạn đang dùng bản mới nhất" = "You’re up to date";
+"Có bản mới v%@" = "Version %@ is available";
+"Phát hành %@" = "Released %@";
+"Không kiểm tra được cập nhật" = "Couldn’t check for updates";
+"Chưa kiểm tra cập nhật" = "Not checked yet";
+"Kiểm tra lần cuối: %@" = "Last checked: %@";
+
+/* Cập nhật: MacPowerManager/Pages/AppSettings/NotificationsPage.swift */
+"Khi có phiên bản mới" = "When a new version is available";
+"Mỗi phiên bản chỉ báo một lần. Bấm vào thông báo để xem có gì mới." = "Once per version. Click the notification to see what’s new.";
+"Đang tắt tự động kiểm tra cập nhật (trang Giới thiệu), nên app không biết khi có bản mới." = "Automatic update checks are off (on the About page), so the app can’t tell when a new version is out.";
+
+/* Cập nhật: MacPowerManager/Updates/WhatsNewView.swift */
+"Có gì mới trong v%@" = "What’s New in v%@";
+"Bạn đang dùng v%@" = "You have v%@";
+"Bản phát hành này chưa có ghi chú." = "This release has no notes yet.";
+"Ghi chú phát hành được viết bằng tiếng Việt." = "Release notes are written in Vietnamese.";
+"Sau khi cập nhật, mở app và cài lại helper (app sẽ tự nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó." = "After updating, open the app and reinstall the helper (the app will prompt you): the helper only accepts commands from the exact app build that installed it.";
+"Bỏ qua bản này" = "Skip This Version";
+"Không nhắc lại bản này. Bản mới hơn vẫn được thông báo." = "Don’t remind me about this version. Newer versions will still be announced.";
+"Nhắc lại sau 24 giờ." = "Remind me in 24 hours.";
+"Xem trên GitHub" = "View on GitHub";
+"Tải bản cập nhật" = "Download Update";
+"Không có bản cập nhật mới" = "No New Update";
+"Bạn đang dùng MacPowerManager v%@." = "You’re using MacPowerManager v%@.";
+"Xem các bản phát hành" = "View Releases";
+
+"Không kiểm tra lại được: %@" = "Couldn’t check again: %@";

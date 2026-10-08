@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UserNotifications
 
 @main
 struct MacPowerManagerApp: App {
@@ -48,12 +49,50 @@ struct MacPowerManagerApp: App {
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
         .commands { AppCommands() }
+
+        Window("Có gì mới", id: WindowID.whatsNew) {
+            WhatsNewView()
+                .environment(model)
+                .environment(\.locale, Format.locale)
+        }
+        .defaultSize(width: WhatsNewView.size.width, height: WhatsNewView.size.height)
+        .windowResizability(.contentMinSize)
     }
 }
 
 /// Mở lại app (Finder, Spotlight) khi không có cửa sổ thì mở bảng điều khiển: mục thanh menu có thể bị notch che.
-final class AppDelegate: NSObject, NSApplicationDelegate {
+/// Bấm thông báo "Có phiên bản mới" thì mở cửa sổ Có gì mới.
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     @MainActor static var openDashboard: (() -> Void)?
+    @MainActor static var openWhatsNew: (() -> Void)? {
+        didSet {
+            if pendingWhatsNew, let openWhatsNew {
+                pendingWhatsNew = false
+                openWhatsNew()
+            }
+        }
+    }
+    /// Thông báo được bấm trước khi giao diện sẵn sàng (app vừa được mở bởi chính thông báo đó).
+    @MainActor static var pendingWhatsNew = false
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // UNUserNotificationCenter chỉ dùng được khi chạy trong app bundle.
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().delegate = self
+        }
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let isUpdate = response.notification.request.identifier == Notifier.requestIdentifier(Notifier.updateNotificationID)
+        Task { @MainActor in
+            if isUpdate {
+                if let open = Self.openWhatsNew { open() } else { Self.pendingWhatsNew = true }
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            completionHandler()
+        }
+    }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {

@@ -49,6 +49,20 @@ struct NotificationsPage: View {
             }
 
             Section {
+                Toggle(isOn: $model.prefs.notifyUpdate) {
+                    Text("Khi có phiên bản mới")
+                    Text("Mỗi phiên bản chỉ báo một lần. Bấm vào thông báo để xem có gì mới.")
+                }
+                .disabled(!model.prefs.autoCheckUpdates)
+            } header: {
+                Text("Cập nhật")
+            } footer: {
+                if !model.prefs.autoCheckUpdates {
+                    Footnote("Đang tắt tự động kiểm tra cập nhật (trang Giới thiệu), nên app không biết khi có bản mới.")
+                }
+            }
+
+            Section {
                 LabeledContent("Quyền thông báo") {
                     Text(authorizationText).foregroundStyle(authorization == .denied ? .orange : .secondary)
                 }

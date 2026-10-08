@@ -97,18 +97,23 @@ struct BannerView: View {
             AppMover.moveAndRelaunch()
         case .reportIssue:
             NSWorkspace.shared.open(Links.issues)
+        case .showWhatsNew:
+            openWindow(id: WindowID.whatsNew)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 }
 
 enum WindowID {
     static let dashboard = "dashboard"
+    static let whatsNew = "whats-new"
 }
 
 enum Links {
     static let repository = URL(string: "https://github.com/hasoftware/MacPowerManager")!
     static let issues = URL(string: "https://github.com/hasoftware/MacPowerManager/issues")!
     static let license = URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!
+    static let releases = URL(string: "https://github.com/hasoftware/MacPowerManager/releases")!
 
     // Tác giả: HASOFTWARE
     static let authorGitHub = URL(string: "https://github.com/hasoftware")!

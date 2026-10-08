@@ -33,6 +33,9 @@ App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook 
 - **Giao diện**: popover trên thanh menu và cửa sổ có thanh bên với các trang Tổng quan, Lịch sử, Tình trạng pin,
   Giới hạn sạc, Chống nóng, Xả pin, Khi ngủ, Thanh menu, Thông báo, Hệ thống & helper, Giới thiệu.
 - **Tiếng Việt và tiếng Anh**: giao diện theo ngôn ngữ của macOS; ngôn ngữ khác hiển thị tiếng Anh.
+- **Kiểm tra cập nhật**: lúc mở app và mỗi 24 giờ, app xem GitHub có bản mới không và hiện banner, thông báo
+  (một lần cho mỗi phiên bản) cùng cửa sổ **Có gì mới** với ghi chú thay đổi. Bạn tự chọn tải về, bỏ qua bản đó
+  hoặc để sau; app không tự tải hay cài gì. Tắt được ở trang **Giới thiệu**.
 
 Vòng điều khiển chạy trong một helper nền (LaunchDaemon), nên giới hạn sạc vẫn có hiệu lực khi app đã thoát.
 
@@ -54,6 +57,14 @@ Vòng điều khiển chạy trong một helper nền (LaunchDaemon), nên giớ
 4. Bấm biểu tượng pin trên thanh menu → **Cài helper** và nhập mật khẩu quản trị.
    **Sau mỗi lần cập nhật app phải cài lại helper** (app sẽ nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó
    (ghim theo cdhash), nên bản app mới chưa điều khiển được sạc cho tới khi cài lại.
+
+## Quyền riêng tư
+
+Dữ liệu pin (lịch sử 7 ngày, cài đặt) chỉ nằm trên máy của bạn. Yêu cầu mạng **duy nhất** của app là kiểm tra cập nhật:
+một lệnh `GET https://api.github.com/repos/hasoftware/MacPowerManager/releases/latest` lúc mở app và mỗi 24 giờ.
+Yêu cầu này không kèm dữ liệu cá nhân hay dữ liệu pin (chỉ có User-Agent `MacPowerManager/<version>` và ETag để
+GitHub trả 304 khi không có gì mới); GitHub vẫn thấy địa chỉ IP như mọi kết nối web. Tắt ở **Giới thiệu → Tự động
+kiểm tra cập nhật**; helper (root) không bao giờ kết nối mạng.
 
 ## Build từ mã nguồn
 
@@ -175,6 +186,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 A root LaunchDaemon helper writes the SMC charging keys (`CHTE`/`CHIE`, or `CH0C`/`CH0I` on older firmware, leaving `CH0B` to macOS Optimized Battery Charging) and keeps enforcing the limit when the app is closed. Intel T2 MacBooks get experimental support via `BCLM` (50–100% limit, enforced by firmware even when off).
 Build with `make install`, open the app, then click **Install Helper**. Don't run it alongside other charge limiters.
 The UI is available in English and Vietnamese and follows your macOS language; any other language falls back to English.
+**Privacy:** battery data never leaves your Mac. The app's only network request is the update check (`GET api.github.com/repos/hasoftware/MacPowerManager/releases/latest` at launch and every 24 hours, no personal data); when a new version is out it shows a banner, a notification and a *What's New* window with the release notes, and you decide whether to download it. Turn it off in **About → Check for updates automatically**.
 To uninstall, open **System & Helper → Uninstall Helper…** *before* deleting the app (see [Gỡ cài đặt](#gỡ-cài-đặt) for the manual steps).
 Contributors: run `make test` and `make check-l10n` before opening a PR.
 

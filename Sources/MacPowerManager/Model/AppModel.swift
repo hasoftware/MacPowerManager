@@ -14,8 +14,16 @@ final class AppModel {
     let helper: HelperClient
     let history: HistoryStore
     let notifier = Notifier()
+    /// Kiểm tra bản mới trên GitHub (yêu cầu mạng duy nhất của app).
+    let updates: UpdateChecker
     var prefs: Preferences {
-        didSet { if prefs != oldValue && !isPreview { prefs.save() } }
+        didSet {
+            guard prefs != oldValue, !isPreview else { return }
+            prefs.save()
+            if started && prefs.autoCheckUpdates != oldValue.autoCheckUpdates {
+                updates.setAutomatic(prefs.autoCheckUpdates)
+            }
+        }
     }
 
     @ObservationIgnored private var started = false
@@ -30,7 +38,12 @@ final class AppModel {
         helper = HelperClient()
         history = HistoryStore()
         prefs = Preferences.load()
+        updates = UpdateChecker()
         isPreview = false
+        updates.onAnnounce = { [weak self] release, manual in
+            guard let self else { return }
+            self.notifier.updateAvailable(release, prefs: self.prefs, post: !manual)
+        }
     }
 
     func start() {
@@ -46,6 +59,7 @@ final class AppModel {
             needsMove = AppMover.needsMove
         }
         Task { await helper.refresh() }
+        updates.setAutomatic(prefs.autoCheckUpdates)
 
         observer = BatteryReader.observeChanges { [weak self] in
             Task { @MainActor in self?.refresh() }
@@ -188,6 +202,10 @@ final class AppModel {
             result.append(.foreignWrite(write))
         }
         if needsMove { result.append(.moveApp) }
+        // Thấp nhất: chỉ là thông tin, không ảnh hưởng tới pin.
+        if let release = updates.announcement, let version = release.version {
+            result.append(.update(version.description))
+        }
         return result
     }
 
@@ -197,8 +215,10 @@ final class AppModel {
     /// Mô hình với dữ liệu giả cho chế độ chụp giao diện. Không đọc phần cứng, không ghi file hay cài đặt.
     init(preview battery: BatteryInfo?, status: HelperStatus?, installState: HelperClient.InstallState,
          samples: [HistorySample], conflicts: [ConflictFinding] = [], temperature: Double? = nil,
-         prefs: Preferences = Preferences(), needsMove: Bool = false) {
+         prefs: Preferences = Preferences(), needsMove: Bool = false, update: UpdateChecker.State = .idle) {
         helper = HelperClient()
+        updates = UpdateChecker(defaults: nil) { _ in throw URLError(.notConnectedToInternet) }
+        updates.setPreview(state: update)
         history = HistoryStore(samples: samples)
         self.prefs = prefs
         isPreview = true

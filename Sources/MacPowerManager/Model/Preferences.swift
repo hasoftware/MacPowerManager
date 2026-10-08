@@ -37,6 +37,11 @@ struct Preferences: Codable, Equatable {
     var notifyTopUpEnded = true
     var notifyIneffective = true
     var notifyForeignController = true
+    /// Thông báo khi có phiên bản mới (một lần cho mỗi phiên bản).
+    var notifyUpdate = true
+
+    /// Tự kiểm tra bản mới trên GitHub lúc mở app và mỗi 24 giờ.
+    var autoCheckUpdates = true
 
     /// Thời hạn mặc định của "Sạc đầy một lần".
     var topUpHours = 24
@@ -64,6 +69,8 @@ struct Preferences: Codable, Equatable {
         notifyTopUpEnded = value(.notifyTopUpEnded, d.notifyTopUpEnded)
         notifyIneffective = value(.notifyIneffective, d.notifyIneffective)
         notifyForeignController = value(.notifyForeignController, d.notifyForeignController)
+        notifyUpdate = value(.notifyUpdate, d.notifyUpdate)
+        autoCheckUpdates = value(.autoCheckUpdates, d.autoCheckUpdates)
         topUpHours = value(.topUpHours, d.topUpHours)
     }
 

@@ -23,6 +23,10 @@ final class Notifier {
     static let foreignWriteAtKey = "notifier.foreignWrite.at"
     private static let foreignWritePostedKey = "notifier.foreignWrite.postedAt"
     static let foreignWriteKeyKey = "notifier.foreignWrite.key"
+    /// Phiên bản mới đã báo gần nhất: mỗi phiên bản chỉ báo một lần, kể cả sau khi mở lại app.
+    static let updateVersionKey = "notifier.update.version"
+    /// Định danh của thông báo "Có phiên bản mới" (bấm vào sẽ mở cửa sổ Có gì mới).
+    nonisolated static let updateNotificationID = "update-available"
 
     init(defaults: UserDefaults = .standard, sink: ((String, String, String) -> Void)? = nil) {
         self.defaults = defaults
@@ -139,6 +143,20 @@ final class Notifier {
         }
     }
 
+    /// Có phiên bản mới: báo một lần cho mỗi phiên bản. `post` false (người dùng tự bấm kiểm tra và đã thấy kết quả)
+    /// thì chỉ ghi nhận là đã báo.
+    func updateAvailable(_ release: ReleaseInfo, prefs: Preferences, post shouldPost: Bool = true) {
+        guard let version = release.version?.description,
+              defaults.string(forKey: Self.updateVersionKey) != version else { return }
+        defaults.set(version, forKey: Self.updateVersionKey)
+        guard shouldPost, prefs.notifyUpdate else { return }
+        post(id: Self.updateNotificationID, String(localized: "Có phiên bản mới"),
+             String(localized: "MacPowerManager v\(version) đã sẵn sàng. Bấm để xem có gì mới."))
+    }
+
+    /// Định danh đầy đủ của một thông báo theo loại sự kiện.
+    nonisolated static func requestIdentifier(_ id: String) -> String { "com.hasoftware.MacPowerManager.\(id)" }
+
     /// Lần ghi từ bên ngoài mới nhất chưa được báo, nil nếu đã báo (cùng key và thời điểm, hoặc cũ hơn lần đã
     /// báo) hoặc đã quá `AppModel.foreignWriteWindow` (sự việc cũ, ví dụ lần đầu chạy bản này).
     private func newForeignWrite(in writes: [ForeignWrite]?, now: Date) -> ForeignWrite? {
@@ -159,6 +177,6 @@ final class Notifier {
         content.title = title
         content.body = body
         content.sound = .default
-        center.add(UNNotificationRequest(identifier: "com.hasoftware.MacPowerManager.\(id)", content: content, trigger: nil))
+        center.add(UNNotificationRequest(identifier: Self.requestIdentifier(id), content: content, trigger: nil))
     }
 }

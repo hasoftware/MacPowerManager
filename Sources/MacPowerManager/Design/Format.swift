@@ -62,6 +62,11 @@ enum Format {
         date.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale))
     }
 
+    /// "8 tháng 10, 2026" / "October 8, 2026".
+    static func date(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(locale))
+    }
+
     static func dateTime(_ date: Date) -> String {
         let style = Calendar.current.isDateInToday(date)
             ? Date.FormatStyle(date: .omitted, time: .shortened)

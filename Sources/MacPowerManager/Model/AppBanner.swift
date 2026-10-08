@@ -16,9 +16,11 @@ enum AppBanner: Equatable, Identifiable {
     case moveApp
     case heat(Double?, resume: Double?)
     case lowBattery(Int)
+    /// Có bản mới trên GitHub (version không có "v", ví dụ "0.3.0").
+    case update(String)
 
     enum Action: Equatable {
-        case installHelper, reinstallHelper, openSystemPage, moveApp, reportIssue
+        case installHelper, reinstallHelper, openSystemPage, moveApp, reportIssue, showWhatsNew
     }
 
     var id: String {
@@ -33,6 +35,7 @@ enum AppBanner: Equatable, Identifiable {
         case .moveApp: "moveApp"
         case .heat: "heat"
         case .lowBattery: "lowBattery"
+        case .update: "update"
         }
     }
 
@@ -54,6 +57,7 @@ enum AppBanner: Equatable, Identifiable {
         case .moveApp: String(localized: "App đang chạy từ vị trí tạm")
         case .heat: String(localized: "Tạm dừng sạc do pin nóng")
         case .lowBattery(let percent): String(localized: "Pin yếu (\(percent)%)")
+        case .update(let version): String(localized: "Có bản cập nhật v\(version)")
         }
     }
 
@@ -91,6 +95,8 @@ enum AppBanner: Equatable, Identifiable {
             }
         case .lowBattery:
             String(localized: "Hãy cắm sạc.")
+        case .update:
+            String(localized: "Xem các cải tiến trong bản mới rồi tải về từ GitHub. Sau khi cập nhật, app sẽ nhắc cài lại helper.")
         }
     }
 
@@ -104,6 +110,7 @@ enum AppBanner: Equatable, Identifiable {
         case .moveApp: "folder.badge.plus"
         case .heat: "flame.fill"
         case .lowBattery: "battery.25percent"
+        case .update: "arrow.down.circle"
         }
     }
 
@@ -115,6 +122,7 @@ enum AppBanner: Equatable, Identifiable {
         case .moveApp: .orange
         case .heat: .orange
         case .lowBattery: .red
+        case .update: .blue
         }
     }
 
@@ -125,6 +133,7 @@ enum AppBanner: Equatable, Identifiable {
         case .conflict, .foreignWrite, .ineffective, .locked: .openSystemPage
         case .unsupported: .reportIssue
         case .moveApp: .moveApp
+        case .update: .showWhatsNew
         case .heat, .lowBattery: nil
         }
     }
@@ -138,6 +147,7 @@ enum AppBanner: Equatable, Identifiable {
         case .openSystemPage: String(localized: "Chi tiết")
         case .moveApp: String(localized: "Chuyển")
         case .reportIssue: String(localized: "Báo lỗi")
+        case .showWhatsNew: String(localized: "Có gì mới")
         case nil: ""
         }
     }
@@ -150,6 +160,7 @@ enum AppBanner: Equatable, Identifiable {
         case .openSystemPage: String(localized: "Xem chi tiết")
         case .moveApp: String(localized: "Chuyển vào Applications")
         case .reportIssue: String(localized: "Mở GitHub Issues")
+        case .showWhatsNew: String(localized: "Xem có gì mới")
         case nil: ""
         }
     }

@@ -6,6 +6,11 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Kiểm tra cập nhật**: lúc mở app và mỗi 24 giờ, app đọc bản phát hành mới nhất trên GitHub (yêu cầu mạng duy nhất,
+  không kèm dữ liệu cá nhân, tắt được ở trang Giới thiệu). Có bản mới thì hiện banner, thông báo một lần cho mỗi phiên bản
+  và cửa sổ **Có gì mới** với ghi chú thay đổi, nút tải `.dmg`, xem trên GitHub, bỏ qua bản này hoặc để sau 24 giờ.
+
 ## [0.2.0] - 2026-10-07
 
 ### Tính năng

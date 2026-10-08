@@ -23,6 +23,7 @@ struct MenuBarLabel: View {
         Image(nsImage: MenuBarRenderer.image(for: model.menuBarContent))
             .task {
                 AppDelegate.openDashboard = { openWindow(id: WindowID.dashboard) }
+                AppDelegate.openWhatsNew = { openWindow(id: WindowID.whatsNew) }
                 model.start()
             }
     }

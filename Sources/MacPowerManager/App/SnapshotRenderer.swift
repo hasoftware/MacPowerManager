@@ -117,6 +117,7 @@ private struct Scenario {
         popover("nohelper", Mock.model(.noHelper))
         popover("discharging", Mock.model(.discharging))
         popover("topup-heat", Mock.model(.topUpHeat))
+        popover("update", Mock.model(.holding, update: .available(Mock.release)))
 
         list.append(Scenario(name: "window", size: CGSize(width: 1080, height: 720)) {
             AnyView(RootView().environment(Mock.model(.holding)))
@@ -133,7 +134,19 @@ private struct Scenario {
         page("notifications", .notifications, Mock.model(.holding), size: CGSize(width: 760, height: 900))
         page("system", .system, Mock.model(.chargingConflict), size: CGSize(width: 760, height: 1500))
         page("system-outdated", .system, Mock.model(.noHelper), size: CGSize(width: 760, height: 1100))
-        page("about", .about, Mock.model(.holding), size: CGSize(width: 760, height: 700))
+        page("about", .about, Mock.model(.holding, update: .upToDate), size: CGSize(width: 760, height: 1180))
+        page("about-update", .about, Mock.model(.holding, update: .available(Mock.release)),
+             size: CGSize(width: 760, height: 1000))
+        page("about-failed", .about, Mock.model(.holding, update: .failed(UpdateChecker.message(for: URLError(.notConnectedToInternet)))),
+             size: CGSize(width: 760, height: 520))
+        page("overview-update", .overview, Mock.model(.holding, update: .available(Mock.release)),
+             size: CGSize(width: 860, height: 1060))
+        list.append(Scenario(name: "whatsnew", size: WhatsNewView.size) {
+            AnyView(WhatsNewView().environment(Mock.model(.holding, update: .available(Mock.release))))
+        })
+        list.append(Scenario(name: "whatsnew-none", size: WhatsNewView.size) {
+            AnyView(WhatsNewView().environment(Mock.model(.holding, update: .upToDate)))
+        })
         page("history", .history, Mock.model(.holding), size: CGSize(width: 860, height: 900))
         page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 760))
 
@@ -208,7 +221,42 @@ private struct GlyphSheet: View {
 private enum Mock {
     enum Kind { case holding, chargingConflict, noHelper, discharging, topUpHeat }
 
-    static func model(_ kind: Kind) -> AppModel {
+    /// Bản phát hành giả theo đúng định dạng của GitHub Release: ghi chú từ CHANGELOG, rồi phần chân từ dòng `---`.
+    static let release = ReleaseInfo(
+        tagName: "v0.3.0", name: "MacPowerManager v0.3.0",
+        body: /* l10n-ignore: ghi chú phát hành luôn là tiếng Việt */ """
+
+        ### Tính năng
+        - **Giao diện mới**: cửa sổ có thanh bên (Tổng quan, Lịch sử, Tình trạng pin, Giới hạn sạc…) và bảng nhanh
+          trên thanh menu với biểu tượng pin có vạch giới hạn.
+        - **Sạc đầy một lần** và **Sạc tới giới hạn ngay**.
+        - Kiểm tra hiệu lực: helper đo dòng vào pin sau khi chặn sạc và cảnh báo nếu pin vẫn nhận sạc.
+        - Giao diện tiếng Việt và tiếng Anh.
+
+        ### Sửa lỗi
+        - Dừng xả pin khi không ngắt được adapter thay vì chặn sạc tới 6 giờ.
+        - Thông báo "ứng dụng khác ghi vào SMC" chỉ báo một lần cho mỗi sự việc.
+
+        ### An toàn
+        - Pin ≤ 10% luôn được sạc; helper chỉ nhận lệnh từ đúng bản app đã cài nó (`cdhash`).
+
+        ---
+
+        ### Cài đặt
+        1. Tải **MacPowerManager-x.y.z.dmg** ở phần *Assets* bên dưới.
+        """,
+        pageURL: URL(string: "https://github.com/hasoftware/MacPowerManager/releases/tag/v0.3.0")!,
+        publishedAt: Date(timeIntervalSince1970: 1_791_000_000),
+        assets: [
+            .init(name: "MacPowerManager-0.3.0.dmg",
+                  downloadURL: URL(string: "https://github.com/hasoftware/MacPowerManager/releases/download/v0.3.0/MacPowerManager-0.3.0.dmg")!,
+                  size: 1_012_345),
+            .init(name: "SHA256SUMS.txt",
+                  downloadURL: URL(string: "https://github.com/hasoftware/MacPowerManager/releases/download/v0.3.0/SHA256SUMS.txt")!,
+                  size: 184),
+        ])
+
+    static func model(_ kind: Kind, update: UpdateChecker.State = .idle) -> AppModel {
         var b = BatteryInfo()
         b.designCapacity = 8694
         b.maxCapacity = 7822
@@ -316,7 +364,7 @@ private enum Mock {
         b.currentCapacity = b.maxCapacity * b.percent / 100
         return AppModel(preview: b, status: install == .outdated("?") ? nil : status, installState: install,
                         samples: history(endPercent: b.percent, limit: 80), conflicts: conflicts,
-                        temperature: temperature, prefs: prefs, needsMove: kind == .noHelper)
+                        temperature: temperature, prefs: prefs, needsMove: kind == .noHelper, update: update)
     }
 
     /// 26 giờ lịch sử: dùng pin buổi sáng, sạc tới giới hạn rồi giữ, có một khoảng máy ngủ.
