@@ -4,3 +4,8 @@ build/
 *.xcodeproj/xcuserdata/
 .DS_Store
 dist/
+
+# Binary build nhầm ở thư mục gốc
+/PowerHelper
+/MacPowerManager
+/smc-probe
