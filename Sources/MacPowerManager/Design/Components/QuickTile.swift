@@ -26,7 +26,10 @@ struct QuickTile: View {
                     .font(.caption)
                     .foregroundStyle(isOn ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    // Nhãn dài (ví dụ tiếng Anh "Heat Protection"): khít chữ trước, rồi mới thu nhỏ; chừa lề hai bên.
+                    .allowsTightening(true)
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, 4)
             }
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .background(isOn ? AnyShapeStyle(tint.opacity(0.14)) : AnyShapeStyle(Theme.panel),

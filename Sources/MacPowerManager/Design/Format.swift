@@ -1,15 +1,26 @@
 import Foundation
 
-/// Định dạng số liệu theo tiếng Việt: "12,4 W", "41,2°C", "3 giờ 42 phút".
+/// Định dạng số liệu theo ngôn ngữ đang dùng của app: "12,4 W", "41,2°C", "3 giờ 42 phút" (tiếng Việt)
+/// hoặc "12.4 W", "41.2°C", "3 hr 42 min" (tiếng Anh).
 enum Format {
-    /// Giao diện hiện chỉ có tiếng Việt; khi thêm ngôn ngữ khác thì lấy theo ngôn ngữ của app
-    /// (và bỏ `.environment(\.locale, Format.locale)` ở các scene).
-    static let locale = Locale(identifier: "vi_VN")
+    /// Locale cho số, ngày giờ và cho `.environment(\.locale, …)` của các scene (SwiftUI dùng nó để chọn bản dịch).
+    /// Bản dịch tiếng Việt: luôn định dạng kiểu Việt Nam ("12,4"). Ngôn ngữ khác: theo cài đặt của hệ thống.
+    static let locale: Locale = {
+        let language = Bundle.main.preferredLocalizations.first ?? "vi"
+        if language == "vi" { return Locale(identifier: "vi_VN") }
+        let current = Locale.current
+        if current.language.languageCode?.identifier == language { return current }
+        // Ngôn ngữ hệ thống không có bản dịch (ví dụ tiếng Pháp, app dùng tiếng Anh): giữ vùng của hệ thống nhưng
+        // đổi ngôn ngữ, nếu không SwiftUI sẽ tra bản dịch theo ngôn ngữ hệ thống và trộn hai thứ tiếng.
+        return Locale(identifier: current.region.map { "\(language)_\($0.identifier)" } ?? language)
+    }()
 
     static func duration(minutes: Int) -> String {
         let h = minutes / 60, m = minutes % 60
         if h == 0 { return String(localized: "\(m) phút") }
-        if m == 0 { return String(localized: "\(h) giờ") }
+        // Khóa riêng để bản dịch dùng dạng viết tắt ("2 hr") như "1 hr 5 min"; "%lld giờ" (dạng đầy đủ, có số
+        // nhiều) dành cho bộ chọn thời gian của Sạc đầy một lần.
+        if m == 0 { return String(localized: "%lld giờ (ngắn)", defaultValue: "\(h) giờ") }
         return String(localized: "\(h) giờ \(m) phút")
     }
 

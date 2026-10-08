@@ -64,10 +64,11 @@ final class Notifier {
         }
         if helper != nil { lastTopUp = topUp }
 
-        if case .ineffective(let detail) = helper?.effect {
+        // Không dùng chi tiết của helper (tiếng Việt, không dịch được) trong thông báo.
+        if case .ineffective = helper?.effect {
             if !ineffectiveNotified && prefs.notifyIneffective {
                 post(id: "effect-ineffective", String(localized: "Lệnh dừng sạc chưa có hiệu lực"),
-                     detail.isEmpty ? String(localized: "Pin vẫn nhận dòng sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp.") : detail)
+                     String(localized: "Pin vẫn nhận dòng sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp."))
             }
             ineffectiveNotified = true
         } else if helper?.effect != nil {

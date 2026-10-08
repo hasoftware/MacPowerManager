@@ -36,6 +36,7 @@ struct PopoverView: View {
                 .font(.caption)
                 .foregroundStyle(.red)
                 .textSelection(.enabled)
+                .help(model.helper.errorDetail.map { Text(verbatim: $0) } ?? Text(error))
             }
 
             footer

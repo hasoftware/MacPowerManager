@@ -39,7 +39,9 @@ cp "$BIN/MacPowerManager" "$APP/Contents/MacOS/MacPowerManager"
 cp "$BIN/PowerHelper" "$APP/Contents/MacOS/PowerHelper"
 cp Resources/com.hasoftware.MacPowerManager.helper.plist "$APP/Contents/Resources/"
 cp scripts/helper-install.sh "$APP/Contents/Resources/helper-install.sh"
-# Bản dịch: khóa là câu tiếng Việt trong mã nguồn, en.lproj chứa tiếng Anh.
+# Bản dịch: khóa là câu tiếng Việt trong mã nguồn, en.lproj chứa tiếng Anh (Localizable.strings và
+# Localizable.stringsdict cho số nhiều). Copy cả thư mục .lproj; file sai cú pháp sẽ bị macOS bỏ qua nên kiểm tra trước.
+find Resources/Localization -name 'Localizable.strings*' -exec plutil -lint -s {} +
 cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
 
 # Dùng tham số vị trí để danh tính có dấu cách ("Developer ID Application: …") không bị tách.

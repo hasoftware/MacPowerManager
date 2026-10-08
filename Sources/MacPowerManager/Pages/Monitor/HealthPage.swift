@@ -10,7 +10,7 @@ struct HealthPage: View {
             if let b = model.battery {
                 VStack(alignment: .leading, spacing: Theme.Space.m) {
                     HStack(alignment: .top, spacing: Theme.Space.m) {
-                        Card(title: "Tình trạng pin", symbol: "heart.text.square", tint: .pink) {
+                        Card(title: .batteryHealthCardTitle, symbol: "heart.text.square", tint: .pink) {
                             HStack(spacing: Theme.Space.xl) {
                                 HealthRing(health: b.health, lineWidth: 12)
                                     .frame(width: 128, height: 128)

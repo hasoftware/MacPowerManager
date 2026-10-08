@@ -9,7 +9,8 @@ enum AppBanner: Equatable, Identifiable {
     case helperOutdated(String)
     case conflict(ConflictFinding)
     case foreignWrite(ForeignWrite)
-    case ineffective(String)
+    /// Chi tiết của helper (`EffectState.ineffective`) là tiếng Việt, chỉ hiện ở trang Hệ thống & helper.
+    case ineffective
     case locked([String], fallback: String?)
     case unsupported
     case moveApp
@@ -70,10 +71,8 @@ enum AppBanner: Equatable, Identifiable {
             String(localized: "Hai ứng dụng cùng ghi vào SMC có thể khiến sạc bật/tắt liên tục. Hãy thoát \(app.name) hoặc đặt giới hạn của nó về 100%.")
         case .foreignWrite(let write):
             String(localized: "Key \(write.key) bị đổi từ \(write.expected) thành \(write.found) lúc \(Format.time(write.at)).")
-        case .ineffective(let detail):
-            detail.isEmpty
-                ? String(localized: "Pin vẫn nhận dòng sạc sau khi đã chặn sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp.")
-                : detail
+        case .ineffective:
+            String(localized: "Pin vẫn nhận dòng sạc sau khi đã chặn sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp.")
         case .locked(let keys, let fallback):
             if let fallback {
                 String(localized: "Bị khóa: \(keys.joined(separator: ", ")). Helper đang dùng \(fallback) thay thế.")
@@ -133,7 +132,8 @@ enum AppBanner: Equatable, Identifiable {
     /// Nhãn nút ngắn cho banner một dòng ở bảng nhanh.
     var shortActionTitle: String {
         switch action {
-        case .installHelper: String(localized: "Cài đặt…")
+        // Không dùng "Cài đặt…": khóa đó là mục "Settings…" của menu app.
+        case .installHelper: String(localized: "Cài…")
         case .reinstallHelper: self == .helperOutdated("?") ? String(localized: "Cài lại…") : String(localized: "Cập nhật…")
         case .openSystemPage: String(localized: "Chi tiết")
         case .moveApp: String(localized: "Chuyển")

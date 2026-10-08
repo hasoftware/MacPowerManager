@@ -1,4 +1,476 @@
 /*
-  English translations. Keys are the Vietnamese source strings used in the code
-  (SwiftUI format specifiers: %lld for Int, %@ for String, %% for a literal %).
+  English translations. Keys are the Vietnamese source strings used in the code; vi.lproj stays empty
+  because Vietnamese is the development language.
+  Format: %lld = Int, %@ = String, %lf = Double, %% = a literal % (only in keys with arguments).
+  Plural forms live in Localizable.stringsdict. Check with: make check-l10n
 */
+
+/* MacPowerManager/App/MacPowerManagerApp.swift */
+"MacPowerManager" = "MacPowerManager";
+"Cài đặt…" = "Settings…";
+"Tổng quan" = "Overview";
+"Lịch sử" = "History";
+"Tình trạng pin" = "Battery Health";
+
+/* MacPowerManager/Design/Components/BannerView.swift */
+"Điều khiển sạc trên Intel (thử nghiệm)" = "Charge Control on Intel (Experimental)";
+"Cài helper" = "Install Helper";
+"Hủy" = "Cancel";
+"App sẽ ghi giới hạn vào firmware (key BCLM, 50–100%). Firmware giữ giới hạn cả khi máy ngủ hoặc tắt, kể cả khi đã xóa app, nên hãy gỡ helper trong app trước khi xóa app (gỡ helper trả giới hạn về 100%). Pin có thể vượt khoảng 3%; không dừng sạc được dưới 50%. Tính năng chưa được kiểm chứng trên mọi máy Intel. Nên tắt \"Optimized Battery Charging\" trong System Settings → Battery." = "The app writes the limit to the firmware (BCLM key, 50–100%). The firmware keeps the limit while your Mac sleeps or is shut down, even after the app is deleted, so uninstall the helper from the app before deleting the app (uninstalling resets the limit to 100%). The battery may overshoot by about 3%, and charging can’t stop below 50%. This feature hasn’t been tested on every Intel Mac. Turn off “Optimized Battery Charging” in System Settings → Battery.";
+
+/* MacPowerManager/Design/Components/ChargeRing.swift */
+"Pin %lld%%" = "Battery %lld%%";
+
+/* MacPowerManager/Design/Components/Charts.swift */
+"Chưa đủ dữ liệu" = "Not enough data";
+"Thời gian" = "Time";
+"Giá trị" = "Value";
+"đoạn" = "Segment";
+"Ngưỡng" = "Threshold";
+"Giới hạn" = "Limit";
+"Giới hạn %lld%%" = "Limit %lld%%";
+"Chọn" = "Selection";
+
+/* MacPowerManager/Design/Components/Card.swift */
+"Tình trạng pin (tiêu đề thẻ)" = "Battery health";
+
+/* MacPowerManager/Design/Components/LimitBar.swift */
+"Giới hạn sạc" = "Charge Limit";
+
+/* MacPowerManager/Design/Components/PowerFlowView.swift */
+"Bộ sạc" = "Charger";
+"Hệ thống" = "System";
+"Pin" = "Battery";
+"%lld%% · đang nạp" = "%lld%% · charging";
+"%lld%% · đang cấp điện" = "%lld%% · supplying power";
+"%lld%% · không sạc" = "%lld%% · not charging";
+"Đã ngắt" = "Disconnected";
+"Chưa cắm" = "Unplugged";
+"Tối đa %lld W" = "Max %lld W";
+
+/* MacPowerManager/Design/Components/ThermalScale.swift */
+"Dừng sạc khi pin từ %lld°C, sạc lại khi từ %lld°C trở xuống" = "Pause charging at %1$lld°C or above, resume at %2$lld°C or below";
+"Sạc lại ≤ %lld°C" = "Resume ≤ %lld°C";
+"Dừng ≥ %lld°C" = "Pause ≥ %lld°C";
+"Nhiệt độ pin hiện tại: %@" = "Current battery temperature: %@";
+
+/* MacPowerManager/Design/Format.swift */
+"%lld phút" = "%lld min";
+"%lld giờ %lld phút" = "%1$lld hr %2$lld min";
+"%lld giờ (ngắn)" = "%lld hr";
+
+/* MacPowerManager/Design/PowerState.swift */
+"Đang sạc" = "Charging";
+"Sạc đầy một lần" = "Full Charge Once";
+"Đã sạc đầy" = "Fully charged";
+"Cắm sạc, không sạc" = "Plugged in, not charging";
+"Đang giữ ở giới hạn" = "Holding at limit";
+"Chờ sạc lại" = "Waiting to recharge";
+"Tạm dừng sạc" = "Pause charging";
+"Đang xả pin" = "Discharging";
+"Tạm ngừng xả (gập máy)" = "Discharge paused (lid closed)";
+"Tạm dừng do pin nóng" = "Paused due to heat";
+"Pin yếu, sạc bắt buộc" = "Critically low, charging";
+"Pin yếu" = "Low battery";
+"Đang dùng pin" = "On battery";
+"Không rõ" = "Unknown";
+"Không tìm thấy pin" = "No battery found";
+"Firmware dừng sạc ở khoảng %lld%%" = "Firmware stops charging at about %lld%%";
+"Tới %lld%% sau %@" = "%1$lld%% in %2$@";
+"Đầy sau %@" = "Full in %@";
+"Đang ước tính thời gian sạc…" = "Estimating charge time…";
+"Đầy sau %@ · giới hạn %lld%% trở lại khi rút sạc" = "Full in %1$@ · then back to %2$lld%%";
+"Giới hạn %lld%% trở lại khi rút sạc" = "%lld%% limit returns when unplugged";
+"Đã đầy · giữ 100%" = "Full · holding 100%";
+"Giữ 100% tới khi rút sạc" = "Holding 100% until unplugged";
+"Máy dùng điện trực tiếp từ bộ sạc" = "Running on the power adapter";
+"Đang cắm sạc" = "Plugged in";
+"Không sạc, máy dùng điện từ bộ sạc" = "Not charging · running on the power adapter";
+"Đang giữ ở %lld%%" = "Holding at %lld%%";
+"Sạc lại khi pin xuống dưới %lld%%" = "Recharge below %lld%%";
+"Đã tạm dừng sạc" = "Charging paused";
+"Pin giữ nguyên, máy dùng điện từ bộ sạc" = "Battery level held · on the power adapter";
+"Đang xả về %lld%%" = "Discharging to %lld%%";
+"Còn khoảng %@" = "About %@ left";
+"Máy chạy bằng pin dù vẫn cắm sạc" = "On battery while plugged in";
+"Tạm ngừng xả" = "Discharge paused";
+"Nắp máy đang đóng, sẽ xả tiếp khi mở nắp" = "Lid closed; resumes when opened";
+"Pin %@ · sạc lại khi ≤ %lld°C" = "Battery %1$@ · resumes ≤ %2$lld°C";
+"Pin yếu · sạc bắt buộc" = "Critically low · charging";
+"Dưới %lld%% luôn cho phép sạc" = "Always charges below %lld%%";
+"Còn %@" = "%@ left";
+"Đang ước tính thời gian còn lại…" = "Estimating time remaining…";
+
+/* MacPowerManager/Model/AppBanner.swift */
+"Chưa cài helper điều khiển sạc" = "Charging helper not installed";
+"Cần cài lại helper" = "Helper needs reinstalling";
+"Helper đã cũ (v%@), cần cập nhật" = "Helper is out of date (v%@)";
+"%@ cũng đang điều khiển sạc (giới hạn %lld%%)" = "%1$@ is also controlling charging (limit %2$lld%%)";
+"%@ cũng đang điều khiển sạc" = "%@ is also controlling charging";
+"Có ứng dụng khác đang ghi vào SMC" = "Another app is writing to the SMC";
+"Lệnh dừng sạc chưa có hiệu lực" = "Charging hasn’t stopped";
+"Firmware đã khóa một số key điều khiển" = "Firmware has locked some control keys";
+"Máy này chưa hỗ trợ điều khiển sạc" = "Charge control isn’t supported on this Mac";
+"App đang chạy từ vị trí tạm" = "Running from a temporary location";
+"Tạm dừng sạc do pin nóng" = "Charging paused due to heat";
+"Pin yếu (%lld%%)" = "Low battery (%lld%%)";
+"Giới hạn sạc, xả pin và chống nóng cần một helper chạy quyền quản trị. App vẫn theo dõi pin bình thường." = "Charge limit, discharge and Heat Guard need a helper with administrator privileges. Battery monitoring works without it.";
+"Máy Intel: điều khiển sạc đang thử nghiệm và cần một helper chạy quyền quản trị." = "Intel Mac: charge control is experimental and needs a helper with administrator privileges.";
+"Helper đã cài nhưng không nhận kết nối từ bản app này (thường gặp sau khi cập nhật app). Cài lại để tiếp tục điều khiển sạc." = "The helper is installed but doesn’t accept connections from this version of the app (common after an app update). Reinstall it to keep controlling charging.";
+"Cập nhật helper để dùng đầy đủ tính năng của bản app này." = "Update the helper to use every feature of this version.";
+"Hai ứng dụng cùng ghi vào SMC có thể khiến sạc bật/tắt liên tục. Hãy thoát %@ hoặc đặt giới hạn của nó về 100%%." = "Two apps writing to the SMC can make charging switch on and off repeatedly. Quit %@ or set its limit to 100%%.";
+"Key %@ bị đổi từ %@ thành %@ lúc %@." = "Key %1$@ changed from %2$@ to %3$@ at %4$@.";
+"Pin vẫn nhận dòng sạc sau khi đã chặn sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp." = "The battery is still receiving charge after charging was blocked. macOS or another app may be interfering.";
+"Bị khóa: %@. Helper đang dùng %@ thay thế." = "Locked: %1$@. The helper is using %2$@ instead.";
+"Bị khóa: %@. Không còn cách chặn sạc nào dùng được trên firmware này." = "Locked: %@. No way to block charging is left on this firmware.";
+"App vẫn hiển thị thông tin pin. Bạn có thể giúp mở rộng hỗ trợ bằng cách gửi kết quả `make probe` lên GitHub Issues." = "Battery information is still shown. You can help extend support by posting the output of `make probe` to GitHub Issues.";
+"Chuyển vào Applications để app hoạt động ổn định." = "Move it to Applications so it works reliably.";
+"Pin %@. Sẽ sạc lại khi nguội dưới %lld°C." = "Battery at %1$@. Charging resumes below %2$lld°C.";
+"Pin %@. Sẽ sạc lại khi pin nguội." = "Battery at %@. Charging resumes once it cools down.";
+"Hãy cắm sạc." = "Plug in the power adapter.";
+"Cài…" = "Install…";
+"Cài lại…" = "Reinstall…";
+"Cập nhật…" = "Update…";
+"Chi tiết" = "Details";
+"Chuyển" = "Move";
+"Báo lỗi" = "Report Issue";
+"Cài helper…" = "Install Helper…";
+"Cài helper (thử nghiệm)…" = "Install Helper (Experimental)…";
+"Cài lại helper…" = "Reinstall Helper…";
+"Cập nhật helper…" = "Update Helper…";
+"Xem chi tiết" = "View Details";
+"Chuyển vào Applications" = "Move to Applications";
+"Mở GitHub Issues" = "Open GitHub Issues";
+
+/* MacPowerManager/Model/AppMover.swift */
+"Chuyển MacPowerManager vào thư mục Applications?" = "Move MacPowerManager to the Applications folder?";
+"App đang chạy trực tiếp từ file tải về hoặc ổ đĩa .dmg. Hãy chuyển vào Applications để app hoạt động ổn định (mở cùng macOS, không bị đóng khi eject ổ đĩa)." = "The app is running directly from a download or a .dmg disk image. Move it to Applications so it works reliably (opens at login and keeps running when the disk image is ejected).";
+"App đang chạy trực tiếp từ file tải về hoặc ổ đĩa .dmg. Tài khoản này không ghi được vào Applications: hãy nhờ tài khoản quản trị kéo app vào Applications trong Finder." = "The app is running directly from a download or a .dmg disk image. This account can’t write to Applications: ask an administrator to drag the app into Applications in Finder.";
+"Để sau" = "Later";
+"Không hỏi lại" = "Don’t ask again";
+"Không thể tự chuyển app" = "Couldn’t move the app automatically";
+"Hãy thoát MacPowerManager, kéo app vào thư mục Applications trong Finder, eject ổ đĩa .dmg rồi mở lại app từ Applications.\n\n(%@)" = "Quit MacPowerManager, drag the app into the Applications folder in Finder, eject the .dmg disk image, then open the app from Applications.\n\n(%@)";
+
+/* MacPowerManager/Model/HelperClient.swift */
+"Không gửi được cấu hình tới helper: %@" = "Couldn’t send the settings to the helper: %@";
+"Helper báo lỗi khi áp dụng cấu hình." = "The helper reported an error while applying the settings.";
+"Không gửi được lệnh tới helper: %@" = "Couldn’t send the command to the helper: %@";
+"Giới hạn sạc đang tắt hoặc ở 100%." = "The charge limit is off or set to 100%.";
+"Giá trị không hợp lệ." = "Invalid value.";
+"Cần cắm sạc để dùng chức năng này." = "Plug in the power adapter to use this feature.";
+"Helper đang cài chưa hỗ trợ lệnh này. Hãy cài lại helper." = "The installed helper doesn’t support this command. Reinstall the helper.";
+"Helper từ chối lệnh từ bản app này. Hãy cài lại helper." = "The helper rejected a command from this version of the app. Reinstall the helper.";
+"Helper không thực hiện được lệnh." = "The helper couldn’t carry out the command.";
+"Không tìm thấy helper trong app bundle. Hãy build bằng `make app`." = "The helper wasn’t found in the app bundle. Build the app with `make app`.";
+"Không cài được helper." = "Couldn’t install the helper.";
+"Không gỡ được helper." = "Couldn’t uninstall the helper.";
+"Đã tắt helper nhưng chưa trả được giới hạn sạc của firmware (BCLM) về 100%%. Chạy trong Terminal: sudo %@ --restore-defaults" = "The helper was stopped, but the firmware charge limit (BCLM) couldn’t be reset to 100%%. Run in Terminal: sudo %@ --restore-defaults";
+"Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định." = "The helper was uninstalled, but restoring normal charging couldn’t be verified. Restart your Mac to reset the SMC to its defaults.";
+"Đã hủy xác thực." = "Authentication was canceled.";
+
+/* MacPowerManager/Model/Notifier.swift */
+"Đã đạt giới hạn sạc" = "Charge limit reached";
+"Pin ở mức %lld%%. Máy sẽ dùng điện trực tiếp từ bộ sạc." = "Battery at %lld%%. Your Mac now runs directly on the power adapter.";
+"Nhiệt độ pin %@. Sẽ sạc lại khi pin nguội." = "Battery temperature %@. Charging resumes once it cools down.";
+"Đã xả pin xong" = "Discharge finished";
+"Pin hiện ở mức %lld%%." = "The battery is now at %lld%%.";
+"Đã kết thúc sạc đầy một lần" = "Full Charge Once ended";
+"Pin ở mức %lld%%. Giới hạn %lld%% được áp dụng trở lại." = "Battery at %1$lld%%. The %2$lld%% limit applies again.";
+"Pin vẫn nhận dòng sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp." = "The battery is still receiving charge. macOS or another app may be interfering.";
+"Hai ứng dụng cùng điều khiển sạc có thể khiến sạc bật/tắt liên tục. Hãy thoát một bên." = "Two apps controlling charging can make it switch on and off repeatedly. Quit one of them.";
+"Key %@ bị thay đổi ngoài MacPowerManager." = "Key %@ was changed outside MacPowerManager.";
+"Còn %lld%%. Hãy cắm sạc." = "%lld%% left. Plug in the power adapter.";
+"Pin đã đầy" = "Battery full";
+"Có thể rút sạc." = "You can unplug the power adapter.";
+
+/* MacPowerManager/Model/Preferences.swift */
+"Biểu tượng có vạch giới hạn" = "Icon with limit line";
+"Biểu tượng pin của hệ thống" = "System battery icon";
+"Chỉ phần trăm" = "Percentage only";
+
+/* MacPowerManager/Pages/AppSettings/AboutPage.swift */
+"Phiên bản %@" = "Version %@";
+"Giữ pin khỏe lâu hơn bằng một vạch giới hạn: sạc tới mức bạn chọn, rồi để máy chạy bằng bộ sạc." = "Keep your battery healthy longer with one limit line: charge to the level you choose, then run on the power adapter.";
+"Mã nguồn trên GitHub" = "Source Code on GitHub";
+"Báo lỗi hoặc góp ý" = "Report an Issue or Send Feedback";
+"Giấy phép GNU GPL v3" = "License: GNU GPL v3";
+"Liên kết" = "Links";
+"MacPowerManager là phần mềm mã nguồn mở, độc lập và miễn phí, phát hành theo giấy phép GPL-3.0. Không liên kết với Apple hay nhà phát triển ứng dụng quản lý pin nào khác." = "MacPowerManager is free, independent, open-source software released under the GPL-3.0 license. It isn’t affiliated with Apple or any other battery app developer.";
+"Lịch sử pin" = "Battery history";
+"Giữ trong" = "Retention";
+"7 ngày" = "7 days";
+"Dữ liệu trên máy" = "Data on This Mac";
+"Mọi dữ liệu nằm trên máy này; app không gửi gì ra ngoài." = "All data stays on this Mac; the app sends nothing out.";
+
+/* MacPowerManager/Pages/AppSettings/MenuBarPage.swift */
+"Xem trước" = "Preview";
+"Mục rộng có thể bị che bởi notch." = "A wide item may be hidden behind the notch.";
+"Vạch dọc trên biểu tượng là mức giới hạn sạc đang áp dụng." = "The vertical line on the icon marks the active charge limit.";
+"Hiện phần trăm" = "Show percentage";
+"Ẩn phần trăm khi đã đầy và đang cắm sạc" = "Hide percentage when full and plugged in";
+"Tô màu theo trạng thái" = "Color by status";
+"Mặc định biểu tượng đơn sắc và tự đổi màu theo thanh menu, giống các biểu tượng hệ thống." = "By default the icon is monochrome and adapts to the menu bar, like system icons.";
+"Kiểu hiển thị" = "Display Style";
+"Ý nghĩa biểu tượng" = "Icon Legend";
+"Mở cùng macOS" = "Open at login";
+"Mở Cài đặt hệ thống" = "Open System Settings";
+"Cần cho phép trong Cài đặt hệ thống › Mục đăng nhập." = "Needs approval in System Settings › Login Items.";
+"Khởi động" = "Startup";
+"App sống trên thanh menu: đóng cửa sổ này app vẫn chạy. Helper vẫn giữ giới hạn sạc kể cả khi app đã thoát." = "The app lives in the menu bar: closing this window keeps it running. The helper keeps enforcing the charge limit even after the app quits.";
+"Xem trước trên thanh menu tối" = "Preview on a dark menu bar";
+"Xem trước trên thanh menu sáng" = "Preview on a light menu bar";
+"Không thể thay đổi: %@" = "Couldn’t change this setting: %@";
+
+/* MacPowerManager/Pages/AppSettings/NotificationsPage.swift */
+"Khi đạt giới hạn sạc hoặc sạc đầy" = "When the charge limit is reached or the battery is full";
+"Khi tạm dừng sạc do pin nóng" = "When charging pauses due to heat";
+"Khi xả pin xong" = "When discharge finishes";
+"Khi kết thúc sạc đầy một lần" = "When Full Charge Once ends";
+"Sạc pin" = "Charging";
+"Khi pin yếu" = "When the battery is low";
+"Ngưỡng pin yếu: %lld%%" = "Low battery threshold: %lld%%";
+"Ngưỡng này cũng dùng cho trạng thái \"Pin yếu\" và banner nhắc cắm sạc." = "This threshold is also used for the “Low battery” status and the plug-in reminder banner.";
+"Khi lệnh dừng sạc chưa có hiệu lực" = "When charging doesn’t stop";
+"Khi có ứng dụng khác điều khiển sạc" = "When another app controls charging";
+"Một ứng dụng quản lý pin khác đang chạy, hoặc key điều khiển bị tiến trình khác thay đổi." = "Another battery app is running, or a control key was changed by another process.";
+"Cảnh báo" = "Warnings";
+"Mỗi loại sự kiện chỉ báo một lần cho tới khi tình trạng đó kết thúc; thông báo mới thay cho thông báo cũ cùng loại." = "Each kind of event is reported once until the condition ends; a new notification replaces the previous one of the same kind.";
+"Quyền thông báo" = "Notification permission";
+"Mở cài đặt Thông báo…" = "Open Notification Settings…";
+"Đổi kiểu hiển thị, âm thanh hoặc tắt hẳn thông báo của app trong Cài đặt hệ thống." = "Change the alert style or sound, or turn off the app’s notifications entirely, in System Settings.";
+"Đã cho phép" = "Allowed";
+"Đã tắt trong Cài đặt hệ thống" = "Turned off in System Settings";
+"Chưa hỏi" = "Not requested yet";
+
+/* MacPowerManager/Pages/AppSettings/SystemPage.swift */
+"Phiên bản helper" = "Helper version";
+"Phương thức" = "Method";
+"Xác minh" = "Verification";
+"Lý do hiện tại" = "Current reason";
+"Nắp máy" = "Lid";
+"Firmware" = "Firmware";
+"Giới hạn trong firmware (BCLM)" = "Firmware limit (BCLM)";
+"Helper báo lỗi" = "Helper reported an error";
+"Lỗi gần nhất" = "Last error";
+"Gỡ helper…" = "Uninstall Helper…";
+"Helper" = "Helper";
+"Helper chạy nền với quyền root (%@) để ghi SMC, và vẫn giữ giới hạn sạc khi app đã thoát. Sau khi cập nhật app cần cài lại helper. Gỡ helper sẽ trả việc sạc về mặc định của macOS." = "The helper runs in the background as root (%@) to write to the SMC, and keeps enforcing the charge limit after the app quits. Reinstall the helper after updating the app. Uninstalling it returns charging to the macOS default.";
+"Helper đang cài chưa báo cáo khả năng của máy." = "The installed helper hasn’t reported this Mac’s capabilities.";
+"Cần helper để kiểm tra các key điều khiển." = "The helper is needed to check the control keys.";
+"Key điều khiển" = "Control Keys";
+"\"Bị khóa\": firmware từ chối ghi dù helper chạy bằng root. Khi đó helper tự chuyển sang phương thức khác nếu còn." = "“Locked”: the firmware rejects writes even though the helper runs as root. The helper then switches to another method if one is left.";
+"Không tìm thấy ứng dụng điều khiển sạc khác" = "No other battery apps found";
+"Quét lại" = "Rescan";
+"Tìm theo đường dẫn cài đặt và tiến trình đang chạy." = "Checks install locations and running processes.";
+"Ứng dụng điều khiển sạc khác" = "Other Battery Apps";
+"Chỉ cảnh báo khi ứng dụng kia đang chạy. Hai ứng dụng cùng ghi vào SMC có thể khiến sạc bật/tắt liên tục: hãy thoát một bên hoặc đặt giới hạn của bên kia về 100%." = "You’re only warned while the other app is running. Two apps writing to the SMC can make charging switch on and off repeatedly: quit one of them or set the other app’s limit to 100%.";
+"Không phát hiện" = "None detected";
+"Ghi từ bên ngoài" = "External Writes";
+"Các key điều khiển mà helper phát hiện bị tiến trình khác thay đổi so với giá trị nó đã ghi." = "Control keys that another process changed from the value the helper wrote.";
+"Máy" = "Model";
+"macOS" = "macOS";
+"Chip" = "Chip";
+"Phiên bản app" = "App version";
+"Đã sao chép" = "Copied";
+"Sao chép" = "Copy";
+"Thông tin chẩn đoán" = "Diagnostics";
+"Dán vào GitHub Issues khi báo lỗi. Không gồm số sê-ri." = "Paste into GitHub Issues when reporting a bug. The serial number isn’t included.";
+"Máy này" = "This Mac";
+"Gỡ helper điều khiển sạc?" = "Uninstall the charging helper?";
+"Gỡ helper" = "Uninstall Helper";
+"Giới hạn sạc trong firmware sẽ được trả về 100%. Sạc sẽ trở về mặc định của macOS." = "The firmware charge limit will be reset to 100%. Charging returns to the macOS default.";
+"Giới hạn sạc và các chế độ khác sẽ ngừng hoạt động. Sạc sẽ trở về mặc định của macOS." = "The charge limit and other modes will stop working. Charging returns to the macOS default.";
+"Không xác định (không nhận kết nối)" = "Unknown (not accepting connections)";
+"Chưa cài" = "Not installed";
+"Đang đóng" = "Closed";
+"Đang mở" = "Open";
+"Helper điều khiển sạc" = "Charging Helper";
+"Key" = "Key";
+"Có mặt" = "Present";
+"Ghi được" = "Writable";
+"Trạng thái" = "Status";
+"Có" = "Yes";
+"Không" = "No";
+"Bị khóa" = "Locked";
+"Đang dùng" = "In use";
+"Dự phòng" = "Fallback";
+"Không có" = "—";
+"Đang chạy" = "Running";
+"Đã cài, không chạy" = "Installed, not running";
+"Giới hạn trong cài đặt của nó: %lld%%" = "Its charge limit: %lld%%";
+
+/* MacPowerManager/Pages/Care/DischargePage.swift */
+"Chọn nhanh" = "Presets";
+"Dừng xả" = "Stop Discharging";
+"Đang xả: %lld%% → %lld%%" = "Discharging: %1$lld%% → %2$lld%%";
+"Tạm ngừng vì nắp máy đang đóng, sẽ xả tiếp khi mở nắp." = "Paused because the lid is closed; resumes when you open it.";
+"Bắt đầu xả" = "Start Discharging";
+"Xả về %lld%%" = "Discharge to %lld%%";
+"Pin đang ở %lld%%, không cao hơn mục tiêu." = "The battery is at %lld%%, not above the target.";
+"Sẽ bắt đầu khi cắm sạc." = "Starts when the power adapter is plugged in.";
+"Xả pin" = "Discharge";
+"Ngắt bộ sạc bằng phần mềm để máy chạy bằng pin dù vẫn cắm sạc. Tự dừng khi đạt mục tiêu, khi pin dưới %lld%%, trước khi máy ngủ hoặc khi helper khởi động lại." = "Disconnects the power adapter in software so your Mac runs on battery while plugged in. Stops automatically at the target, below %lld%%, before sleep, or when the helper restarts.";
+"Khi gập máy" = "Lid Closed";
+"Khi nắp máy đóng, việc xả tạm ngừng để tránh vòng lặp ngủ/thức. Bộ sạc luôn được bật lại trước khi máy ngủ." = "While the lid is closed, discharge pauses to avoid a sleep/wake loop. The power adapter is always reconnected before sleep.";
+
+/* MacPowerManager/Pages/Care/HeatPage.swift */
+"Bật chống nóng" = "Enable Heat Guard";
+"Dừng sạc khi pin từ %lld°C" = "Pause charging at %lld°C or above";
+"Sạc lại khi pin từ %lld°C trở xuống" = "Resume charging at %lld°C or below";
+"Chống nóng" = "Heat Guard";
+"macOS không cho phần mềm chỉnh dòng sạc, nên app hạ nhiệt bằng cách tạm ngắt sạc khi pin nóng và sạc lại khi đã nguội. Trên Intel, firmware chỉ dừng sạc được khi pin từ 50% trở lên." = "macOS doesn’t let apps adjust the charging current, so the app cools the battery by pausing charging while it’s hot and resuming once it has cooled down. On Intel, the firmware can only stop charging at 50% or above.";
+"macOS không cho phần mềm chỉnh dòng sạc, nên app hạ nhiệt bằng cách tạm ngắt sạc khi pin nóng và sạc lại khi đã nguội. Dưới %lld%% pin luôn được sạc dù đang nóng." = "macOS doesn’t let apps adjust the charging current, so the app cools the battery by pausing charging while it’s hot and resuming once it has cooled down. Below %lld%% the battery always charges, even when hot.";
+"Nhiệt độ pin" = "Battery temperature";
+"Một giờ qua" = "Past Hour";
+"Nhiệt độ đọc từ cảm biến pin của SMC (dự phòng bằng IOKit). Đường nét đứt là ngưỡng dừng sạc." = "Temperature comes from the SMC battery sensor (IOKit as a fallback). The dashed line is the pause threshold.";
+"Chưa điều khiển được sạc" = "Charging can’t be controlled yet";
+"Đang tạm dừng sạc, chờ pin nguội" = "Charging paused until the battery cools";
+"Bình thường" = "Normal";
+"Đã tắt chống nóng" = "Heat Guard is off";
+
+/* MacPowerManager/Pages/Care/LimitPage.swift */
+"Máy Intel (thử nghiệm)" = "Intel Mac (Experimental)";
+"Firmware giữ giới hạn cả khi máy ngủ hoặc tắt; pin có thể vượt khoảng 3% vì firmware dùng phần trăm phần cứng. Giới hạn tối thiểu 50%. Xả pin chưa hỗ trợ trên Intel. Nên tắt \"Optimized Battery Charging\" trong System Settings → Battery." = "The firmware keeps the limit even while your Mac sleeps or is shut down; the battery may overshoot by about 3% because the firmware uses hardware percentages. The minimum limit is 50%. Discharge isn’t supported on Intel yet. Turn off “Optimized Battery Charging” in System Settings → Battery.";
+"Bật giới hạn sạc" = "Enable charge limit";
+"Giữ pin ở khoảng 20–80% giúp giảm chai pin lithium-ion. Khi đạt giới hạn, máy dùng điện trực tiếp từ bộ sạc. Kéo vạch hoặc dùng phím mũi tên để chỉnh." = "Keeping the battery between 20–80% slows lithium-ion wear. At the limit, your Mac runs directly on the power adapter. Drag the line or use the arrow keys to adjust.";
+"Khoảng sạc lại: %lld%%" = "Recharge margin: %lld%%";
+"Sạc tới giới hạn ngay" = "Charge to Limit Now";
+"Bỏ qua khoảng sạc lại một lần" = "Skip the recharge margin once";
+"Đang sạc tới %lld%%…" = "Charging to %lld%%…";
+"Khoảng sạc lại" = "Recharge Margin";
+"Sau khi đạt giới hạn, máy chỉ sạc lại khi pin giảm quá khoảng này để tránh bật/tắt sạc liên tục. Dưới %lld%% luôn được sạc." = "After reaching the limit, your Mac recharges only once the battery drops by more than this margin, so charging doesn’t switch on and off constantly. Below %lld%% it always charges.";
+"Đang sạc đầy một lần" = "Charging to 100%";
+"Tự kết thúc lúc %@, hoặc khi rút sạc." = "Ends automatically at %@, or when you unplug.";
+"Tự kết thúc sau" = "End automatically after";
+"Tạm bỏ giới hạn, sạc tới 100%" = "Lift the limit and charge to 100%";
+"Cần cắm sạc." = "Plug in the power adapter first.";
+"Dùng khi cần pin đầy (ví dụ trước chuyến đi). Giới hạn được áp dụng lại khi rút sạc, khi hết hạn hoặc khi khởi động lại máy." = "Use it when you need a full battery (for example, before a trip). The limit applies again when you unplug, when it expires, or when your Mac restarts.";
+"Chỉ dùng bộ sạc" = "Run on Adapter Only";
+"Firmware giữ pin ở mức hiện tại. Trên Intel không dừng sạc được dưới 50%: pin sẽ sạc tới 50% rồi mới dừng." = "The firmware holds the battery at its current level. On Intel, charging can’t stop below 50%: the battery charges to 50% first, then stops.";
+"Pin giữ nguyên mức hiện tại, máy chạy hoàn toàn bằng bộ sạc." = "The battery stays at its current level and your Mac runs entirely on the power adapter.";
+"Giới hạn đang áp dụng" = "Active limit";
+"Phương thức và xác minh" = "Method & Verification";
+
+/* MacPowerManager/Pages/Care/SleepPage.swift */
+"Giữ nguyên mức pin khi máy ngủ" = "Hold battery level during sleep";
+"Tắt sạc trước khi ngủ nếu đang bật giới hạn, tạm dừng sạc hoặc xả pin." = "Turns off charging before sleep when the charge limit, Pause Charging, or Discharge is on.";
+"Khi máy ngủ" = "During Sleep";
+"Khi máy ngủ, helper không theo dõi được mức pin. Nếu tắt tùy chọn này, pin có thể được sạc vượt giới hạn trong lúc ngủ." = "While your Mac sleeps, the helper can’t monitor the battery level. With this option off, the battery may charge past the limit during sleep.";
+"Trước khi ngủ, bộ sạc luôn được bật lại (việc xả pin dừng)." = "Before sleep, the power adapter is always reconnected (discharge stops).";
+"Đang sạc đầy một lần thì máy vẫn sạc trong lúc ngủ." = "While Full Charge Once is active, charging continues during sleep.";
+"Dưới %lld%% pin luôn được sạc." = "Below %lld%% the battery always charges.";
+"Khi đang giữ mức pin, lúc máy chuẩn bị ngủ hoặc thức ngầm helper chỉ có thể tắt sạc, không bật lại." = "While the battery level is being held, the helper can only turn charging off, not back on, when your Mac is about to sleep or wakes in the background.";
+"Luôn được đảm bảo" = "Built-in Safeguards";
+"Máy tắt hẳn khi đang cắm sạc sẽ luôn sạc tới 100% — đây là giới hạn phần cứng của Apple Silicon." = "A Mac that is fully shut down while plugged in always charges to 100% — a hardware limitation of Apple silicon.";
+
+/* MacPowerManager/Pages/Monitor/HealthPage.swift */
+"Thiết kế" = "Design";
+"Tối đa" = "Maximum";
+"Hiện tại" = "Current charge";
+"Số lần sạc" = "Cycle count";
+"/ %@ lần" = "/ %@ cycles";
+"Điện" = "Power";
+"Điện áp" = "Voltage";
+"Dòng điện" = "Amperage";
+"Công suất pin" = "Battery power";
+"Hệ thống tiêu thụ" = "System load";
+"Nhiệt độ" = "Temperature";
+"Cảm biến pin (SMC)" = "Battery sensor (SMC)";
+"Gas gauge (IOKit)" = "Gas gauge (IOKit)";
+"Ngưỡng dừng sạc" = "Pause threshold";
+"Tắt" = "Off";
+"Đang cắm" = "Plugged in";
+"Tên" = "Name";
+"Công suất" = "Rated power";
+"Điện vào hệ thống" = "Input power";
+"Thông tin" = "Info";
+"Số sê-ri" = "Serial number";
+"Tới khi đầy" = "Until full";
+"Còn lại" = "Remaining";
+"Tình trạng pin là dung lượng tối đa hiện tại so với dung lượng thiết kế. Giữ pin trong khoảng 20–80% và tránh nhiệt độ cao giúp pin chai chậm hơn." = "Battery health is the current maximum capacity compared with the design capacity. Keeping the battery between 20–80% and avoiding high temperatures slows its wear.";
+"Máy này có thể không có pin trong." = "This Mac may not have a built-in battery.";
+
+/* MacPowerManager/Pages/Monitor/HistoryPage.swift */
+"1 giờ" = "1 hour";
+"6 giờ" = "6 hours";
+"24 giờ" = "24 hours";
+"Khoảng thời gian" = "Time range";
+"Xuất CSV" = "Export CSV…";
+"Xóa lịch sử" = "Clear History…";
+"Chưa có dữ liệu" = "No data yet";
+"Lịch sử sẽ xuất hiện sau vài phút. App ghi lại trạng thái pin mỗi phút khi đang chạy." = "History appears after a few minutes. The app records the battery state every minute while it’s running.";
+"Mức pin" = "Battery level";
+"Công suất pin (W, dương = đang nạp)" = "Battery power (W, positive = charging)";
+"Nhiệt độ pin (°C)" = "Battery temperature (°C)";
+"Mẫu được ghi mỗi phút khi app đang chạy và giữ trong 7 ngày. Khoảng trống là lúc máy ngủ hoặc app tắt." = "Samples are recorded every minute while the app is running and kept for 7 days. Gaps are times when your Mac was asleep or the app wasn’t running.";
+"Xóa toàn bộ lịch sử pin?" = "Clear all battery history?";
+"Xóa" = "Clear";
+"Không thể hoàn tác." = "This can’t be undone.";
+"W" = "W";
+"°C" = "°C";
+"Dừng sạc" = "Pause charging";
+"Dừng sạc %lld°C" = "Pause %lld°C";
+"Sạc lại" = "Resume charging";
+"Sạc lại %lld°C" = "Resume %lld°C";
+
+/* MacPowerManager/Pages/Monitor/OverviewPage.swift */
+"Trạng thái pin" = "Battery status";
+"Tạm dừng" = "Pause";
+"Dòng điện năng" = "Energy flow";
+"Ngưỡng %lld°C" = "Threshold %lld°C";
+"Đang nạp" = "Charging";
+"Đang cấp điện" = "Supplying power";
+"Không sạc" = "Not charging";
+"Đang cấp %@" = "Supplying %@";
+"Mức pin · 24 giờ" = "Battery level · 24 hours";
+"Xem lịch sử" = "View History";
+"Lịch sử sẽ xuất hiện sau vài phút." = "History appears after a few minutes.";
+"Dung lượng tối đa" = "Maximum capacity";
+"Dung lượng thiết kế" = "Design capacity";
+"Tình trạng" = "Health";
+"Hiệu lực" = "Verification";
+"Đang chạy (v%@)" = "Running (v%@)";
+"Cần cài lại" = "Needs reinstalling";
+"Phiên bản cũ (v%@)" = "Outdated (v%@)";
+"Đang kiểm tra…" = "Checking…";
+
+/* MacPowerManager/Pages/Page.swift */
+"Khi ngủ" = "Sleep";
+"Thanh menu" = "Menu Bar";
+"Thông báo" = "Notifications";
+"Hệ thống & helper" = "System & Helper";
+"Giới thiệu" = "About";
+
+/* MacPowerManager/Pages/RootView.swift */
+"Theo dõi" = "Monitor";
+"Chăm sóc pin" = "Battery Care";
+"Ứng dụng" = "App";
+
+/* MacPowerManager/Pages/Shared.swift */
+"Không cần xác minh" = "Not needed";
+"Đang xác minh…" = "Verifying…";
+"Đã xác minh" = "Verified";
+"Chưa có hiệu lực" = "Not in effect";
+"Helper chưa báo cáo" = "Not reported by helper";
+
+/* MacPowerManager/Popover/PopoverView.swift */
+"Mở bảng điều khiển" = "Open Dashboard";
+"Thoát" = "Quit";
+"Sạc lại dưới %lld%%" = "Recharge below %lld%%";
+"Ghi chú Intel" = "Intel Notes";
+"Firmware giữ pin ở mức hiện tại (từ 50% trở lên)." = "The firmware holds the battery at its current level (50% or above).";
+"Pin giữ nguyên, máy chạy bằng bộ sạc." = "The battery level is held while your Mac runs on the power adapter.";
+"Xả về %lld%% dù vẫn cắm sạc." = "Discharge to %lld%% while plugged in.";
+"Sạc đầy" = "Full Charge";
+"Sạc đầy một lần tới 100%, giới hạn trở lại khi rút sạc." = "Charge to 100% once; the limit returns when you unplug.";
+"Dừng sạc khi pin ≥ %lld°C." = "Pause charging at %lld°C or above.";
+"Tiêu thụ" = "System load";
+"Đã cắm" = "Plugged in";
+
+/* PowerCore/Contract/ControllerIO.swift */
+"Sạc bình thường" = "Charging normally";
+"Đang giữ ở mức giới hạn" = "Holding at the charge limit";
+"Chờ sạc lại (trong khoảng giữ pin)" = "Waiting to recharge (within margin)";
+"Tạm dừng sạc (dùng adapter)" = "Charging paused (on power adapter)";
+"Tạm ngừng xả (nắp máy đóng)" = "Discharge paused (lid closed)";
+"Pin yếu, cho phép sạc" = "Low battery, charging allowed";

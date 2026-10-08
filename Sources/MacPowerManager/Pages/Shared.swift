@@ -72,13 +72,32 @@ struct HelperErrorSection: View {
         if let error = model.helper.errorMessage {
             Section {
                 Label {
-                    Text(error).textSelection(.enabled)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(error).textSelection(.enabled)
+                        if let detail = model.helper.errorDetail {
+                            DiagnosticsLine(text: detail)
+                        }
+                    }
                 } icon: {
                     Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
                 }
                 .foregroundStyle(.red)
             }
         }
+    }
+}
+
+/// Dòng chẩn đoán phụ: chi tiết kỹ thuật nguyên văn từ helper hoặc script cài đặt. Helper chạy bằng root và không có
+/// bản dịch nên chi tiết này luôn là tiếng Việt; câu chính phía trên luôn là chữ (đã dịch) của app.
+struct DiagnosticsLine: View {
+    let text: String
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

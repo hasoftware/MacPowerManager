@@ -14,6 +14,8 @@ jobs:
           fetch-depth: 0
       - name: Swift version
         run: swift --version
+      - name: Check localization
+        run: make check-l10n
       - name: Test
         run: swift test
       - name: Build universal app bundle

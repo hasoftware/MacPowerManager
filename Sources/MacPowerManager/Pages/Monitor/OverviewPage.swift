@@ -269,7 +269,7 @@ private struct HealthCard: View {
 
     var body: some View {
         let b = model.battery ?? BatteryInfo()
-        Card(title: "Tình trạng pin", symbol: "heart.text.square", tint: .pink) {
+        Card(title: .batteryHealthCardTitle, symbol: "heart.text.square", tint: .pink) {
             HStack(spacing: 20) {
                 HealthRing(health: b.health)
                     .frame(width: 96, height: 96)

@@ -1,4 +1,4 @@
-.PHONY: app universal run test probe install package bump-patch bump-minor bump-major uninstall-helper clean
+.PHONY: app universal run test check-l10n probe install package bump-patch bump-minor bump-major uninstall-helper clean
 
 app:
 	./scripts/build-app.sh
@@ -12,6 +12,10 @@ run: app
 
 test:
 	swift test
+
+# Kiểm tra bản dịch tiếng Anh (en.lproj): khóa còn thiếu, khóa không còn dùng, định dạng sai.
+check-l10n:
+	python3 scripts/check-localization.py
 
 probe:
 	swift run smc-probe

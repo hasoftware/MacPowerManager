@@ -34,26 +34,26 @@ struct Sparkline: View {
             Chart {
                 ForEach(points) { p in
                     if signed {
-                        AreaMark(x: .value("t", p.date), yStart: .value("0", 0), yEnd: .value("v", max(p.value, 0)),
-                                 series: .value("s", "+\(p.segment)"))
+                        AreaMark(x: .value("Thời gian", p.date), yStart: .value("0", 0), yEnd: .value("Giá trị", max(p.value, 0)),
+                                 series: .value("đoạn", "+\(p.segment)"))
                             .foregroundStyle(Color.green.opacity(0.35))
-                        AreaMark(x: .value("t", p.date), yStart: .value("0", min(p.value, 0)), yEnd: .value("v", 0),
-                                 series: .value("s", "-\(p.segment)"))
+                        AreaMark(x: .value("Thời gian", p.date), yStart: .value("0", min(p.value, 0)), yEnd: .value("Giá trị", 0),
+                                 series: .value("đoạn", "-\(p.segment)"))
                             .foregroundStyle(Color.orange.opacity(0.35))
                     } else {
-                        AreaMark(x: .value("t", p.date), yStart: .value("min", domain.lowerBound), yEnd: .value("v", p.value),
-                                 series: .value("s", p.segment))
+                        AreaMark(x: .value("Thời gian", p.date), yStart: .value("Giá trị", domain.lowerBound), yEnd: .value("Giá trị", p.value),
+                                 series: .value("đoạn", p.segment))
                             .foregroundStyle(LinearGradient(colors: [tint.opacity(0.3), tint.opacity(0)],
                                                             startPoint: .top, endPoint: .bottom))
                             .interpolationMethod(.monotone)
                     }
-                    LineMark(x: .value("t", p.date), y: .value("v", p.value), series: .value("s", p.segment))
+                    LineMark(x: .value("Thời gian", p.date), y: .value("Giá trị", p.value), series: .value("đoạn", p.segment))
                         .foregroundStyle(signed ? Color.secondary : tint)
                         .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                 }
                 if let threshold {
-                    RuleMark(y: .value("ngưỡng", threshold))
+                    RuleMark(y: .value("Ngưỡng", threshold))
                         .foregroundStyle(Color.orange.opacity(0.7))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 }

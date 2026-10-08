@@ -22,8 +22,16 @@ struct SystemPage: View {
                 LabeledContent("Phiên bản helper", value: helperVersion)
                 LabeledContent("Phương thức", value: status?.methodText ?? "—")
                 LabeledContent("Xác minh") { EffectLabel(effect: status?.effect) }
-                if case .ineffective(let detail)? = status?.effect, !detail.isEmpty {
-                    Text(detail).font(.callout).foregroundStyle(.orange)
+                if case .ineffective(let detail)? = status?.effect {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pin vẫn nhận dòng sạc sau khi đã chặn sạc. Có thể macOS hoặc ứng dụng khác đang can thiệp.")
+                            .font(.callout)
+                            .foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !detail.isEmpty {
+                            DiagnosticsLine(text: detail)
+                        }
+                    }
                 }
                 LabeledContent("Lý do hiện tại", value: status?.reason.label ?? "—")
                 LabeledContent("Nắp máy", value: lidText(status?.lidClosed))
@@ -32,8 +40,11 @@ struct SystemPage: View {
                     LabeledContent("Giới hạn trong firmware (BCLM)", value: status?.firmwareLimit.map { "\($0)%" } ?? "—")
                 }
                 if let error = status?.lastError, !error.isEmpty {
-                    LabeledContent("Lỗi gần nhất") {
-                        Text(error).foregroundStyle(.red).textSelection(.enabled)
+                    LabeledContent {
+                        Text("Helper báo lỗi").foregroundStyle(.red)
+                    } label: {
+                        Text("Lỗi gần nhất")
+                        DiagnosticsLine(text: error)
                     }
                 }
                 HStack(spacing: Theme.Space.s) {

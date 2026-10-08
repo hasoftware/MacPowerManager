@@ -7,7 +7,7 @@
 App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook Apple Silicon: giới hạn sạc, xả pin, bảo vệ nhiệt, lịch sử pin và thông báo.
 Đây là dự án vì cộng đồng, là một lựa chọn thay thế miễn phí cho các app giới hạn sạc trả phí.
 
-*A free, open-source battery & charging manager for Apple Silicon MacBooks: charge limiter, discharge, heat protection, history and notifications. [English summary below](#english).*
+*A free, open-source battery & charging manager for Apple Silicon MacBooks: charge limiter, discharge, heat guard, history and notifications. [English summary below](#english).*
 
 > ⚠️ **Lưu ý:** App điều khiển sạc bằng cách ghi vào các SMC key không được Apple công bố.
 > Đã thử nghiệm trên MacBook Pro M2 Pro, macOS 15.5. Hãy dùng với sự hiểu biết về rủi ro (xem [Giấy phép](#giấy-phép), phần không bảo hành).
@@ -15,7 +15,7 @@ App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook 
 ## Tính năng
 
 - **Thông tin pin**: %, dung lượng (mAh), sức khỏe, chu kỳ, điện áp, dòng, công suất, nhiệt độ (SMC + IOKit), adapter.
-- **Giới hạn sạc**: dừng sạc ở X% và chỉ sạc lại khi pin giảm dưới `X - gap` (sailing), tránh bật/tắt sạc liên tục.
+- **Giới hạn sạc**: dừng sạc ở X% và chỉ sạc lại khi pin giảm dưới `X - gap` (khoảng sạc lại), tránh bật/tắt sạc liên tục.
 - **Tạm dừng sạc**: máy chạy hoàn toàn bằng adapter, pin giữ nguyên.
 - **Xả pin**: ngắt adapter bằng phần mềm để xả về mức mục tiêu dù vẫn cắm sạc, sau đó tự tắt.
 - **Bảo vệ nhiệt**: dừng sạc khi pin ≥ ngưỡng nóng và sạc lại khi đã nguội (hysteresis).
@@ -145,10 +145,10 @@ Khi tag được đẩy lên, GitHub Actions sẽ build bản universal, đóng 
 
 
 MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon MacBooks. Features:
-- charge limiter with sailing range
+- charge limiter with recharge margin
 - pause charging (run from the adapter)
 - discharge while plugged in
-- heat protection (pause charging above a temperature threshold)
+- heat guard (pause charging above a temperature threshold)
 - battery details and history charts
 - notifications
 

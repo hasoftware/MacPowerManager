@@ -2,11 +2,25 @@ import SwiftUI
 
 /// Thẻ trên các trang theo dõi: tiêu đề nhỏ có biểu tượng, phụ kiện bên phải, nội dung.
 struct Card<Content: View, Accessory: View>: View {
-    let title: LocalizedStringKey
+    let title: Text
     let symbol: String
     var tint: Color = .secondary
     @ViewBuilder var accessory: Accessory
     @ViewBuilder var content: Content
+
+    init(title: Text, symbol: String, tint: Color = .secondary,
+         @ViewBuilder accessory: () -> Accessory, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.symbol = symbol
+        self.tint = tint
+        self.accessory = accessory()
+        self.content = content()
+    }
+
+    init(title: LocalizedStringKey, symbol: String, tint: Color = .secondary,
+         @ViewBuilder accessory: () -> Accessory, @ViewBuilder content: () -> Content) {
+        self.init(title: Text(title), symbol: symbol, tint: tint, accessory: accessory, content: content)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.m) {
@@ -15,7 +29,7 @@ struct Card<Content: View, Accessory: View>: View {
                     .foregroundStyle(tint)
                     .imageScale(.small)
                     .frame(width: 16)
-                Text(title)
+                title
                     .font(Theme.cardTitle)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -31,12 +45,20 @@ struct Card<Content: View, Accessory: View>: View {
 }
 
 extension Card where Accessory == EmptyView {
+    init(title: Text, symbol: String, tint: Color = .secondary, @ViewBuilder content: () -> Content) {
+        self.init(title: title, symbol: symbol, tint: tint, accessory: { EmptyView() }, content: content)
+    }
+
     init(title: LocalizedStringKey, symbol: String, tint: Color = .secondary, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.symbol = symbol
-        self.tint = tint
-        self.accessory = EmptyView()
-        self.content = content()
+        self.init(title: Text(title), symbol: symbol, tint: tint, content: content)
+    }
+}
+
+extension Text {
+    /// Tiêu đề thẻ "Tình trạng pin". Khóa riêng vì "Tình trạng pin" còn là tên trang (bản dịch viết hoa kiểu
+    /// tiêu đề), còn tiêu đề thẻ trong bản dịch viết hoa chữ đầu như các thẻ khác.
+    static var batteryHealthCardTitle: Text {
+        Text(verbatim: String(localized: "Tình trạng pin (tiêu đề thẻ)", defaultValue: "Tình trạng pin"))
     }
 }
 

@@ -19,17 +19,18 @@ public enum ChargeReason: String, Codable, Sendable {
     case clamshellSuspended
     case critical
 
+    /// Mô tả cho giao diện. Dịch theo `Bundle.main` của app (helper không có bản dịch nên luôn là tiếng Việt).
     public var label: String {
         switch self {
-        case .normal: "Sạc bình thường"
-        case .limitReached: "Đang giữ ở mức giới hạn"
-        case .sailing: "Chờ sạc lại (trong khoảng giữ pin)"
-        case .manualPause: "Tạm dừng sạc (dùng adapter)"
-        case .thermal: "Tạm dừng do pin nóng"
-        case .discharging: "Đang xả pin"
-        case .topUp: "Đang sạc đầy một lần"
-        case .clamshellSuspended: "Tạm ngừng xả (nắp máy đóng)"
-        case .critical: "Pin yếu, cho phép sạc"
+        case .normal: String(localized: "Sạc bình thường")
+        case .limitReached: String(localized: "Đang giữ ở mức giới hạn")
+        case .sailing: String(localized: "Chờ sạc lại (trong khoảng giữ pin)")
+        case .manualPause: String(localized: "Tạm dừng sạc (dùng adapter)")
+        case .thermal: String(localized: "Tạm dừng do pin nóng")
+        case .discharging: String(localized: "Đang xả pin")
+        case .topUp: String(localized: "Đang sạc đầy một lần")
+        case .clamshellSuspended: String(localized: "Tạm ngừng xả (nắp máy đóng)")
+        case .critical: String(localized: "Pin yếu, cho phép sạc")
         }
     }
 }

@@ -18,7 +18,11 @@ final class HelperClient {
     private(set) var isBusy = false
     /// Đang gửi một lệnh (sạc đầy một lần, sạc tới giới hạn…).
     private(set) var isSending = false
-    var errorMessage: String?
+    /// Lỗi gần nhất, bằng chữ của chính app (đã dịch).
+    private(set) var errorMessage: String?
+    /// Chi tiết kỹ thuật thô của lỗi đó (thông báo của helper, stderr của script cài đặt…), chỉ để hiện ở dòng
+    /// chẩn đoán phụ. Helper chạy bằng root, không có bản dịch nên chi tiết này luôn là tiếng Việt.
+    private(set) var errorDetail: String?
 
     @ObservationIgnored private var connection: NSXPCConnection?
     @ObservationIgnored private var applyTask: Task<Void, Never>?
@@ -119,10 +123,10 @@ final class HelperClient {
         case .success(let response) where response.error == .unsupported:
             await applyLegacy(config)
         case .success(let response):
-            errorMessage = response.ok ? nil : Self.message(for: response)
+            report(response, for: .setConfig(config))
             if let status = response.status { self.status = status }
         case .failure(let error):
-            errorMessage = String(localized: "Không gửi được cấu hình tới helper: \(error.localizedDescription)")
+            setError(String(localized: "Không gửi được cấu hình tới helper: \(error.localizedDescription)"))
         }
     }
 
@@ -130,9 +134,13 @@ final class HelperClient {
         guard let data = try? JSONEncoder().encode(config) else { return }
         do {
             let error: String? = try await call { proxy, reply in proxy.apply(config: data, reply: reply) }
-            errorMessage = error
+            if let error, !error.isEmpty {
+                setError(String(localized: "Helper báo lỗi khi áp dụng cấu hình."), detail: error)
+            } else {
+                setError(nil)
+            }
         } catch {
-            errorMessage = String(localized: "Không gửi được cấu hình tới helper: \(error.localizedDescription)")
+            setError(String(localized: "Không gửi được cấu hình tới helper: \(error.localizedDescription)"))
         }
     }
 
@@ -154,7 +162,7 @@ final class HelperClient {
     @discardableResult
     func perform(_ command: HelperCommand) async -> HelperResponse? {
         guard supportsCommands else {
-            errorMessage = Self.message(for: HelperResponse(ok: false, error: .unsupported))
+            setError(Self.message(for: .unsupported, command: command))
             return nil
         }
         isSending = true
@@ -163,10 +171,10 @@ final class HelperClient {
         await refresh()
         switch result {
         case .success(let response):
-            errorMessage = response.ok ? nil : Self.message(for: response)
+            report(response, for: command)
             return response
         case .failure(let error):
-            errorMessage = String(localized: "Không gửi được lệnh tới helper: \(error.localizedDescription)")
+            setError(String(localized: "Không gửi được lệnh tới helper: \(error.localizedDescription)"))
             return nil
         }
     }
@@ -186,10 +194,27 @@ final class HelperClient {
         }
     }
 
-    private static func message(for response: HelperResponse) -> String {
-        if let message = response.message, !message.isEmpty { return message }
-        switch response.error {
-        case .invalidArgument: return String(localized: "Giá trị không hợp lệ.")
+    private func setError(_ message: String?, detail: String? = nil) {
+        errorMessage = message
+        let detail = detail?.trimmingCharacters(in: .whitespacesAndNewlines)
+        errorDetail = message == nil || detail?.isEmpty != false ? nil : detail
+    }
+
+    /// Lỗi theo mã của helper. `HelperResponse.message` do helper (root, không có bản dịch) viết bằng tiếng Việt,
+    /// nên chỉ giữ làm chi tiết chẩn đoán; câu hiển thị là chữ của app theo mã lỗi.
+    private func report(_ response: HelperResponse, for command: HelperCommand) {
+        if response.ok {
+            setError(nil)
+        } else {
+            setError(Self.message(for: response.error, command: command), detail: response.message)
+        }
+    }
+
+    private static func message(for error: HelperError?, command: HelperCommand) -> String {
+        switch error {
+        case .invalidArgument:
+            if case .chargeToLimitNow = command { return String(localized: "Giới hạn sạc đang tắt hoặc ở 100%.") }
+            return String(localized: "Giá trị không hợp lệ.")
         case .notPluggedIn: return String(localized: "Cần cắm sạc để dùng chức năng này.")
         case .unsupported: return String(localized: "Helper đang cài chưa hỗ trợ lệnh này. Hãy cài lại helper.")
         case .notAuthorized: return String(localized: "Helper từ chối lệnh từ bản app này. Hãy cài lại helper.")
@@ -203,11 +228,12 @@ final class HelperClient {
         guard let helper = Bundle.main.url(forAuxiliaryExecutable: "PowerHelper"),
               let plist = Bundle.main.url(forResource: PowerConstants.helperLabel, withExtension: "plist"),
               let script = Bundle.main.url(forResource: "helper-install", withExtension: "sh") else {
-            errorMessage = String(localized: "Không tìm thấy helper trong app bundle. Hãy build bằng `make app`.")
+            setError(String(localized: "Không tìm thấy helper trong app bundle. Hãy build bằng `make app`."))
             return
         }
         // Đối số thứ 4: đường dẫn app, để script ghi cdhash của app vào danh sách client được tin cậy.
-        await runPrivileged(script: script, arguments: ["install", helper.path, plist.path, Bundle.main.bundlePath])
+        await runPrivileged(script: script, arguments: ["install", helper.path, plist.path, Bundle.main.bundlePath],
+                            failure: String(localized: "Không cài được helper."))
         resetConnection()
         try? await Task.sleep(for: .seconds(1))
         await refresh()
@@ -221,12 +247,14 @@ final class HelperClient {
         }
         // Truyền helper đi kèm app để script dùng nó khôi phục (helper đang cài có thể là bản cũ).
         let bundledHelper = Bundle.main.url(forAuxiliaryExecutable: "PowerHelper")?.path
-        let output = await runPrivileged(script: script, arguments: ["uninstall"] + [bundledHelper].compactMap { $0 })
+        let output = await runPrivileged(script: script, arguments: ["uninstall"] + [bundledHelper].compactMap { $0 },
+                                         failure: String(localized: "Không gỡ được helper."))
+        // Mã MPM-E… của script: thay câu tiếng Việt của script bằng chữ của app.
         if output.contains("MPM-E4") {
             let path = PowerConstants.helperInstallPath
-            errorMessage = String(localized: "Đã tắt helper nhưng chưa trả được giới hạn sạc của firmware (BCLM) về 100%. Chạy trong Terminal: sudo \(path) --restore-defaults")
+            setError(String(localized: "Đã tắt helper nhưng chưa trả được giới hạn sạc của firmware (BCLM) về 100%. Chạy trong Terminal: sudo \(path) --restore-defaults"))
         } else if output.contains("MPM-E3") {
-            errorMessage = String(localized: "Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định.")
+            setError(String(localized: "Đã gỡ helper nhưng chưa xác minh được việc khôi phục sạc. Hãy khởi động lại máy để SMC trở về mặc định."))
         }
         resetConnection()
         status = nil
@@ -240,13 +268,14 @@ final class HelperClient {
         self.status = status
         self.installState = installState
         config = status?.config ?? PowerConfig()
-        errorMessage = error
+        setError(error)
     }
     #endif
 
     /// Chạy script bằng quyền admin qua hộp thoại xác thực của macOS. Trả về stderr khi lỗi.
+    /// - failure: câu báo lỗi của app khi script thất bại; stderr (tiếng Việt, từ script) chỉ là chi tiết chẩn đoán.
     @discardableResult
-    private func runPrivileged(script: URL, arguments: [String]) async -> String {
+    private func runPrivileged(script: URL, arguments: [String], failure: String) async -> String {
         guard !isPreview else { return "" }
         isBusy = true
         defer { isBusy = false }
@@ -270,9 +299,13 @@ final class HelperClient {
         }.value
 
         if result.0 != 0 {
-            errorMessage = result.1.contains("-128") ? String(localized: "Đã hủy xác thực.") : String(localized: "Lỗi: \(result.1)")
+            if result.1.contains("-128") {
+                setError(String(localized: "Đã hủy xác thực."))
+            } else {
+                setError(failure, detail: result.1)
+            }
         } else {
-            errorMessage = nil
+            setError(nil)
         }
         return result.1
     }

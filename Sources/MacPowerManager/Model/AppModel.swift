@@ -154,8 +154,8 @@ final class AppModel {
         } else if let write = helper.status?.foreignWrites?.last {
             result.append(.foreignWrite(write))
         }
-        if case .ineffective(let detail) = helper.status?.effect {
-            result.append(.ineffective(detail))
+        if effectIneffective {
+            result.append(.ineffective)
         }
         if controlUnsupported {
             result.append(.unsupported)

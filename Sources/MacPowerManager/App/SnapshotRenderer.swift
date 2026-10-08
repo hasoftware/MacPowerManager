@@ -307,7 +307,8 @@ private enum Mock {
             status.topUp = TopUpState(startedAt: Date().addingTimeInterval(-3600),
                                       expiresAt: Date().addingTimeInterval(20 * 3600), bootSessionUUID: "mock")
             status.effectiveLimit = 100
-            status.effect = .ineffective(detail: "Pin vẫn nhận 1,2 A sau 90 giây.")
+            // Chi tiết do helper viết (luôn tiếng Việt), app chỉ hiện ở dòng chẩn đoán.
+            status.effect = .ineffective(detail: "Pin vẫn nhận 1,2 A sau 90 giây.")  // l10n-ignore
             temperature = 41.3
             prefs.menuBarStyle = .symbol
         }

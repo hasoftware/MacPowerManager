@@ -68,7 +68,7 @@ enum PowerState: String, CaseIterable, Sendable {
         case .pluggedIn: "Cắm sạc, không sạc"
         case .holding: "Đang giữ ở giới hạn"
         case .sailing: "Chờ sạc lại"
-        case .paused: "Tạm dừng sạc"
+        case .paused: "Đã tạm dừng sạc"
         case .discharging: "Đang xả pin"
         case .dischargeSuspended: "Tạm ngừng xả (gập máy)"
         case .heat: "Tạm dừng do pin nóng"
