@@ -479,3 +479,7 @@
 "Tạm dừng sạc (dùng adapter)" = "Charging paused (on power adapter)";
 "Tạm ngừng xả (nắp máy đóng)" = "Discharge paused (lid closed)";
 "Pin yếu, cho phép sạc" = "Low battery, charging allowed";
+
+/* Giới thiệu: tác giả */
+"Tác giả" = "Author";
+"MacPowerManager được phát triển bởi HASOFTWARE. Liên hệ qua Telegram hoặc Facebook để góp ý, hợp tác hoặc ủng hộ dự án." = "MacPowerManager is developed by HASOFTWARE. Reach out on Telegram or Facebook for feedback, collaboration or to support the project.";

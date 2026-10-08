@@ -3,6 +3,9 @@
 [![Release](https://img.shields.io/github/v/release/hasoftware/MacPowerManager)](https://github.com/hasoftware/MacPowerManager/releases/latest)
 [![CI](https://github.com/hasoftware/MacPowerManager/actions/workflows/ci.yml/badge.svg)](https://github.com/hasoftware/MacPowerManager/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Telegram](https://img.shields.io/badge/Telegram-@hoanganhdev-26A5E4?logo=telegram&logoColor=white)](https://t.me/hoanganhdev)
+
+Phát triển bởi **[HASOFTWARE](https://github.com/hasoftware)**.
 
 App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook Apple Silicon: giới hạn sạc, xả pin, bảo vệ nhiệt, lịch sử pin và thông báo.
 Đây là dự án vì cộng đồng, là một lựa chọn thay thế miễn phí cho các app giới hạn sạc trả phí.
@@ -175,8 +178,23 @@ The UI is available in English and Vietnamese and follows your macOS language; a
 To uninstall, open **System & Helper → Uninstall Helper…** *before* deleting the app (see [Gỡ cài đặt](#gỡ-cài-đặt) for the manual steps).
 Contributors: run `make test` and `make check-l10n` before opening a PR.
 
+## Tác giả
+
+MacPowerManager được phát triển bởi **HASOFTWARE**.
+
+- GitHub: [@hasoftware](https://github.com/hasoftware)
+- Telegram: [@hoanganhdev](https://t.me/hoanganhdev)
+- Facebook: [HASOFTWARE](https://www.facebook.com/100007353125377)
+
+Góp ý, báo lỗi: [GitHub Issues](https://github.com/hasoftware/MacPowerManager/issues). Hợp tác hoặc ủng hộ dự án: liên hệ qua Telegram hoặc Facebook.
+
+*Developed by HASOFTWARE. Contact: Telegram [@hoanganhdev](https://t.me/hoanganhdev), [Facebook](https://www.facebook.com/100007353125377), GitHub [@hasoftware](https://github.com/hasoftware).*
+
 ## Giấy phép
 
+Copyright © 2026 HASOFTWARE.
+
 [GNU General Public License v3.0](LICENSE). Phần mềm được cung cấp "nguyên trạng", không có bất kỳ bảo hành nào.
+Bạn được tự do dùng, sửa đổi và phân phối lại theo GPL-3.0, với điều kiện giữ nguyên thông tin bản quyền và công khai mã nguồn của bản sửa đổi.
 
 MacPowerManager là dự án độc lập, không liên kết với Apple Inc. hay AppHouseKitchen (AlDente).

@@ -109,6 +109,11 @@ enum Links {
     static let repository = URL(string: "https://github.com/hasoftware/MacPowerManager")!
     static let issues = URL(string: "https://github.com/hasoftware/MacPowerManager/issues")!
     static let license = URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!
+
+    // Tác giả: HASOFTWARE
+    static let authorGitHub = URL(string: "https://github.com/hasoftware")!
+    static let authorTelegram = URL(string: "https://t.me/hoanganhdev")!
+    static let authorFacebook = URL(string: "https://www.facebook.com/100007353125377")!
 }
 
 extension View {

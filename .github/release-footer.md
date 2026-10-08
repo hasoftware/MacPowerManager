@@ -25,3 +25,8 @@ Nếu đã lỡ xóa app, xem mục [Gỡ cài đặt](https://github.com/hasoft
 3. Click the menu bar icon → **Install Helper**. Reinstall the helper after every app update (the app will prompt you).
 
 Requires macOS 14+. Charge control: full on Apple Silicon, experimental on Intel T2 MacBooks (BCLM, 50–100%). To uninstall, use **System & Helper → Uninstall Helper…** before deleting the app; if the app is already gone, see [Uninstall](https://github.com/hasoftware/MacPowerManager#gỡ-cài-đặt) in the README.
+
+---
+
+**MacPowerManager** © 2026 [HASOFTWARE](https://github.com/hasoftware) · GPL-3.0
+Telegram [@hoanganhdev](https://t.me/hoanganhdev) · [Facebook](https://www.facebook.com/100007353125377) · [GitHub](https://github.com/hasoftware)

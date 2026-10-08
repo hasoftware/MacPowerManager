@@ -24,9 +24,22 @@ struct AboutPage: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: 420)
+                    Text(verbatim: "© 2026 HASOFTWARE")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Theme.Space.l)
+            }
+
+            Section {
+                ContactRow(name: "GitHub", handle: "@hasoftware", symbol: "person.crop.circle", url: Links.authorGitHub)
+                ContactRow(name: "Telegram", handle: "@hoanganhdev", symbol: "paperplane", url: Links.authorTelegram)
+                ContactRow(name: "Facebook", handle: "HASOFTWARE", symbol: "person.2", url: Links.authorFacebook)
+            } header: {
+                Text("Tác giả")
+            } footer: {
+                Footnote("MacPowerManager được phát triển bởi HASOFTWARE. Liên hệ qua Telegram hoặc Facebook để góp ý, hợp tác hoặc ủng hộ dự án.")
             }
 
             Section {
@@ -48,6 +61,33 @@ struct AboutPage: View {
                 Footnote("Mọi dữ liệu nằm trên máy này; app không gửi gì ra ngoài.")
             }
         }
+    }
+}
+
+/// Kênh liên hệ của tác giả: tên thương hiệu không dịch.
+private struct ContactRow: View {
+    let name: String
+    let handle: String
+    let symbol: String
+    let url: URL
+
+    var body: some View {
+        Button {
+            NSWorkspace.shared.open(url)
+        } label: {
+            HStack {
+                Label { Text(verbatim: name) } icon: { Image(systemName: symbol) }
+                Spacer()
+                Text(verbatim: handle)
+                    .foregroundStyle(.secondary)
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(url.absoluteString)
     }
 }
 
