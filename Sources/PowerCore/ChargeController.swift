@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Thứ tự ưu tiên (cao xuống thấp):
 /// 1. Pin nguy hiểm (≤ `criticalPercent`): luôn sạc và bật adapter, thắng mọi thứ khác.
-/// 2. Xả pin: ngắt adapter tới mục tiêu; nắp đóng thì tạm ngừng xả.
+/// 2. Xả pin: ngắt adapter tới mục tiêu, chỉ khi đang cắm sạc và trong hạn thuê (`dischargeMaxMinutes`);
+///    nắp đóng thì tạm ngừng xả.
 /// 3. Pin nóng: không chặn sạc dưới `thermalFloorPercent`; vẫn áp dụng khi đang sạc đầy một lần.
 /// 4. Tạm dừng sạc thủ công.
 /// 5. Sạc đầy một lần: giới hạn hiệu lực 100%, bỏ qua khoảng sailing.
@@ -40,6 +41,9 @@ public enum ChargeController {
                             effectiveLimit: effectiveLimit, effects: effects)
         }
 
+        // Thời điểm bắt đầu ngắt adapter chỉ có nghĩa khi đang bật xả.
+        if !config.dischargeEnabled { state.dischargeStartedAt = nil }
+
         // An toàn trên hết: pin quá yếu thì luôn cho sạc.
         if percent <= PowerConstants.criticalPercent {
             if config.dischargeEnabled { effects.append(.dischargeFinished) }
@@ -48,11 +52,20 @@ public enum ChargeController {
 
         if config.dischargeEnabled {
             if percent > config.dischargeTarget {
-                // Nắp đóng: không ngắt adapter, tránh vòng lặp ngủ/thức.
-                if input.lidClosed { return decision(charging: false, .clamshellSuspended) }
-                return decision(charging: false, adapter: false, .discharging)
+                if dischargeLeaseExpired(state.dischargeStartedAt, now: input.now) {
+                    // I2: hết hạn thuê (lease) thì bật lại adapter; helper tắt `dischargeEnabled`.
+                    effects.append(.dischargeAborted(.leaseExpired))
+                } else if input.acPresent {
+                    // Nắp đóng: không ngắt adapter, tránh vòng lặp ngủ/thức.
+                    if input.lidClosed { return decision(charging: false, .clamshellSuspended) }
+                    if state.dischargeStartedAt == nil { state.dischargeStartedAt = input.now }
+                    return decision(charging: false, adapter: false, .discharging)
+                }
+                // Không cắm sạc (I2 cần acPresent): không có gì để ngắt, pin tự xả.
+                // Adapter giữ bật và các quy tắc thường (giới hạn, nhiệt, tạm dừng) áp dụng như bình thường.
+            } else {
+                effects.append(.dischargeFinished)
             }
-            effects.append(.dischargeFinished)
         }
 
         if state.thermalPaused && percent >= PowerConstants.thermalFloorPercent {
@@ -85,6 +98,15 @@ public enum ChargeController {
         if !input.acPresent { return .unplugged }
         if config.dischargeEnabled { return .cancelled }
         return nil
+    }
+
+    /// Hạn thuê xả (I2): adapter không được ngắt quá `dischargeMaxMinutes` kể từ lần ngắt đầu tiên.
+    /// Đồng hồ lùi đáng kể (đổi giờ hệ thống) cũng coi là hết hạn để không kéo dài việc ngắt adapter.
+    static func dischargeLeaseExpired(_ startedAt: Date?, now: Date) -> Bool {
+        guard let startedAt else { return false }
+        let elapsed = now.timeIntervalSince(startedAt)
+        guard elapsed.isFinite else { return true }
+        return elapsed >= PowerConstants.dischargeMaxMinutes * 60 || elapsed < -PowerConstants.clockSkewToleranceSeconds
     }
 
     static func clampLimit(_ value: Int) -> Int {

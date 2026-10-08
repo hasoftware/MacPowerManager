@@ -1,7 +1,7 @@
 import XCTest
 @testable import PowerCore
 
-/// Kiểm tra các bất biến an toàn (I1, I3, I5, I13 và quy tắc ngắt adapter) trên toàn bộ không gian đầu vào.
+/// Kiểm tra các bất biến an toàn (I1, I2, I3, I5, I13) trên toàn bộ không gian đầu vào.
 final class InvariantPropertyTests: XCTestCase {
     private struct Violations {
         var count = 0
@@ -30,8 +30,18 @@ final class InvariantPropertyTests: XCTestCase {
         }
         // I13
         v.check(ChargeController.limitRange.contains(d.effectiveLimit), "effectiveLimit: \(ctx())")
-        // Ngắt adapter chỉ khi đang xả.
+        // I2: ngắt adapter chỉ khi đang xả, đang cắm sạc, nắp mở, trên mục tiêu và còn hạn thuê.
         v.check(d.adapterEnabled || d.reason == .discharging, "adapter cut: \(ctx())")
+        if !d.adapterEnabled {
+            let sane = config.sanitized()
+            v.check(input.acPresent, "adapter cut unplugged: \(ctx())")
+            v.check(!input.lidClosed, "adapter cut lid closed: \(ctx())")
+            v.check(sane.dischargeEnabled && input.percent > sane.dischargeTarget, "adapter cut at target: \(ctx())")
+            v.check(after.dischargeStartedAt != nil
+                    && !ChargeController.dischargeLeaseExpired(after.dischargeStartedAt, now: input.now),
+                    "adapter cut without lease: \(ctx())")
+        }
+        if !config.dischargeEnabled { v.check(after.dischargeStartedAt == nil, "lease w/o discharge: \(ctx())") }
         v.check(d.reason != .discharging || (!d.adapterEnabled && !d.chargingEnabled), "discharging: \(ctx())")
         // I1
         if input.percent <= PowerConstants.criticalPercent {
@@ -62,6 +72,11 @@ final class InvariantPropertyTests: XCTestCase {
         // Mỗi hiệu ứng xuất hiện tối đa một lần.
         v.check(Set(d.effects.map { "\($0)" }).count == d.effects.count, "duplicate effects: \(ctx())")
         if d.dischargeFinished { v.check(config.dischargeEnabled, "dischargeFinished w/o discharge: \(ctx())") }
+        let aborted = d.effects.contains { if case .dischargeAborted = $0 { return true } else { return false } }
+        if aborted {
+            v.check(config.dischargeEnabled && d.adapterEnabled, "dischargeAborted: \(ctx())")
+            v.check(!d.dischargeFinished, "aborted and finished: \(ctx())")
+        }
     }
 
     private func configs() -> [PowerConfig] {
@@ -104,7 +119,14 @@ final class InvariantPropertyTests: XCTestCase {
         all.holdingAtLimit = true
         all.thermalPaused = true
         all.chargeToLimitOnce = true
-        return [ControllerState(), holding, hot, once, topUp, all]
+        // Hạn thuê xả: còn hạn, vừa hết hạn, và đồng hồ đã lùi (thời điểm bắt đầu ở tương lai).
+        var leased = ControllerState()
+        leased.dischargeStartedAt = testEpoch
+        var expired = ControllerState()
+        expired.dischargeStartedAt = testEpoch.addingTimeInterval(60 - PowerConstants.dischargeMaxMinutes * 60)
+        var skewed = ControllerState()
+        skewed.dischargeStartedAt = testEpoch.addingTimeInterval(3600)
+        return [ControllerState(), holding, hot, once, topUp, all, leased, expired, skewed]
     }
 
     /// Quét percent 0...100 × nhiệt độ × cấu hình × trạng thái × (cắm sạc, nắp).
@@ -211,6 +233,7 @@ final class InvariantPropertyTests: XCTestCase {
                                          expiresAt: dates.randomElement(using: &rng)!,
                                          bootSessionUUID: ["", "BOOT-A", "BOOT-B"].randomElement(using: &rng)!)
             }
+            if Bool.random(using: &rng) { state.dischargeStartedAt = dates.randomElement(using: &rng)! }
             let before = state
             let input = ControllerInput(now: dates.randomElement(using: &rng)!, percent: ints.randomElement(using: &rng)!,
                                         temperature: Bool.random(using: &rng) ? nil : doubles.randomElement(using: &rng)!,

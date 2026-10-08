@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Apple không có API công khai cho việc này. Phương thức được chọn theo khả năng của từng key
 /// (`CapabilityProbe`), không theo phiên bản macOS:
-/// - Sạc: `CHTE`, nếu không có thì `CH0B` + `CH0C`.
+/// - Sạc: `CHTE`, nếu không có thì `CH0C` (phương thức cũ, tên hiển thị "CH0B/CH0C"). Chỉ ghi `CH0C`:
+///   macOS dùng `CH0B` cho Sạc tối ưu, ghi vào đó là tranh chấp với hệ thống.
 /// - Adapter: `CHIE`, nếu không có thì `CH0I`. `CH0J` chưa rõ giá trị ngắt nên chỉ được xóa khi khôi phục.
 ///
 /// Firmware có thể khóa key (ghi bị từ chối với kIOReturnNotPrivileged dù chạy bằng root). Khi đó key bị đánh dấu
@@ -13,10 +14,12 @@ public final class ChargingControl {
     public enum ChargingKeys: String, Codable, Sendable, CaseIterable {
         case chte = "CHTE", ch0bc = "CH0B/CH0C"
 
+        /// Các key phương thức này ghi (và cần ghi được để chọn). `.ch0bc` giữ tên cũ để tương thích
+        /// nhưng chỉ ghi `CH0C`.
         var keys: [String] {
             switch self {
             case .chte: ["CHTE"]
-            case .ch0bc: ["CH0B", "CH0C"]
+            case .ch0bc: ["CH0C"]
             }
         }
     }
@@ -91,8 +94,8 @@ public final class ChargingControl {
         case .chte:
             return smc.read("CHTE").map { $0.bytes.allSatisfy { $0 == 0 } }
         case .ch0bc:
-            guard let b = smc.read("CH0B"), let c = smc.read("CH0C") else { return nil }
-            return b.bytes.allSatisfy { $0 == 0 } && c.bytes.allSatisfy { $0 == 0 }
+            // Chỉ xét CH0C: CH0B thuộc về Sạc tối ưu của macOS.
+            return smc.read("CH0C").map { $0.bytes.allSatisfy { $0 == 0 } }
         case nil:
             return nil
         }
@@ -117,15 +120,8 @@ public final class ChargingControl {
         case .chte:
             try write("CHTE", enabled ? [0x00, 0x00, 0x00, 0x00] : [0x01, 0x00, 0x00, 0x00])
         case .ch0bc:
-            let v: UInt8 = enabled ? 0x00 : 0x02
-            try write("CH0B", [v])
-            do {
-                try write("CH0C", [v])
-            } catch {
-                // Không để CH0B chặn sạc một mình khi phương thức này không dùng được.
-                if !enabled { try? write("CH0B", [0x00]) }
-                throw error
-            }
+            // 02 như v0.2 (batt ghi 02; Battery-Toolkit ghi 01 vào CH0C, chưa xác minh trên phần cứng).
+            try write("CH0C", [enabled ? 0x00 : 0x02])
         }
     }
 
@@ -177,7 +173,7 @@ public final class ChargingControl {
     // MARK: Khôi phục
 
     /// Các key ngắt adapter đã biết. Khi khôi phục, xóa hết về 0 dù không phải do app ghi.
-    static let allAdapterKeys = ["CHIE", "CH0I", "CH0J"]
+    public static let allAdapterKeys = ["CHIE", "CH0I", "CH0J"]
 
     private func isZeroOrAbsent(_ key: String) -> Bool {
         smc.read(key).map { $0.bytes.allSatisfy { $0 == 0 } } ?? true
@@ -198,8 +194,8 @@ public final class ChargingControl {
 
     /// Đưa mọi thứ về mặc định của macOS: bật adapter (mọi key ngắt adapter) và cho phép sạc.
     /// - extraKeys: các key chặn sạc helper từng ghi (`RuntimeState.lastWritten`), ví dụ `CH0B` khi phiên trước
-    ///   dùng phương thức cũ. `CH0C` luôn được xóa; `CH0B` chỉ xóa khi có trong danh sách này
-    ///   (macOS cũng dùng nó cho Sạc tối ưu).
+    ///   dùng phương thức cũ của v0.2. `CH0C` luôn được xóa; `CH0B` chỉ xóa khi có trong danh sách này
+    ///   (macOS dùng nó cho Sạc tối ưu), kể cả khi đang dùng phương thức `.ch0bc`.
     /// Trả về true nếu đọc lại thấy đúng trạng thái mặc định.
     @discardableResult
     public func restoreDefaults(clearing extraKeys: Set<String> = []) -> Bool {

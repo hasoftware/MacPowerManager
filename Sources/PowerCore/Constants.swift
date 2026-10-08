@@ -24,4 +24,10 @@ public enum PowerConstants {
     /// Dòng sạc vào pin (mA) tối đa vẫn coi là "đã ngừng sạc".
     public static let effectCurrentThresholdmA = 50
     public static let topUpDefaultHours = 24
+    /// Hạn thuê xả (I2): adapter không bị ngắt liên tục quá số phút này; hết hạn thì bật lại và tắt chế độ xả.
+    public static let dischargeMaxMinutes: TimeInterval = 360
+    /// Sau khi ngắt adapter, dòng pin phải âm (pin đang xả) trong khoảng này, nếu không thì hủy xả.
+    public static let adapterCutVerifySeconds: TimeInterval = 60
+    /// Đồng hồ lùi quá mức này so với lúc bắt đầu xả thì coi như hết hạn thuê.
+    public static let clockSkewToleranceSeconds: TimeInterval = 60
 }

@@ -56,6 +56,8 @@ public struct ControllerState: Codable, Equatable, Sendable {
     /// "Sạc tới giới hạn ngay": bỏ qua khoảng sailing một lần, tự tắt khi đạt giới hạn.
     public var chargeToLimitOnce = false
     public var topUp: TopUpState?
+    /// Thời điểm bắt đầu ngắt adapter của lần xả hiện tại (hạn thuê I2). Nil khi không xả.
+    public var dischargeStartedAt: Date?
 
     public init() {}
 
@@ -65,6 +67,7 @@ public struct ControllerState: Codable, Equatable, Sendable {
         holdingAtLimit = (try? c.decodeIfPresent(Bool.self, forKey: .holdingAtLimit)) ?? nil ?? false
         chargeToLimitOnce = (try? c.decodeIfPresent(Bool.self, forKey: .chargeToLimitOnce)) ?? nil ?? false
         topUp = (try? c.decodeIfPresent(TopUpState.self, forKey: .topUp)) ?? nil
+        dischargeStartedAt = (try? c.decodeIfPresent(Date.self, forKey: .dischargeStartedAt)) ?? nil
     }
 }
 
@@ -72,7 +75,8 @@ public struct ControllerInput: Equatable, Sendable {
     public var now: Date
     public var percent: Int
     public var temperature: Double?
-    /// Adapter đang được cắm (về mặt vật lý). Khi chính helper ngắt adapter để xả, coi như vẫn cắm.
+    /// Adapter đang được cắm (về mặt vật lý), xem `ACPresence.resolve`. Khi adapter đang bị ngắt, IOKit không
+    /// phân biệt được rút sạc với bị ngắt nên helper giữ giá trị biết được lần cuối (hạn thuê xả giới hạn việc này).
     public var acPresent: Bool
     public var lidClosed: Bool
     /// `kern.bootsessionuuid` hiện tại.
@@ -93,10 +97,20 @@ public enum TopUpEndReason: String, Codable, Sendable {
     case reachedFull, unplugged, expired, cancelled, newBoot
 }
 
+/// Lý do helper tự hủy xả pin (bật lại adapter và tắt `dischargeEnabled`).
+public enum DischargeAbortReason: String, Codable, Sendable {
+    /// Đã ngắt adapter quá `PowerConstants.dischargeMaxMinutes`.
+    case leaseExpired
+    /// Đã ngắt adapter nhưng pin không xả (dòng không âm) sau `PowerConstants.adapterCutVerifySeconds`.
+    case adapterCutIneffective
+}
+
 /// Hệ quả của một lần quyết định mà helper cần xử lý (lưu cấu hình, gửi sự kiện…).
 public enum ControllerEffect: Codable, Equatable, Sendable {
     /// Đã xả tới mục tiêu: helper tắt `dischargeEnabled`.
     case dischargeFinished
+    /// Hủy xả trước khi tới mục tiêu: adapter đã bật lại, helper tắt `dischargeEnabled`.
+    case dischargeAborted(DischargeAbortReason)
     case topUpEnded(TopUpEndReason)
     /// Đã sạc tới giới hạn sau lệnh "sạc tới giới hạn ngay".
     case chargeToLimitDone

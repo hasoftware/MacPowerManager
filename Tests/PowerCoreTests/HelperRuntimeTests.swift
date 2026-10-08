@@ -146,7 +146,7 @@ final class HelperRuntimeTests: XCTestCase {
 
         try control.setChargingEnabled(false)
         XCTAssertEqual(control.chargingKeys, .ch0bc)
-        XCTAssertEqual(smc.bytes("CH0B"), [0x02])
+        XCTAssertEqual(smc.bytes("CH0B"), [0], "Phương thức cũ không đụng tới CH0B (Sạc tối ưu)")
         XCTAssertEqual(smc.bytes("CH0C"), [0x02])
         XCTAssertEqual(control.isChargingEnabled, false)
 
@@ -176,18 +176,19 @@ final class HelperRuntimeTests: XCTestCase {
         let control = ChargingControl(smc: smc, isAppleSilicon: true)
         XCTAssertThrowsError(try control.setChargingEnabled(false))
         XCTAssertNil(control.chargingKeys)
-        XCTAssertEqual(smc.attempts, ["CHTE", "CH0B"])
+        XCTAssertEqual(smc.attempts, ["CHTE", "CH0C"])
         XCTAssertThrowsError(try control.setChargingEnabled(false))
         XCTAssertEqual(smc.attempts.count, 2, "Không còn phương thức thì không ghi nữa")
     }
 
-    func testLegacyPairLockedHalfwayReleasesFirstKey() {
+    func testLegacyLockedNeverTouchesCH0B() {
         let smc = RuntimeFakeSMC.m2Pro()
         smc.values["CHTE"] = nil
         smc.lockedKeys = ["CH0C"]
         let control = ChargingControl(smc: smc, isAppleSilicon: true)
         XCTAssertThrowsError(try control.setChargingEnabled(false))
-        XCTAssertEqual(smc.bytes("CH0B"), [0], "Không để CH0B chặn sạc một mình")
+        XCTAssertFalse(smc.attempts.contains("CH0B"), "CH0B thuộc về Sạc tối ưu của macOS")
+        XCTAssertEqual(smc.bytes("CH0B"), [0])
         XCTAssertNil(control.chargingKeys)
     }
 

@@ -44,6 +44,14 @@ final class ChargeDaemon {
     /// Thời điểm bắt đầu chặn sạc khi đang cắm sạc (để xác minh lệnh có hiệu lực).
     private var inhibitedSince: Date?
     private var effect: EffectState = .notApplicable
+    /// Cắm sạc về mặt vật lý biết được lần cuối khi adapter còn bật (xem `ACPresence`).
+    private var lastKnownAC: Bool?
+    /// Thời điểm helper ngắt adapter (đọc lại thấy đã ngắt) và kết quả xác minh việc ngắt.
+    private var adapterCutSince: Date?
+    private var adapterCut: AdapterCutCheck = .notApplicable
+    /// Lỗi của chế độ xả (bị từ chối, tự hủy). Giữ tới lần người dùng đổi cấu hình kế tiếp,
+    /// vì `lastError` được ghi lại ở mỗi vòng.
+    private var dischargeError: String?
     private var lastCapabilities: Capabilities
 
     private var auditSuppressedUntil: Date?
@@ -126,7 +134,7 @@ final class ChargeDaemon {
         let temperature = intel?.batteryTemperature ?? control.batteryTemperature ?? battery.temperature
         lastTemperature = temperature
         lidClosed = SystemInfo.lidClosed
-        let acPresent = isACPresent(battery)
+        let acPresent = resolveACPresent(battery)
 
         // Kiểm tra trước khi ghi, để so với giá trị helper ghi ở vòng trước.
         auditForeignWrites(now: now)
@@ -139,6 +147,13 @@ final class ChargeDaemon {
                                     bootSessionUUID: bootSessionUUID)
         let decision = ChargeController.decide(input: input, config: effective, state: &runtime.controller)
         handle(effects: decision.effects, percent: battery.percent)
+        // I1: pin nguy hiểm thì bật adapter bằng mọi key ngắt adapter, kể cả do tiến trình khác ghi (CH0I/CH0J).
+        if decision.reason == .critical, intel == nil {
+            let cleared = control.clearAdapterKeys()
+            if !cleared.isEmpty {
+                log("Pin ở mức nguy hiểm (\(battery.percent)%): xóa key ngắt adapter \(cleared.joined(separator: ", "))")
+            }
+        }
         if decision != lastDecision {
             log("\(battery.percent)% \(temperature.map { String(format: "%.1f°C", $0) } ?? "")"
                 + " -> \(decision.reason.rawValue) (giới hạn \(decision.effectiveLimit)%)")
@@ -156,15 +171,56 @@ final class ChargeDaemon {
                                             reason: decision.reason,
                                             holdsLevelDuringSleep: SleepGate.holdsLevelDuringSleep(config, topUpActive: topUpActive))
             applyToHardware(charging: gated.charging, adapter: gated.adapter)
-            updateSleepAssertion(preventSleep: !gated.adapter)
+            verifyAdapterCut(wanted: !gated.adapter, now: now, battery: battery)
+            updateSleepAssertion(preventSleep: AdapterCutVerifier.holdsSleepAssertion(
+                adapterEnabled: control.isAdapterEnabled, check: adapterCut))
             updateEffect(now: now, acPresent: acPresent, battery: battery)
         }
         finishLoop(now: now)
     }
 
-    /// Cắm sạc về mặt vật lý. Khi chính helper ngắt adapter để xả, IOKit báo không cắm sạc nên vẫn coi là đang cắm.
-    private func isACPresent(_ battery: BatteryInfo) -> Bool {
-        battery.externalConnected || control.isAdapterEnabled == false
+    /// Cắm sạc về mặt vật lý. Adapter bật: theo IOKit. Adapter bị ngắt: IOKit luôn báo không cắm, nên giữ
+    /// giá trị biết được lần cuối (hạn thuê xả giới hạn thời gian dựa vào giá trị này).
+    private func resolveACPresent(_ battery: BatteryInfo) -> Bool {
+        let resolved = ACPresence.resolve(externalConnected: battery.externalConnected,
+                                          adapterEnabled: control.isAdapterEnabled, lastKnown: lastKnownAC)
+        lastKnownAC = resolved.lastKnown
+        return resolved.acPresent
+    }
+
+    /// Sau khi ngắt adapter, dòng pin phải âm trong `adapterCutVerifySeconds`; nếu không thì hủy xả.
+    private func verifyAdapterCut(wanted: Bool, now: Date, battery: BatteryInfo) {
+        if wanted, control.isAdapterEnabled == false {
+            if adapterCutSince == nil { adapterCutSince = now }
+        } else {
+            adapterCutSince = nil
+        }
+        let previous = adapterCut
+        adapterCut = AdapterCutVerifier.evaluate(cutSince: adapterCutSince, now: now,
+                                                 batteryCurrentmA: control.batteryCurrentmA ?? battery.amperage,
+                                                 previous: previous)
+        switch adapterCut {
+        case .verified where previous != .verified:
+            log("Đã xác minh: adapter đã ngắt, pin đang xả")
+        case .ineffective(let detail):
+            log("CẢNH BÁO: ngắt adapter (\(control.adapterKeys?.rawValue ?? "?")) không có hiệu lực: \(detail)")
+            abortDischarge(.adapterCutIneffective, detail: detail, percent: battery.percent)
+        default:
+            break
+        }
+    }
+
+    /// Hủy xả: bật lại adapter, tắt `dischargeEnabled` và ghi lỗi.
+    private func abortDischarge(_ reason: DischargeAbortReason, detail: String, percent: Int) {
+        do {
+            try control.setAdapterEnabled(true)
+        } catch {
+            log("Không bật lại được adapter khi hủy xả: \(error)")
+        }
+        adapterCutSince = nil
+        adapterCut = .notApplicable
+        handle(effects: [.dischargeAborted(reason)], percent: percent)
+        dischargeError = "Đã hủy xả pin: \(detail)"
     }
 
     private func handle(effects: [ControllerEffect], percent: Int) {
@@ -174,6 +230,15 @@ final class ChargeDaemon {
                 guard config.dischargeEnabled else { continue }
                 log("Đã xả xong tới \(percent)%")
                 config.dischargeEnabled = false
+                saveConfig()
+            case .dischargeAborted(let reason):
+                guard config.dischargeEnabled else { continue }
+                log("Hủy xả pin ở \(percent)% (\(reason.rawValue)), bật lại adapter")
+                if reason == .leaseExpired {
+                    dischargeError = "Đã tự dừng xả pin sau \(Int(PowerConstants.dischargeMaxMinutes)) phút"
+                }
+                config.dischargeEnabled = false
+                runtime.controller.dischargeStartedAt = nil
                 saveConfig()
             case .topUpEnded(let reason):
                 log("Kết thúc sạc đầy một lần (\(reason.rawValue)) ở \(percent)%")
@@ -317,9 +382,14 @@ final class ChargeDaemon {
             guard now >= until else { return }
             auditSuppressedUntil = nil
         }
-        guard !runtime.lastWritten.isEmpty else { return }
-        let detected = ForeignWriteDetector.detect(lastWritten: runtime.lastWritten,
+        var detected = ForeignWriteDetector.detect(lastWritten: runtime.lastWritten,
                                                    current: currentBytes(of: runtime.lastWritten.keys), now: now)
+        // Key ngắt adapter helper chưa từng ghi nhưng đang khác 0 khi không xả: tiến trình khác đã ngắt adapter.
+        if intel == nil {
+            detected += ForeignWriteDetector.detectUnownedAdapterCuts(
+                lastWritten: runtime.lastWritten, current: currentBytes(of: ChargingControl.allAdapterKeys),
+                discharging: adapterCutSince != nil, now: now)
+        }
         for write in detected where reportedForeign[write.key] != write.found {
             log("\(write.key) bị tiến trình khác thay đổi: \(write.expected) -> \(write.found)")
             foreignWrites.append(write)
@@ -409,15 +479,26 @@ final class ChargeDaemon {
         log("Chuẩn bị ngủ: adapter bật, sạc \(state.charging ? "bật" : "tắt")")
         applyToHardware(charging: state.charging, adapter: state.adapter)
         updateSleepAssertion(preventSleep: false)
+        adapterCutSince = nil
+        adapterCut = .notApplicable
         saveRuntimeIfChanged()
     }
 
     // MARK: Cấu hình và lệnh
 
-    func update(config newConfig: PowerConfig) {
+    /// Trả về `.unsupported` nếu yêu cầu bật xả bị từ chối (máy không ngắt được adapter); phần còn lại
+    /// của cấu hình vẫn được áp dụng.
+    @discardableResult
+    func update(config newConfig: PowerConfig) -> HelperError? {
         suspendedUntil = nil
+        dischargeError = nil
         let old = config
-        config = newConfig.sanitized()
+        let validated = ControllerCommands.validate(newConfig.sanitized(), adapterSupported: control.adapterKeys != nil)
+        config = validated.config
+        if validated.error != nil {
+            dischargeError = "Máy này không ngắt được adapter nên không xả pin được"
+            log("Từ chối bật xả pin: không có key ngắt adapter")
+        }
         if config.dischargeEnabled && !old.dischargeEnabled {
             runtime.controller.holdingAtLimit = false
         }
@@ -428,16 +509,20 @@ final class ChargeDaemon {
         saveConfig()
         evaluate()
         saveRuntimeIfChanged()
+        return validated.error
     }
 
     /// Xử lý lệnh từ app (`PowerHelperProtocol.perform`). Luôn đánh giá lại ngay và trả kèm trạng thái mới.
     func handle(_ command: HelperCommand) -> HelperResponse {
         switch command {
         case .setConfig(let newConfig):
-            update(config: newConfig)
+            if let error = update(config: newConfig) {
+                return HelperResponse(ok: false, error: error, message: reportedError ?? Self.message(for: error),
+                                      status: status())
+            }
         case .startTopUp(let hours):
             suspendedUntil = nil
-            let acPresent = BatteryReader.read().map { isACPresent($0) } ?? false
+            let acPresent = BatteryReader.read().map { resolveACPresent($0) } ?? false
             if let error = ControllerCommands.startTopUp(state: &runtime.controller, now: Date(), hours: hours,
                                                          acPresent: acPresent, bootSessionUUID: bootSessionUUID) {
                 return HelperResponse(ok: false, error: error, message: Self.message(for: error), status: status())
@@ -465,7 +550,13 @@ final class ChargeDaemon {
             evaluate()
         }
         saveRuntimeIfChanged()
-        return HelperResponse(ok: true, message: lastError, status: status())
+        return HelperResponse(ok: true, message: reportedError, status: status())
+    }
+
+    /// Lỗi báo cho app: lỗi ghi SMC của vòng gần nhất và lỗi của chế độ xả.
+    private var reportedError: String? {
+        let parts = [lastError, dischargeError].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: "; ")
     }
 
     private static func message(for error: HelperError) -> String {
@@ -493,6 +584,8 @@ final class ChargeDaemon {
             suspendedUntil = Date().addingTimeInterval(120)
         }
         inhibitedSince = nil
+        adapterCutSince = nil
+        adapterCut = .notApplicable
         saveRuntimeIfChanged()
     }
 
@@ -516,7 +609,7 @@ final class ChargeDaemon {
                                   adapterEnabled: control.isAdapterEnabled,
                                   reason: lastDecision?.reason ?? .normal,
                                   temperature: lastTemperature,
-                                  lastError: lastError,
+                                  lastError: reportedError,
                                   firmwareLimit: intel?.currentLimit)
         status.capabilities = currentCapabilities
         status.effect = effect

@@ -54,8 +54,17 @@ public enum ControllerCommands {
         return c
     }
 
+    /// Kiểm tra cấu hình mới trước khi áp dụng. Không bật xả được khi máy không có key ngắt adapter
+    /// (`ChargingControl.adapterKeys == nil`): tắt `dischargeEnabled`, áp dụng phần còn lại và báo `.unsupported`.
+    public static func validate(_ config: PowerConfig, adapterSupported: Bool) -> (config: PowerConfig, error: HelperError?) {
+        guard config.dischargeEnabled, !adapterSupported else { return (config, nil) }
+        var c = config
+        c.dischargeEnabled = false
+        return (c, .unsupported)
+    }
+
     /// Cập nhật trạng thái khi người dùng đổi cấu hình (`HelperCommand.setConfig`).
-    /// - Bật tạm dừng hoặc bật xả: hủy sạc đầy một lần.
+    /// - Bật tạm dừng hoặc bật xả: hủy sạc đầy một lần. Bật hoặc tắt xả: bắt đầu lại hạn thuê xả.
     /// - Nâng giới hạn: bỏ giữ mức để sạc tới giới hạn mới (bật lại giới hạn coi như hạ từ 100%).
     /// - Tắt giới hạn (hoặc 100%): bỏ lệnh "sạc tới giới hạn ngay".
     public static func configDidChange(from old: PowerConfig, to new: PowerConfig,
@@ -64,6 +73,8 @@ public enum ControllerCommands {
         var effects: [ControllerEffect] = []
         let pauseStarted = new.pauseCharging && !old.pauseCharging
         let dischargeStarted = new.dischargeEnabled && !old.dischargeEnabled
+        // Mỗi lần bật xả là một hạn thuê mới; tắt xả thì bỏ hạn thuê.
+        if dischargeStarted || !new.dischargeEnabled { state.dischargeStartedAt = nil }
         if (pauseStarted || dischargeStarted) && cancelTopUp(state: &state) {
             effects.append(.topUpEnded(.cancelled))
         }
