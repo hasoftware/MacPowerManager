@@ -6,6 +6,13 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- Sức khỏe pin hiển thị đúng con số "Maximum Capacity" của macOS (System Settings → Battery) thay vì số đo tức thời; số đo thực tế vẫn có ở trang Tình trạng pin.
+- Trạng thái "đang sạc" cập nhật ngay sau khi đổi giới hạn: app đọc dòng điện pin trực tiếp từ SMC thay vì chờ IOKit (trễ tới khoảng 1 phút).
+
+### Cải tiến
+- Chọn ngôn ngữ giao diện ngay trong app (Theo hệ thống / Tiếng Việt / English).
+
 ### Tính năng
 - **Kiểm tra cập nhật**: lúc mở app và mỗi 24 giờ, app đọc bản phát hành mới nhất trên GitHub (yêu cầu mạng duy nhất,
   không kèm dữ liệu cá nhân, tắt được ở trang Giới thiệu). Có bản mới thì hiện banner, thông báo một lần cho mỗi phiên bản

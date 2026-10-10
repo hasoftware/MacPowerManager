@@ -229,7 +229,7 @@ private struct StatsPanel: View {
             }
             GridRow {
                 Stat(title: "Bộ sạc", value: charger(b))
-                Stat(title: "Tình trạng", value: b.map { Format.percent($0.health) } ?? "—")
+                Stat(title: "Tình trạng", value: b.map { Format.percent(model.healthPercent($0)) } ?? "—")
                 Stat(title: "Số lần sạc", value: b.map { "\($0.cycleCount)" } ?? "—")
             }
         }

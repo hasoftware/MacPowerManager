@@ -12,12 +12,27 @@ struct HealthPage: View {
                     HStack(alignment: .top, spacing: Theme.Space.m) {
                         Card(title: .batteryHealthCardTitle, symbol: "heart.text.square", tint: .pink) {
                             HStack(spacing: Theme.Space.xl) {
-                                HealthRing(health: b.health, lineWidth: 12)
-                                    .frame(width: 128, height: 128)
+                                VStack(spacing: 6) {
+                                    HealthRing(health: model.healthPercent(b), lineWidth: 12)
+                                        .frame(width: 128, height: 128)
+                                    Group {
+                                        if model.macOSHealth?.maximumCapacityPercent != nil {
+                                            Text("Theo macOS")
+                                        } else {
+                                            Text("Ước tính")
+                                        }
+                                    }
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                }
                                 VStack(alignment: .leading, spacing: 10) {
                                     CapacityBar(title: "Thiết kế", value: b.designCapacity, max: b.designCapacity, tint: .secondary)
-                                    CapacityBar(title: "Tối đa", value: b.maxCapacity, max: b.designCapacity, tint: .pink)
+                                    CapacityBar(title: "Tối đa (đo thực tế)", value: b.maxCapacity, max: b.designCapacity, tint: .pink)
                                     CapacityBar(title: "Hiện tại", value: b.currentCapacity, max: b.designCapacity, tint: .green)
+                                    Text("Số đo thực tế dao động theo nhiệt độ và mức sạc; macOS dùng giá trị được đánh giá định kỳ.")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }

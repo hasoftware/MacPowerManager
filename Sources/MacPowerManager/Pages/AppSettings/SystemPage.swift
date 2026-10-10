@@ -200,7 +200,7 @@ struct SystemPage: View {
             lines.append("Foreign write: \(write.key) \(write.expected) -> \(write.found) at \(write.at)")
         }
         if let battery = model.battery {
-            lines.append("Battery: \(battery.percent)%, cycles \(battery.cycleCount), health \(Int(battery.health))%, plugged \(battery.externalConnected)")
+            lines.append("Battery: \(battery.percent)%, cycles \(battery.cycleCount), health \(Int(model.healthPercent(battery)))% (measured \(Int(battery.health))%), plugged \(battery.externalConnected)")
         }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)

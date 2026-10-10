@@ -170,6 +170,12 @@ public final class ChargingControl {
         return Int(value)
     }
 
+    /// Điện áp pin (mV) trực tiếp từ SMC `B0AV`.
+    public var batteryVoltagemV: Int? {
+        guard let reading = smc.read("B0AV"), let value = reading.doubleValue else { return nil }
+        return Int(value)
+    }
+
     // MARK: Khôi phục
 
     /// Các key ngắt adapter đã biết. Khi khôi phục, xóa hết về 0 dù không phải do app ghi.

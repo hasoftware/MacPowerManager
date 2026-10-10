@@ -370,7 +370,6 @@
 
 /* MacPowerManager/Pages/Monitor/HealthPage.swift */
 "Thiết kế" = "Design";
-"Tối đa" = "Maximum";
 "Hiện tại" = "Current charge";
 "Số lần sạc" = "Cycle count";
 "/ %@ lần" = "/ %@ cycles";
@@ -535,3 +534,18 @@
 "Xem các bản phát hành" = "View Releases";
 
 "Không kiểm tra lại được: %@" = "Couldn’t check again: %@";
+
+/* Sức khỏe pin theo macOS */
+"Theo macOS" = "Per macOS";
+"Ước tính" = "Estimated";
+"Tối đa (đo thực tế)" = "Maximum (measured)";
+"Số đo thực tế dao động theo nhiệt độ và mức sạc; macOS dùng giá trị được đánh giá định kỳ." = "Measured capacity varies with temperature and charge level; macOS uses a periodically assessed value.";
+
+/* Ngôn ngữ */
+"Ngôn ngữ" = "Language";
+"Theo hệ thống" = "System Default";
+"Tiếng Việt" = "Tiếng Việt";
+"Mở lại app" = "Relaunch";
+"Mở lại app để áp dụng ngôn ngữ mới." = "Relaunch the app to apply the new language.";
+"\"Theo hệ thống\" dùng ngôn ngữ ưu tiên trong Cài đặt hệ thống › Chung › Ngôn ngữ & Khu vực." = "“System Default” follows the preferred language in System Settings › General › Language & Region.";
+"English" = "English";

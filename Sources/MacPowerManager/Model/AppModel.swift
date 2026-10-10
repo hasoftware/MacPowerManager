@@ -7,6 +7,9 @@ import PowerCore
 final class AppModel {
     private(set) var battery: BatteryInfo?
     private(set) var smcTemperature: Double?
+    /// Sức khỏe pin theo macOS (System Settings → Battery), đọc qua system_profiler.
+    private(set) var macOSHealth: MacOSBatteryHealth?
+    @ObservationIgnored private var healthFetchedAt: Date?
     /// Ứng dụng điều khiển sạc khác tìm thấy trên máy.
     private(set) var conflicts: [ConflictFinding] = []
     /// Banner "chạy từ vị trí tạm" (đọc lại định kỳ vì người dùng có thể chọn "Không hỏi lại").
@@ -80,12 +83,45 @@ final class AppModel {
 
     func refresh() {
         guard !isPreview else { return }
-        battery = BatteryReader.read()
+        // IOKit làm mới khoảng mỗi phút; dòng điện từ SMC cho trạng thái sạc tức thì (Apple Silicon).
+        battery = BatteryReader.read().map {
+            Platform.isAppleSilicon
+                ? $0.applyingLiveTelemetry(currentmA: sensors?.batteryCurrentmA, voltagemV: sensors?.batteryVoltagemV)
+                : $0
+        }
         smcTemperature = sensors?.batteryTemperature
+        refreshMacOSHealthIfNeeded()
         guard let battery else { return }
         history.record(battery: battery, temperature: temperature, limit: summary.limit)
         notifier.evaluate(battery: battery, temperature: temperature, helper: helper.status, prefs: prefs,
                           firmwareControlled: isIntelBackend, conflicts: conflicts)
+    }
+
+    /// Sức khỏe pin hiển thị: ưu tiên con số của macOS, sau đó ước tính từ dung lượng danh định, cuối cùng là số đo tức thời.
+    func healthPercent(_ battery: BatteryInfo) -> Double {
+        if let percent = macOSHealth?.maximumCapacityPercent { return Double(percent) }
+        return battery.nominalHealth ?? battery.health
+    }
+
+    /// Đọc lại sức khỏe theo macOS lúc mở app và mỗi 6 giờ (macOS cũng chỉ cập nhật con số này định kỳ).
+    private func refreshMacOSHealthIfNeeded() {
+        if let fetched = healthFetchedAt, Date().timeIntervalSince(fetched) < 6 * 3600 { return }
+        healthFetchedAt = Date()
+        Task {
+            let health = await Task.detached(priority: .utility) { () -> MacOSBatteryHealth? in
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+                process.arguments = ["SPPowerDataType", "-json"]
+                let pipe = Pipe()
+                process.standardOutput = pipe
+                process.standardError = FileHandle.nullDevice
+                guard (try? process.run()) != nil else { return nil }
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+                return MacOSBatteryHealth.parse(data)
+            }.value
+            if let health { macOSHealth = health } else { healthFetchedAt = nil }
+        }
     }
 
     /// Quét ứng dụng điều khiển sạc khác ở luồng nền (đọc file và danh sách tiến trình).

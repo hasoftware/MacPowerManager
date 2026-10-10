@@ -271,7 +271,7 @@ private struct HealthCard: View {
         let b = model.battery ?? BatteryInfo()
         Card(title: .batteryHealthCardTitle, symbol: "heart.text.square", tint: .pink) {
             HStack(spacing: 20) {
-                HealthRing(health: b.health)
+                HealthRing(health: model.healthPercent(b))
                     .frame(width: 96, height: 96)
                 VStack(alignment: .leading, spacing: 8) {
                     InfoRow("Dung lượng tối đa", "\(Format.integer(b.maxCapacity)) mAh")

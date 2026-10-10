@@ -3,6 +3,9 @@ import SwiftUI
 
 /// Thanh menu: kiểu hiển thị, xem trước trực tiếp (sáng/tối), chú giải biểu tượng, mở cùng macOS.
 struct MenuBarPage: View {
+    @State private var language = AppLanguage.current
+    /// Ngôn ngữ đã chọn khi mở trang: đổi khác thì cần mở lại app.
+    @State private var initialLanguage = AppLanguage.current
     @Environment(AppModel.self) private var model
     @State private var login = LoginItemState()
 
@@ -63,6 +66,26 @@ struct MenuBarPage: View {
                 } header: {
                     Text("Ý nghĩa biểu tượng")
                 }
+            }
+
+            Section {
+                Picker("Ngôn ngữ", selection: Binding(get: { language }, set: { newValue in
+                    language = newValue
+                    newValue.apply()
+                })) {
+                    ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
+                }
+                if language != initialLanguage {
+                    LabeledContent {
+                        Button("Mở lại app") { AppLanguage.relaunch() }
+                    } label: {
+                        Text("Mở lại app để áp dụng ngôn ngữ mới.")
+                    }
+                }
+            } header: {
+                Text("Ngôn ngữ")
+            } footer: {
+                Footnote("\"Theo hệ thống\" dùng ngôn ngữ ưu tiên trong Cài đặt hệ thống › Chung › Ngôn ngữ & Khu vực.")
             }
 
             Section {

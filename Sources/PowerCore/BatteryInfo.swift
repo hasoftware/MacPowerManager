@@ -11,7 +11,8 @@ public struct BatteryInfo: Codable, Equatable, Sendable {
     public var cycleCount = 0
     public var designCycleCount = 1000
     public var designCapacity = 0       // mAh
-    public var maxCapacity = 0          // mAh, dung lượng thực tế khi đầy
+    public var maxCapacity = 0          // mAh, dung lượng thực tế khi đầy (đo tức thời, dao động theo nhiệt độ)
+    public var nominalCapacity = 0      // mAh, dung lượng danh định (NominalChargeCapacity), ổn định hơn
     public var currentCapacity = 0      // mAh
     public var voltage = 0              // mV
     public var amperage = 0             // mA, âm khi xả
@@ -24,6 +25,26 @@ public struct BatteryInfo: Codable, Equatable, Sendable {
     public var serial: String?
 
     public init() {}
+
+    /// Sức khỏe ước tính từ dung lượng danh định (gần với con số macOS hơn số đo tức thời).
+    public var nominalHealth: Double? {
+        guard designCapacity > 0, nominalCapacity > 0 else { return nil }
+        return min(Double(nominalCapacity) / Double(designCapacity) * 100, 100)
+    }
+
+    /// Dòng điện và điện áp trực tiếp từ SMC (`B0AC`, `B0AV`): IOKit chỉ làm mới khoảng mỗi phút nên trạng thái
+    /// "đang sạc" có thể trễ sau khi helper bật/tắt sạc. Đang cắm sạc và dòng vào pin > 50 mA thì là đang sạc.
+    public func applyingLiveTelemetry(currentmA: Int?, voltagemV: Int?) -> BatteryInfo {
+        var info = self
+        if let currentmA {
+            info.amperage = currentmA
+            info.isCharging = externalConnected && currentmA > PowerConstants.effectCurrentThresholdmA
+        }
+        if let voltagemV, (5_000...30_000).contains(voltagemV) {
+            info.voltage = voltagemV
+        }
+        return info
+    }
 
     /// Sức khỏe pin: dung lượng thực tế so với thiết kế.
     public var health: Double {
@@ -70,6 +91,7 @@ public enum BatteryReader {
         info.cycleCount = int("CycleCount") ?? 0
         info.designCycleCount = int("DesignCycleCount9C") ?? 1000
         info.designCapacity = int("DesignCapacity") ?? 0
+        info.nominalCapacity = int("NominalChargeCapacity") ?? 0
         let capacityInMAh = maxCap > 100
         info.maxCapacity = int("AppleRawMaxCapacity") ?? int("NominalChargeCapacity") ?? (capacityInMAh ? maxCap : 0)
         info.currentCapacity = int("AppleRawCurrentCapacity") ?? (capacityInMAh ? current : 0)
