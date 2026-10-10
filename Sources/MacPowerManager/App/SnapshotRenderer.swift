@@ -147,7 +147,13 @@ private struct Scenario {
         list.append(Scenario(name: "whatsnew-none", size: WhatsNewView.size) {
             AnyView(WhatsNewView().environment(Mock.model(.holding, update: .upToDate)))
         })
-        page("history", .history, Mock.model(.holding), size: CGSize(width: 860, height: 900))
+        page("history", .history, Mock.model(.holding), size: CGSize(width: 860, height: 1180))
+        for range in [HistoryPage.Range.hours6, .day, .week, .month] {
+            let model = Mock.model(.holding, historyHours: 30 * 24)
+            list.append(Scenario(name: "page-history-\(range.rawValue)", size: CGSize(width: 860, height: 1180)) {
+                AnyView(HistoryPage(fixedRange: range).environment(model))
+            })
+        }
         page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 760))
 
         list.append(Scenario(name: "glyphs", size: CGSize(width: 600, height: 1180), backend: .imageRenderer, scale: 2) {
@@ -256,7 +262,7 @@ private enum Mock {
                   size: 184),
         ])
 
-    static func model(_ kind: Kind, update: UpdateChecker.State = .idle) -> AppModel {
+    static func model(_ kind: Kind, update: UpdateChecker.State = .idle, historyHours: Double = 26) -> AppModel {
         var b = BatteryInfo()
         b.designCapacity = 8694
         b.maxCapacity = 7822
@@ -363,46 +369,66 @@ private enum Mock {
 
         b.currentCapacity = b.maxCapacity * b.percent / 100
         return AppModel(preview: b, status: install == .outdated("?") ? nil : status, installState: install,
-                        samples: history(endPercent: b.percent, limit: 80), conflicts: conflicts,
+                        samples: history(endPercent: b.percent, limit: 80, hours: historyHours), conflicts: conflicts,
                         temperature: temperature, prefs: prefs, needsMove: kind == .noHelper, update: update)
     }
 
-    /// 26 giờ lịch sử: dùng pin buổi sáng, sạc tới giới hạn rồi giữ, có một khoảng máy ngủ.
-    static func history(endPercent: Int, limit: Int) -> [HistorySample] {
+    /// Lịch sử giả mỗi phút (mặc định 26 giờ) với các khoảng trống như máy thật: buổi đêm máy ngủ và chỉ thức dậy
+    /// chốc lát mỗi 15 phút (Power Nap), một khoảng dài không có mẫu (máy tắt), vài lần ngủ 15 phút ban ngày và một
+    /// lần gập máy 7 phút. Ngày thứ 10 trước đó máy tắt cả ngày (để xem 30 ngày).
+    static func history(endPercent: Int, limit: Int, hours: Double = 26) -> [HistorySample] {
         let now = Date()
         var samples: [HistorySample] = []
-        let step: TimeInterval = 120
-        let count = Int(26 * 3600 / step)
+        let step: TimeInterval = 60
+        let count = Int(hours * 3600 / step)
         var percent = 62.0
+        // Các khoảng (giờ trong ngày giả, 0 = 24 giờ trước lúc chụp) không có mẫu.
+        let naps: [ClosedRange<Double>] = [12.0...12.25, 13.5...13.75, 15.0...15.12, 18.2...18.45, 21.0...21.25, 23.3...23.55]
         for i in 0..<count {
             let t = now.addingTimeInterval(-Double(count - i) * step)
-            let hour = Double(i) * step / 3600
-            // Máy ngủ từ giờ thứ 6 tới 8: không có mẫu.
-            if hour > 6 && hour < 8 { continue }
+            let before = Double(count - i) * step / 3600
+            let day = Int(before / 24)
+            let hour = 24 - before.truncatingRemainder(dividingBy: 24)
+            let vary = 1 + 0.3 * sin(Double(day) * 1.7)
             let plugged: Bool
-            let charging: Bool
+            var charging = false
             var power: Double
+            var record = true
             switch hour {
-            case ..<6:
-                plugged = false; charging = false
-                percent -= 0.18; power = -9 - sin(hour) * 2
-            case 8..<11:
+            case ..<1.5:
+                plugged = false
+                percent -= 0.09 * vary; power = -9 - sin(hour) * 2
+            case ..<3.5:
+                // Máy ngủ, Power Nap đánh thức mỗi 15 phút: chỉ có một mẫu mỗi lần thức.
+                plugged = false
+                percent -= 0.01; power = -0.6
+                record = i % 15 == 0
+            case ..<8.5:
+                // Máy ngủ sâu (hoặc tắt): không có mẫu.
+                plugged = false
+                percent -= 0.008; power = -0.4
+                record = false
+            case ..<11:
                 plugged = true
                 charging = percent < Double(limit)
-                if charging { percent += 0.55; power = 38 } else { power = 0 }
-            case 11..<16:
-                plugged = false; charging = false
-                percent -= 0.22; power = -11 - cos(hour) * 3
+                if charging { percent += 0.28; power = 38 } else { power = 0 }
+            case ..<16:
+                plugged = false
+                percent -= 0.11 * vary; power = -11 - cos(hour) * 3
             default:
                 plugged = true
                 charging = percent < Double(limit)
-                if charging { percent += 0.5; power = 34 } else { power = 0.1 }
+                if charging { percent += 0.25; power = 34 } else { power = 0.1 }
             }
+            if naps.contains(where: { $0.contains(hour) }) { record = false }
+            if day == 9 { record = false }
             percent = min(max(percent, 5), 100)
+            guard record else { continue }
             let temperature = 30 + (charging ? 5 : 1.5) + sin(hour / 2) * 1.2
             samples.append(HistorySample(date: t, percent: Int(percent.rounded()), temperature: temperature,
                                          batteryPower: power, pluggedIn: plugged, charging: charging,
-                                         systemLoad: 12 + abs(sin(hour)) * 9, powerIn: plugged ? 14 + (charging ? 34 : 0) : nil,
+                                         systemLoad: power > -1 && !plugged ? 2.5 : 12 + abs(sin(hour)) * 9,
+                                         powerIn: plugged ? 14 + (charging ? 34 : 0) : nil,
                                          limit: limit))
         }
         if let last = samples.indices.last {

@@ -53,7 +53,7 @@ struct HeatPage: View {
                     LabeledContent("Trạng thái") {
                         Text(heatStatus).foregroundStyle(model.summary.state == .heat ? .orange : .secondary)
                     }
-                    Sparkline(points: model.history.samples(within: 3600).points { $0.temperature }, tint: .orange,
+                    Sparkline(series: model.history.samples(within: 3600).series { $0.temperature }, tint: .orange,
                               threshold: config.thermalProtectionEnabled ? config.thermalPauseAbove : nil)
                         .frame(height: 56)
                         .padding(.vertical, 4)

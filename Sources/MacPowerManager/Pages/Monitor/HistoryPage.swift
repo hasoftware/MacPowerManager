@@ -6,11 +6,13 @@ import UniformTypeIdentifiers
 
 struct HistoryPage: View {
     @Environment(AppModel.self) private var model
-    @AppStorage("ui.history.range") private var range: Range = .day
+    @AppStorage("ui.history.range") private var storedRange: Range = .day
+    /// Khoảng cố định (chụp giao diện), không đọc/ghi lựa chọn đã lưu.
+    var fixedRange: Range?
     @State private var confirmClear = false
 
     enum Range: String, CaseIterable, Identifiable {
-        case hour, hours6, day, week
+        case hour, hours6, day, week, month
         var id: Self { self }
         var title: LocalizedStringKey {
             switch self {
@@ -18,6 +20,7 @@ struct HistoryPage: View {
             case .hours6: "6 giờ"
             case .day: "24 giờ"
             case .week: "7 ngày"
+            case .month: "30 ngày"
             }
         }
         var seconds: TimeInterval {
@@ -26,21 +29,24 @@ struct HistoryPage: View {
             case .hours6: 6 * 3600
             case .day: 24 * 3600
             case .week: 7 * 24 * 3600
+            case .month: 30 * 24 * 3600
             }
         }
     }
+
+    private var range: Range { fixedRange ?? storedRange }
 
     var body: some View {
         let samples = model.history.samples(within: range.seconds)
         MonitorPage { _ in
             VStack(alignment: .leading, spacing: Theme.Space.m) {
                 HStack {
-                    Picker("Khoảng thời gian", selection: $range) {
+                    Picker("Khoảng thời gian", selection: Binding(get: { range }, set: { storedRange = $0 })) {
                         ForEach(Range.allCases) { Text($0.title).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(maxWidth: 320)
+                    .frame(maxWidth: 400)
                     Spacer()
                     Button {
                         exportCSV()
@@ -62,6 +68,12 @@ struct HistoryPage: View {
                         .frame(maxWidth: .infinity, minHeight: 320)
                         .cardSurface()
                 } else {
+                    let level = samples.series { Double($0.percent) }
+                    if level.hasBridges {
+                        ChartGapLegend(showsBand: !level.gaps.isEmpty)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+
                     Card(title: "Mức pin", symbol: "battery.75percent", tint: .green) {
                         BatteryLevelChart(samples: samples, limit: model.summary.limit, tint: .green, range: range.seconds)
                     }
@@ -72,6 +84,11 @@ struct HistoryPage: View {
                     }
                     .frame(height: 200)
 
+                    Card(title: "Hệ thống tiêu thụ (W)", symbol: "laptopcomputer", tint: .blue) {
+                        SystemLoadChart(samples: samples, range: range.seconds)
+                    }
+                    .frame(height: 200)
+
                     Card(title: "Nhiệt độ pin (°C)", symbol: "thermometer.medium", tint: .orange) {
                         TemperatureChart(samples: samples, range: range.seconds,
                                          pause: model.activeConfig.flatMap { $0.thermalProtectionEnabled ? $0.thermalPauseAbove : nil },
@@ -79,7 +96,7 @@ struct HistoryPage: View {
                     }
                     .frame(height: 200)
 
-                    Footnote("Mẫu được ghi mỗi phút khi app đang chạy và giữ trong 7 ngày. Khoảng trống là lúc máy ngủ hoặc app tắt.")
+                    Footnote("Helper ghi một mẫu mỗi phút, kể cả khi app đã tắt; khi chưa cài helper, app tự ghi lúc đang chạy. Lịch sử được giữ 30 ngày. Nét đứt nối qua lúc máy ngủ hoặc tắt; khi xem nhiều ngày, mỗi điểm là trung bình của một khoảng thời gian.")
                 }
             }
         }
@@ -104,28 +121,21 @@ private struct SignedPowerChart: View {
     let range: TimeInterval
 
     var body: some View {
-        let points = samples.points { $0.batteryPower }
-        // Vùng xanh phía trên 0 (đang nạp), cam phía dưới (pin đang cấp điện), mỗi đoạn liên tục một chuỗi riêng.
-        Chart {
-            ForEach(points) { p in
-                AreaMark(x: .value("Thời gian", p.date), yStart: .value("0", 0), yEnd: .value("W", max(p.value, 0)),
-                         series: .value("đoạn", "+\(p.segment)"))
-                    .foregroundStyle(Color.green.opacity(0.45))
-                AreaMark(x: .value("Thời gian", p.date), yStart: .value("0", min(p.value, 0)), yEnd: .value("W", 0),
-                         series: .value("đoạn", "-\(p.segment)"))
-                    .foregroundStyle(Color.orange.opacity(0.45))
-                LineMark(x: .value("Thời gian", p.date), y: .value("W", p.value), series: .value("đoạn", "l\(p.segment)"))
-                    .foregroundStyle(Color.secondary.opacity(0.8))
-                    .lineStyle(StrokeStyle(lineWidth: 1))
-            }
-            RuleMark(y: .value("0", 0))
-                .foregroundStyle(Color.secondary.opacity(0.5))
-                .lineStyle(StrokeStyle(lineWidth: 0.5))
+        // Vùng xanh phía trên 0 (đang nạp), cam phía dưới (pin đang cấp điện).
+        HistoryChart(series: samples.series { $0.batteryPower }, tint: .green, fill: .signed,
+                     lineColor: .secondary.opacity(0.8), lineWidth: 1, range: range, includesZero: true) {
+            Format.watts($0, signed: true)
         }
-        .chartXScale(domain: Date().addingTimeInterval(-range)...Date())
-        .chartXAxis { ChartAxis.timeMarks(range: range) }
-        .chartYAxis { AxisMarks(position: .trailing) }
-        .environment(\.locale, Format.locale)
+    }
+}
+
+private struct SystemLoadChart: View {
+    let samples: [HistorySample]
+    let range: TimeInterval
+
+    var body: some View {
+        HistoryChart(series: samples.series { $0.systemLoad }, tint: .blue, fill: .gradient(baseline: 0),
+                     lineWidth: 1.5, range: range, includesZero: true) { Format.watts($0) }
     }
 }
 
@@ -136,34 +146,16 @@ private struct TemperatureChart: View {
     var resume: Double?
 
     var body: some View {
-        let points = samples.points { $0.temperature }
-        Chart {
-            ForEach(points) { p in
-                LineMark(x: .value("Thời gian", p.date), y: .value("°C", p.value), series: .value("đoạn", p.segment))
-                    .foregroundStyle(.orange)
-                    .interpolationMethod(.monotone)
-            }
-            if let pause {
-                RuleMark(y: .value("Dừng sạc", pause))
-                    .foregroundStyle(.red.opacity(0.6))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .annotation(position: .top, alignment: .trailing) {
-                        Text("Dừng sạc \(Int(pause))°C").font(.caption2).foregroundStyle(.secondary)
-                    }
-            }
-            if let resume {
-                RuleMark(y: .value("Sạc lại", resume))
-                    .foregroundStyle(.blue.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .annotation(position: .bottom, alignment: .trailing) {
-                        Text("Sạc lại \(Int(resume))°C").font(.caption2).foregroundStyle(.secondary)
-                    }
-            }
+        var thresholds: [ChartThreshold] = []
+        if let pause {
+            thresholds.append(ChartThreshold(value: pause, label: String(localized: "Dừng sạc \(Int(pause))°C"),
+                                             color: .red.opacity(0.6)))
         }
-        .chartXScale(domain: Date().addingTimeInterval(-range)...Date())
-        .chartXAxis { ChartAxis.timeMarks(range: range) }
-        .chartYScale(domain: .automatic(includesZero: false))
-        .chartYAxis { AxisMarks(position: .trailing) }
-        .environment(\.locale, Format.locale)
+        if let resume {
+            thresholds.append(ChartThreshold(value: resume, label: String(localized: "Sạc lại \(Int(resume))°C"),
+                                             color: .blue.opacity(0.5), above: false))
+        }
+        return HistoryChart(series: samples.series { $0.temperature }, tint: .orange, range: range,
+                            thresholds: thresholds) { Format.temperature($0) }
     }
 }

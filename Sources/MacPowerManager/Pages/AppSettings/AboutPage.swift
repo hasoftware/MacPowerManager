@@ -70,7 +70,7 @@ struct AboutPage: View {
 
             Section {
                 LabeledContent("Lịch sử pin", value: String(localized: "\(model.history.samples.count) mẫu"))
-                LabeledContent("Giữ trong", value: String(localized: "7 ngày"))
+                LabeledContent("Giữ trong", value: String(localized: "30 ngày"))
             } header: {
                 Text("Dữ liệu trên máy")
             } footer: {

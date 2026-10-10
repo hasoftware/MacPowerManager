@@ -2,50 +2,138 @@ import Foundation
 import Observation
 import PowerCore
 
-/// Lưu lịch sử pin dạng JSON Lines, giữ tối đa 7 ngày.
+/// Lịch sử pin hiển thị trong app: gộp lịch sử của helper (root, ghi mỗi phút kể cả khi app tắt hoặc máy chỉ thức
+/// dậy chốc lát) với lịch sử app tự ghi (khi chưa có helper), giữ tối đa `HistoryLog.retention` (30 ngày).
 @MainActor
 @Observable
 final class HistoryStore {
+    /// Mẫu đã gộp từ hai nguồn, sắp xếp theo thời gian.
     private(set) var samples: [HistorySample] = []
 
-    @ObservationIgnored private let fileURL: URL?
-    @ObservationIgnored private let interval: TimeInterval = 60
-    @ObservationIgnored private let retention: TimeInterval = 7 * 24 * 3600
+    /// Lịch sử của helper được coi là "đang ghi" nếu mẫu cuối mới hơn mức này; khi đó app không tự ghi nữa.
+    static let helperFreshness: TimeInterval = 3 * 60
+    /// Chu kỳ đọc phần mới của file lịch sử helper.
+    static let helperPollInterval: TimeInterval = 60
 
-    init() {
+    @ObservationIgnored private var appSamples: [HistorySample] = []
+    @ObservationIgnored private var helperSamples: [HistorySample] = []
+    @ObservationIgnored private let fileURL: URL?
+    @ObservationIgnored private let helperURL: URL?
+    @ObservationIgnored private let defaults: UserDefaults?
+    @ObservationIgnored private var helperPosition = HistoryFileTail.Position()
+    @ObservationIgnored private var helperReadAt: Date?
+    @ObservationIgnored private var helperReading = false
+    /// Mẫu trước thời điểm này bị ẩn (người dùng đã xóa lịch sử; file của helper thuộc root nên app không xóa được).
+    @ObservationIgnored private var clearedAt: Date?
+
+    private static let clearedAtKey = "history.clearedAt"
+
+    convenience init() {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("MacPowerManager", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        fileURL = dir.appendingPathComponent("history.jsonl")
-        load()
+        self.init(fileURL: dir.appendingPathComponent("history.jsonl"), helperURL: PowerConstants.helperHistoryURL,
+                  defaults: .standard)
+        Task { await refreshHelper() }
+    }
+
+    /// `fileURL`: lịch sử app tự ghi; `helperURL`: lịch sử của helper (chỉ đọc).
+    init(fileURL: URL?, helperURL: URL?, defaults: UserDefaults?, now: Date = Date()) {
+        self.fileURL = fileURL
+        self.helperURL = helperURL
+        self.defaults = defaults
+        clearedAt = defaults?.object(forKey: Self.clearedAtKey) as? Date
+        loadAppFile(now: now)
+        rebuild(now: now)
     }
 
     /// Dữ liệu cố định, không đọc/ghi file (xem trước, snapshot).
     init(samples: [HistorySample]) {
         fileURL = nil
+        helperURL = nil
+        defaults = nil
+        appSamples = samples
         self.samples = samples
     }
 
-    func record(battery: BatteryInfo, temperature: Double?, limit: Int?) {
-        let now = Date()
-        if let last = samples.last, now.timeIntervalSince(last.date) < interval { return }
+    /// Helper đang ghi lịch sử (mẫu cuối chưa quá `helperFreshness`).
+    func helperIsFresh(now: Date = Date()) -> Bool {
+        guard let last = helperSamples.last else { return false }
+        return now.timeIntervalSince(last.date) < Self.helperFreshness
+    }
+
+    /// Gọi định kỳ (mỗi lần đọc pin). Đọc phần mới của lịch sử helper mỗi `helperPollInterval`; app chỉ tự ghi mẫu
+    /// khi helper không ghi (chưa cài, hoặc helper cũ chưa có lịch sử) để không trùng.
+    func record(battery: BatteryInfo, temperature: Double?, limit: Int?, now: Date = Date()) {
+        if helperURL != nil, !helperReading,
+           helperReadAt.map({ now.timeIntervalSince($0) >= Self.helperPollInterval }) ?? true {
+            helperReadAt = now
+            Task { await refreshHelper(now: now) }
+        }
+        if helperIsFresh(now: now) { return }
+        if let last = appSamples.last, now.timeIntervalSince(last.date) < HistoryLog.sampleInterval { return }
         let sample = HistorySample(date: now, percent: battery.percent, temperature: temperature,
                                    batteryPower: battery.batteryPower, pluggedIn: battery.externalConnected,
                                    charging: battery.isCharging, systemLoad: battery.systemLoad,
                                    powerIn: battery.externalConnected ? battery.systemPowerIn : nil, limit: limit)
-        samples.append(sample)
+        appSamples.append(sample)
         append(sample)
+        if helperSamples.isEmpty, samples.last.map({ $0.date < sample.date }) ?? true {
+            samples.append(sample)
+        } else {
+            rebuild(now: now)
+        }
+    }
+
+    /// Đọc phần mới của file lịch sử helper (ở luồng nền); đọc lại từ đầu nếu file bị thu gọn hoặc thay thế.
+    func refreshHelper(now: Date = Date()) async {
+        guard let helperURL, !helperReading else { return }
+        helperReading = true
+        defer { helperReading = false }
+        helperReadAt = now
+        let position = helperPosition
+        let cutoff = now.addingTimeInterval(-HistoryLog.retention)
+        let chunk = await Task.detached(priority: .utility) {
+            HistoryFileTail.read(helperURL, from: position, cutoff: cutoff)
+        }.value
+        guard let chunk else {
+            // Không có file (chưa cài helper hoặc helper cũ): không có lịch sử từ helper.
+            helperPosition = .init()
+            if !helperSamples.isEmpty {
+                helperSamples = []
+                rebuild(now: now)
+            }
+            return
+        }
+        helperPosition = chunk.position
+        guard chunk.reset || !chunk.samples.isEmpty else { return }
+        if chunk.reset {
+            helperSamples = chunk.samples
+        } else {
+            let needsSort = zip(helperSamples.last.map { [$0] } ?? [], chunk.samples.prefix(1)).contains { $0.date > $1.date }
+            helperSamples.append(contentsOf: chunk.samples)
+            if needsSort { helperSamples.sort { $0.date < $1.date } }
+        }
+        rebuild(now: now)
     }
 
     func samples(within range: TimeInterval, now: Date = Date()) -> [HistorySample] {
         let cutoff = now.addingTimeInterval(-range)
-        guard let start = samples.firstIndex(where: { $0.date >= cutoff }) else { return [] }
-        return Array(samples[start...])
+        var lo = 0, hi = samples.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if samples[mid].date < cutoff { lo = mid + 1 } else { hi = mid }
+        }
+        return Array(samples[lo...])
     }
 
-    func clear() {
-        samples = []
+    /// Xóa lịch sử app tự ghi và ẩn lịch sử helper tới thời điểm này.
+    func clear(now: Date = Date()) {
+        appSamples = []
         if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
+        clearedAt = now
+        defaults?.set(now, forKey: Self.clearedAtKey)
+        rebuild(now: now)
     }
 
     /// CSV để người dùng tự phân tích (dấu chấm thập phân, tên cột tiếng Anh cho dễ xử lý bằng công cụ).
@@ -61,66 +149,69 @@ final class HistoryStore {
         return lines.joined(separator: "\n") + "\n"
     }
 
-    private func load() {
-        guard let fileURL, let text = try? String(contentsOf: fileURL, encoding: .utf8) else { return }
-        let decoder = JSONDecoder()
-        let cutoff = Date().addingTimeInterval(-retention)
-        samples = text.split(separator: "\n")
-            .compactMap { try? decoder.decode(HistorySample.self, from: Data($0.utf8)) }
-            .filter { $0.date >= cutoff }
-        // Ghi lại file để bỏ các mẫu đã quá hạn.
-        let lines = samples.compactMap { try? JSONEncoder().encode($0) }
-            .compactMap { String(data: $0, encoding: .utf8) }
-        try? (lines.joined(separator: "\n") + (lines.isEmpty ? "" : "\n")).write(to: fileURL, atomically: true, encoding: .utf8)
+    private func rebuild(now: Date) {
+        let retained = now.addingTimeInterval(-HistoryLog.retention)
+        if let first = helperSamples.first, first.date < retained { helperSamples.removeAll { $0.date < retained } }
+        if let first = appSamples.first, first.date < retained { appSamples.removeAll { $0.date < retained } }
+        let cutoff = max(retained, clearedAt ?? .distantPast)
+        let helper = helperSamples.filter { $0.date >= cutoff }
+        let app = appSamples.filter { $0.date >= cutoff }
+        samples = helper.isEmpty ? app : HistoryLog.merge(helper: helper, app: app)
+    }
+
+    private func loadAppFile(now: Date) {
+        guard let fileURL, let data = try? Data(contentsOf: fileURL) else { return }
+        appSamples = HistoryLog.decode(data, cutoff: now.addingTimeInterval(-HistoryLog.retention))
+        // Ghi lại file để bỏ các mẫu đã quá hạn hoặc dòng hỏng.
+        var output = Data()
+        for sample in appSamples { if let line = HistoryLog.line(for: sample) { output.append(line) } }
+        if output.count < data.count { try? output.write(to: fileURL, options: .atomic) }
     }
 
     private func append(_ sample: HistorySample) {
-        guard let fileURL, let data = try? JSONEncoder().encode(sample) else { return }
+        guard let fileURL, let line = HistoryLog.line(for: sample) else { return }
         if let handle = try? FileHandle(forWritingTo: fileURL) {
             defer { try? handle.close() }
             _ = try? handle.seekToEnd()
-            try? handle.write(contentsOf: data + Data("\n".utf8))
+            try? handle.write(contentsOf: line)
         } else {
-            try? (data + Data("\n".utf8)).write(to: fileURL)
+            try? line.write(to: fileURL)
         }
     }
 }
 
-/// Một điểm trên biểu đồ. `segment` tăng mỗi khi có khoảng trống (máy ngủ, app tắt) để không nối đường qua đó.
-struct ChartPoint: Identifiable, Equatable {
-    var date: Date
-    var value: Double
-    var segment: Int
-    var id: Date { date }
-}
+/// Đọc dần một file JSON Lines đang được ghi thêm (thuần, chạy được ở luồng nền).
+enum HistoryFileTail {
+    /// Vị trí đã đọc tới: số byte và mã file (inode) để nhận ra file bị thay thế khi helper thu gọn lịch sử.
+    struct Position: Equatable, Sendable {
+        var offset: UInt64 = 0
+        var fileID: UInt64?
+    }
 
-extension Array where Element == HistorySample {
-    /// Trích một chuỗi giá trị, chia đoạn tại các khoảng trống và gộp còn khoảng `maxPoints` điểm.
-    func points(maxPoints: Int = 300, gap: TimeInterval = 5 * 60, _ value: (HistorySample) -> Double?) -> [ChartPoint] {
-        var raw: [ChartPoint] = []
-        var segment = 0
-        var lastDate: Date?
-        for s in self {
-            guard let v = value(s) else { continue }
-            if let lastDate, s.date.timeIntervalSince(lastDate) > gap { segment += 1 }
-            lastDate = s.date
-            raw.append(ChartPoint(date: s.date, value: v, segment: segment))
+    struct Chunk: Sendable {
+        var samples: [HistorySample]
+        /// `true`: đọc lại từ đầu, `samples` thay cho mọi mẫu trước đó.
+        var reset: Bool
+        var position: Position
+    }
+
+    /// Đọc các dòng hoàn chỉnh mới từ `position`; đọc lại từ đầu nếu file nhỏ đi hoặc là file khác. `nil` nếu không đọc được.
+    static func read(_ url: URL, from position: Position, cutoff: Date?) -> Chunk? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
+        let fileID = (attributes[.systemFileNumber] as? NSNumber)?.uint64Value
+        let reset = position.offset == 0 || size < position.offset || (position.fileID != nil && position.fileID != fileID)
+        let start = reset ? 0 : position.offset
+        guard (try? handle.seek(toOffset: start)) != nil else { return nil }
+        let data = (try? handle.readToEnd()) ?? Data()
+        // Chỉ nhận tới ký tự xuống dòng cuối cùng: dòng cuối có thể đang được ghi dở.
+        guard let newline = data.lastIndex(of: 0x0A) else {
+            return Chunk(samples: [], reset: reset, position: Position(offset: start, fileID: fileID))
         }
-        guard raw.count > maxPoints else { return raw }
-        // Gộp các điểm liên tiếp trong cùng một đoạn (lấy trung bình).
-        let bucket = Int((Double(raw.count) / Double(maxPoints)).rounded(.up))
-        var result: [ChartPoint] = []
-        var i = 0
-        while i < raw.count {
-            var j = i
-            var sum = 0.0
-            while j < raw.count && j < i + bucket && raw[j].segment == raw[i].segment {
-                sum += raw[j].value
-                j += 1
-            }
-            result.append(ChartPoint(date: raw[i].date, value: sum / Double(j - i), segment: raw[i].segment))
-            i = j
-        }
-        return result
+        let complete = data[data.startIndex...newline]
+        return Chunk(samples: HistoryLog.decode(Data(complete), cutoff: cutoff), reset: reset,
+                     position: Position(offset: start + UInt64(complete.count), fileID: fileID))
     }
 }

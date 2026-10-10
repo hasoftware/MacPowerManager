@@ -158,7 +158,7 @@ struct StatCard: View {
     let value: String
     var unit: String?
     var caption: String?
-    var points: [ChartPoint]
+    var series: ChartSeries
     var threshold: Double?
     var signed = false
 
@@ -175,7 +175,7 @@ struct StatCard: View {
                             .lineLimit(1)
                     }
                 }
-                Sparkline(points: points, tint: tint, threshold: threshold, signed: signed)
+                Sparkline(series: series, tint: tint, threshold: threshold, signed: signed)
             }
         }
     }
@@ -194,7 +194,7 @@ private struct TemperatureCard: View {
         StatCard(title: "Nhiệt độ pin", symbol: "thermometer.medium", tint: hot ? .orange : .pink,
                  value: model.temperature.map { Format.number($0) } ?? "—", unit: "°C",
                  caption: threshold.map { String(localized: "Ngưỡng \(Int($0))°C") },
-                 points: model.lastHour.points { $0.temperature }, threshold: threshold)
+                 series: model.lastHour.series { $0.temperature }, threshold: threshold)
     }
 }
 
@@ -207,7 +207,7 @@ private struct BatteryPowerCard: View {
             : power < -0.3 ? String(localized: "Đang cấp điện") : String(localized: "Không sạc")
         StatCard(title: "Công suất pin", symbol: "battery.100percent.bolt", tint: .green,
                  value: model.battery == nil ? "—" : signedNumber(power), unit: "W", caption: caption,
-                 points: model.lastHour.points { $0.batteryPower }, signed: true)
+                 series: model.lastHour.series { $0.batteryPower }, signed: true)
     }
 
     private func signedNumber(_ v: Double) -> String {
@@ -221,7 +221,7 @@ private struct SystemLoadCard: View {
     var body: some View {
         StatCard(title: "Hệ thống tiêu thụ", symbol: "laptopcomputer", tint: .blue,
                  value: model.battery?.systemLoad.map { Format.number($0) } ?? "—", unit: "W",
-                 caption: nil, points: model.lastHour.points { $0.systemLoad })
+                 caption: nil, series: model.lastHour.series { $0.systemLoad })
     }
 }
 
@@ -235,7 +235,7 @@ private struct ChargerCard: View {
                  value: plugged ? (b?.adapterWatts.map(String.init) ?? "—") : String(localized: "Chưa cắm"),
                  unit: plugged && b?.adapterWatts != nil ? "W" : nil,
                  caption: plugged ? b?.systemPowerIn.map { String(localized: "Đang cấp \(Format.watts($0))") } : nil,
-                 points: model.lastHour.points { $0.powerIn })
+                 series: model.lastHour.series { $0.powerIn })
     }
 }
 
@@ -256,7 +256,7 @@ private struct LevelCard: View {
                 ContentUnavailableView("Chưa có dữ liệu", systemImage: "chart.xyaxis.line",
                                        description: Text("Lịch sử sẽ xuất hiện sau vài phút."))
             } else {
-                BatteryLevelChart(samples: samples, limit: model.summary.limit, tint: .green)
+                BatteryLevelChart(samples: samples, limit: model.summary.limit, tint: .green, showsLegend: true)
             }
         }
     }

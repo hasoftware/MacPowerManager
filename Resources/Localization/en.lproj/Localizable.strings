@@ -27,6 +27,8 @@
 "Giá trị" = "Value";
 "đoạn" = "Segment";
 "Ngưỡng" = "Threshold";
+"Không có dữ liệu (máy ngủ hoặc tắt)" = "No data (Mac asleep or off)";
+"Nét đứt: nối qua lúc không có dữ liệu" = "Dashed: bridges time with no data";
 "Giới hạn" = "Limit";
 "Giới hạn %lld%%" = "Limit %lld%%";
 "Chọn" = "Selection";
@@ -199,6 +201,7 @@
 "Lịch sử pin" = "Battery history";
 "Giữ trong" = "Retention";
 "7 ngày" = "7 days";
+"30 ngày" = "30 days";
 "Dữ liệu trên máy" = "Data on This Mac";
 "Dữ liệu pin chỉ nằm trên máy này. Yêu cầu mạng duy nhất của app là kiểm tra cập nhật tới api.github.com (không kèm dữ liệu cá nhân, tắt được ở mục Cập nhật)." = "Battery data stays on this Mac. The app’s only network request is the update check to api.github.com (no personal data; you can turn it off under Updates).";
 
@@ -406,15 +409,12 @@
 "Mức pin" = "Battery level";
 "Công suất pin (W, dương = đang nạp)" = "Battery power (W, positive = charging)";
 "Nhiệt độ pin (°C)" = "Battery temperature (°C)";
-"Mẫu được ghi mỗi phút khi app đang chạy và giữ trong 7 ngày. Khoảng trống là lúc máy ngủ hoặc app tắt." = "Samples are recorded every minute while the app is running and kept for 7 days. Gaps are times when your Mac was asleep or the app wasn’t running.";
+"Hệ thống tiêu thụ (W)" = "System load (W)";
+"Helper ghi một mẫu mỗi phút, kể cả khi app đã tắt; khi chưa cài helper, app tự ghi lúc đang chạy. Lịch sử được giữ 30 ngày. Nét đứt nối qua lúc máy ngủ hoặc tắt; khi xem nhiều ngày, mỗi điểm là trung bình của một khoảng thời gian." = "The helper records a sample every minute, even when the app isn’t running; without the helper, the app records while it’s open. History is kept for 30 days. Dashed lines bridge times when your Mac was asleep or off; in multi-day views, each point is an average over a time span.";
 "Xóa toàn bộ lịch sử pin?" = "Clear all battery history?";
 "Xóa" = "Clear";
 "Không thể hoàn tác." = "This can’t be undone.";
-"W" = "W";
-"°C" = "°C";
-"Dừng sạc" = "Pause charging";
 "Dừng sạc %lld°C" = "Pause %lld°C";
-"Sạc lại" = "Resume charging";
 "Sạc lại %lld°C" = "Resume %lld°C";
 
 /* MacPowerManager/Pages/Monitor/OverviewPage.swift */
