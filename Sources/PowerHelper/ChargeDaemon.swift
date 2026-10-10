@@ -69,6 +69,8 @@ final class ChargeDaemon {
     private var notifyPort: IONotificationPortRef?
     private var notifier: io_object_t = 0
     private var sleepAssertion: IOPMAssertionID = 0
+    /// Lịch sử pin do helper ghi (chạy cả khi app đã thoát và trong dark wake).
+    private let history = HistoryRecorder()
 
     init() throws {
         let smc = RecordingSMC(base: try SMC())
@@ -109,6 +111,7 @@ final class ChargeDaemon {
     }
 
     func start() {
+        history.start()
         evaluate()
 
         let timer = DispatchSource.makeTimerSource(queue: .main)
@@ -180,7 +183,21 @@ final class ChargeDaemon {
                 adapterEnabled: control.isAdapterEnabled, check: adapterCut))
             updateEffect(now: now, acPresent: acPresent, battery: battery)
         }
+        recordHistory(now: now, battery: battery, temperature: temperature, decision: decision)
         finishLoop(now: now)
+    }
+
+    /// Ghi một mẫu lịch sử nếu đã tới lúc (tối đa mỗi `HistoryLog.sampleInterval`). Chạy ở mọi pha, kể cả
+    /// dark wake và ngay sau khi thức (vòng đánh giá 2 giây sau `HasPoweredOn`), nên biểu đồ không bị đứt
+    /// khi app không chạy. Trên Apple Silicon dùng dòng/áp từ SMC như app để trạng thái sạc không bị trễ.
+    private func recordHistory(now: Date, battery: BatteryInfo, temperature: Double?, decision: ControlDecision) {
+        history.recordIfDue(now: now) {
+            let live = intel == nil
+                ? battery.applyingLiveTelemetry(currentmA: control.batteryCurrentmA,
+                                                voltagemV: control.batteryVoltagemV)
+                : battery
+            return HistoryRecorderPolicy.sample(now: now, battery: live, temperature: temperature, decision: decision)
+        }
     }
 
     /// Cắm sạc về mặt vật lý. Adapter bật: theo IOKit. Adapter bị ngắt: IOKit luôn báo không cắm, nên giữ
