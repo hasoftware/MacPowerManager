@@ -112,11 +112,11 @@ private struct HeroCard: View {
                     Spacer(minLength: 6)
                     HStack(spacing: Theme.Space.s) {
                         QuickTile(title: "Giới hạn", symbol: "battery.75percent", isOn: model.isOn(\.chargeLimitEnabled),
-                                  tint: .teal, height: 52, action: model.toggleLimit)
+                                  tint: .teal, height: 58, action: model.toggleLimit)
                         QuickTile(title: "Tạm dừng", symbol: "pause.fill", isOn: model.isOn(\.pauseCharging),
-                                  tint: .indigo, height: 52, action: model.togglePause)
+                                  tint: .indigo, height: 58, action: model.togglePause)
                         QuickTile(title: "Chống nóng", symbol: "thermometer.medium",
-                                  isOn: model.isOn(\.thermalProtectionEnabled), tint: .orange, height: 52,
+                                  isOn: model.isOn(\.thermalProtectionEnabled), tint: .orange, height: 58,
                                   action: model.toggleThermal)
                     }
                     .disabled(!model.canControl)
