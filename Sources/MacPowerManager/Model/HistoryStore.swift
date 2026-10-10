@@ -2,22 +2,6 @@ import Foundation
 import Observation
 import PowerCore
 
-struct HistorySample: Codable, Identifiable, Equatable {
-    var date: Date
-    var percent: Int
-    var temperature: Double?
-    var batteryPower: Double   // W, dương = đang nạp
-    var pluggedIn: Bool
-    var charging: Bool
-    // v0.3.0 (optional để đọc được lịch sử cũ)
-    var systemLoad: Double?    // W
-    var powerIn: Double?       // W, từ adapter
-    /// Giới hạn đang áp dụng lúc ghi (nil = không giới hạn hoặc chưa có helper).
-    var limit: Int?
-
-    var id: Date { date }
-}
-
 /// Lưu lịch sử pin dạng JSON Lines, giữ tối đa 7 ngày.
 @MainActor
 @Observable

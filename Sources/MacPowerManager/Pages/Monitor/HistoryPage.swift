@@ -1,3 +1,4 @@
+import PowerCore
 import AppKit
 import Charts
 import SwiftUI

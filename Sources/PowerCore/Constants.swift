@@ -10,6 +10,8 @@ public enum PowerConstants {
     public static let helperConfigURL = URL(fileURLWithPath: "/Library/Application Support/MacPowerManager/config.json")
 
     public static let helperStateURL = URL(fileURLWithPath: "/Library/Application Support/MacPowerManager/state.json")
+    /// Lịch sử pin do helper ghi (JSON Lines, root 0644: app đọc được).
+    public static let helperHistoryURL = URL(fileURLWithPath: "/Library/Application Support/MacPowerManager/history.jsonl")
     /// Danh sách cdhash của app được phép điều khiển helper, do script cài đặt (root) ghi.
     public static let trustedClientsURL = URL(fileURLWithPath: "/Library/Application Support/MacPowerManager/trusted-clients.json")
 
