@@ -100,7 +100,7 @@ final class HistoryRecorderPolicyTests: XCTestCase {
             HistorySample(date: now.addingTimeInterval(-Double(9 - i) * 3600), percent: i, temperature: nil,
                           batteryPower: 0, pluggedIn: true, charging: false)
         }
-        let byAge = HistoryRecorderPolicy.pruned(samples, now: now, retention: 4.5 * 3600, maxCount: 100)
+        let byAge = HistoryRecorderPolicy.pruned(samples, now: now, retention: 4.5 * 3600, maxCount: 100, minNewer: 1)
         XCTAssertEqual(byAge.map(\.percent), [5, 6, 7, 8, 9])
         let byCount = HistoryRecorderPolicy.pruned(samples, now: now, retention: 100 * 3600, maxCount: 3)
         XCTAssertEqual(byCount.map(\.percent), [7, 8, 9])
@@ -165,7 +165,7 @@ final class HistoryFileTests: XCTestCase {
         try file.append(sample(0))            // quá hạn
         try file.append(sample(HistoryLog.retention + 60))
         try FileHandle(forWritingTo: url).run { try $0.seekToEnd(); try $0.write(contentsOf: Data("rác\n".utf8)) }
-        let kept = try file.prune(now: now)
+        let kept = try file.prune(now: now, minNewer: 1)
         XCTAssertEqual(kept, [sample(HistoryLog.retention + 60)])
         XCTAssertEqual(file.lineCount, 1)
         XCTAssertEqual(HistoryLog.decode(try Data(contentsOf: url)), kept)
@@ -213,5 +213,44 @@ private extension FileHandle {
     func run(_ body: (FileHandle) throws -> Void) throws {
         defer { try? close() }
         try body(self)
+    }
+}
+
+final class HistoryClockJumpTests: XCTestCase {
+    private func sample(_ date: Date) -> HistorySample {
+        HistorySample(date: date, percent: 50, temperature: nil, batteryPower: 0, pluggedIn: true, charging: false)
+    }
+
+    func testForwardClockJumpDoesNotWipeHistory() {
+        let base = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        var samples = (0..<60).map { sample(base.addingTimeInterval(Double($0) * 3600)) }   // 60 giờ dữ liệu thật
+        let jumped = base.addingTimeInterval(365 * 24 * 3600)                                 // đồng hồ nhảy tới 1 năm
+        samples.append(sample(jumped))
+        let kept = HistoryRecorderPolicy.pruned(samples, now: jumped)
+        XCTAssertEqual(kept.count, 61, "Không được xóa lịch sử thật chỉ vì đồng hồ nhảy tới")
+    }
+
+    func testFutureSamplesDroppedAfterClockGoesBack() {
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let samples = [sample(now.addingTimeInterval(-60)), sample(now.addingTimeInterval(365 * 24 * 3600))]
+        XCTAssertEqual(HistoryRecorderPolicy.pruned(samples, now: now).count, 1, "Mẫu ở tương lai bị bỏ")
+    }
+
+    func testNormalRetentionStillApplies() {
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let samples = [sample(now.addingTimeInterval(-40 * 24 * 3600)), sample(now.addingTimeInterval(-60))]
+        XCTAssertEqual(HistoryRecorderPolicy.pruned(samples, now: now, minNewer: 1).count, 1)
+        XCTAssertEqual(HistoryRecorderPolicy.pruned(samples, now: now).count, 2,
+                       "Chưa đủ 6 giờ mẫu mới thì chưa xóa (có thể đồng hồ vừa nhảy)")
+    }
+
+    func testLastSampleDateReadsTail() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let file = HistoryFile(url: dir.appendingPathComponent("h.jsonl"))
+        XCTAssertNil(file.lastSampleDate())
+        let base = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        for i in 0..<200 { try file.append(sample(base.addingTimeInterval(Double(i) * 60))) }
+        XCTAssertEqual(file.lastSampleDate(), base.addingTimeInterval(199 * 60))
+        try? FileManager.default.removeItem(at: dir)
     }
 }

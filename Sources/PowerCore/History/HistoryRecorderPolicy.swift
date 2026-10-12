@@ -48,12 +48,25 @@ public enum HistoryRecorderPolicy {
                       reason: decision?.reason.rawValue)
     }
 
+    /// Chỉ xóa mẫu quá hạn khi đã có ít nhất chừng này mẫu mới hơn (6 giờ dữ liệu).
+    public static let minNewerSamples = 360
+
     /// Bỏ mẫu cũ hơn `retention` và chỉ giữ `maxCount` mẫu mới nhất. Đầu vào đã sắp xếp theo thời gian.
+    ///
+    /// Chống mất dữ liệu khi đồng hồ nhảy: bỏ mẫu nằm ở tương lai (quá `now` 5 phút, ví dụ sau khi đồng hồ bị
+    /// lùi lại), và tính hạn giữ lại từ mẫu thứ `minNewerSamples` tính từ cuối thay vì từ `now`. Một lần chỉnh
+    /// đồng hồ tới tương lai (vài mẫu ở tương lai) vì vậy không xóa được lịch sử thật; máy để lâu không dùng
+    /// thì dữ liệu cũ vẫn được dọn sau khi đã có đủ mẫu mới.
     public static func pruned(_ samples: [HistorySample], now: Date,
                               retention: TimeInterval = HistoryLog.retention,
-                              maxCount: Int = maxSamples) -> [HistorySample] {
-        let cutoff = now.addingTimeInterval(-retention)
-        let kept = samples.filter { $0.date >= cutoff }
+                              maxCount: Int = maxSamples,
+                              minNewer: Int = minNewerSamples) -> [HistorySample] {
+        let latestAllowed = now.addingTimeInterval(300)
+        var kept = samples.filter { $0.date <= latestAllowed }
+        guard let oldest = kept.first?.date else { return [] }
+        let anchor = kept.count >= max(minNewer, 1) ? min(now, kept[kept.count - max(minNewer, 1)].date) : oldest
+        let cutoff = anchor.addingTimeInterval(-retention)
+        kept = kept.filter { $0.date >= cutoff }
         return kept.count > maxCount ? Array(kept.suffix(maxCount)) : kept
     }
 

@@ -18,14 +18,11 @@ final class HistoryRecorder {
         file = HistoryFile(url: url)
     }
 
-    /// Dọn file khi khởi động và lấy thời điểm mẫu cuối để không ghi trùng ngay sau khi helper khởi động lại.
+    /// Lấy thời điểm mẫu cuối (đồng bộ, trước lần đánh giá đầu tiên) để không ghi trùng ngay sau khi helper
+    /// khởi động lại, rồi dọn file ở hàng đợi nền.
     func start() {
-        queue.async { [self] in
-            let last = pruneIfNeeded(now: Date())?.last?.date
-            DispatchQueue.main.async { [self] in
-                if lastRecorded == nil, let last, last <= Date() { lastRecorded = last }
-            }
-        }
+        if let last = file.lastSampleDate(), last <= Date() { lastRecorded = last }
+        queue.async { [self] in pruneIfNeeded(now: Date()) }
     }
 
     /// Gọi trên hàng đợi chính sau mỗi lần đánh giá. `makeSample` chỉ chạy khi thực sự cần ghi.

@@ -30,11 +30,22 @@ public final class HistoryFile {
         lineCount = lineCount.map { $0 + 1 }
     }
 
+    /// Thời điểm của mẫu cuối trong file (chỉ đọc vài KB cuối, đủ nhanh để gọi đồng bộ lúc khởi động).
+    public func lastSampleDate() -> Date? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let end = try? handle.seekToEnd(), end > 0 else { return nil }
+        let start = end > 4096 ? end - 4096 : 0
+        guard (try? handle.seek(toOffset: start)) != nil, let tail = try? handle.readToEnd() else { return nil }
+        return HistoryLog.decode(tail).last?.date
+    }
+
     /// Đọc file, bỏ dòng hỏng, mẫu quá hạn và mẫu vượt giới hạn số dòng; ghi lại nguyên tử nếu có thay đổi.
     /// Trả về các mẫu còn lại.
     @discardableResult
     public func prune(now: Date, retention: TimeInterval = HistoryLog.retention,
-                      maxCount: Int = HistoryRecorderPolicy.maxSamples) throws -> [HistorySample] {
+                      maxCount: Int = HistoryRecorderPolicy.maxSamples,
+                      minNewer: Int = HistoryRecorderPolicy.minNewerSamples) throws -> [HistorySample] {
         let data: Data
         do {
             data = try Data(contentsOf: url)
@@ -44,7 +55,7 @@ public final class HistoryFile {
         }
         let rawLines = data.split(separator: 0x0A).count
         let kept = HistoryRecorderPolicy.pruned(HistoryLog.decode(data), now: now, retention: retention,
-                                                maxCount: maxCount)
+                                                maxCount: maxCount, minNewer: minNewer)
         let endsCleanly = data.last.map { $0 == 0x0A } ?? true
         if kept.count != rawLines || !endsCleanly {
             var out = Data()
