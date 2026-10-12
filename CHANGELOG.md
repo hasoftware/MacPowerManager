@@ -6,17 +6,44 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
-### Sửa lỗi
-- Sức khỏe pin hiển thị đúng con số "Maximum Capacity" của macOS (System Settings → Battery) thay vì số đo tức thời; số đo thực tế vẫn có ở trang Tình trạng pin.
-- Trạng thái "đang sạc" cập nhật ngay sau khi đổi giới hạn: app đọc dòng điện pin trực tiếp từ SMC thay vì chờ IOKit (trễ tới khoảng 1 phút).
-
-### Cải tiến
-- Chọn ngôn ngữ giao diện ngay trong app (Theo hệ thống / Tiếng Việt / English).
-
 ### Tính năng
+- **Giao diện mới**: cửa sổ có thanh bên (Tổng quan, Lịch sử, Tình trạng pin, Giới hạn sạc, Chống nóng, Xả pin, Khi ngủ,
+  Thanh menu, Thông báo, Hệ thống & helper, Giới thiệu), bảng nhanh trên thanh menu với thanh giới hạn kéo được
+  và các nút thao tác nhanh, biểu tượng pin riêng trên thanh menu có vạch giới hạn và huy hiệu trạng thái.
+- **Sạc đầy một lần**: tạm bỏ giới hạn để sạc tới 100% (ví dụ trước chuyến đi); tự kết thúc khi rút sạc,
+  hết hạn hoặc khởi động lại máy. **Sạc tới giới hạn ngay**: bỏ qua khoảng sạc lại một lần.
+- **Xác minh hiệu lực**: sau khi chặn sạc, helper đo dòng điện vào pin và cảnh báo nếu pin vẫn nhận sạc.
+- **Tự dò phương thức điều khiển**: phát hiện key bị firmware khóa và chuyển sang phương thức dự phòng.
+- **Phát hiện ứng dụng điều khiển sạc khác** (AlDente, batt, Battery Toolkit…) và key SMC bị ghi đè từ bên ngoài.
+- **Lịch sử liền mạch 30 ngày**: helper ghi lịch sử mỗi phút kể cả khi app đã thoát; biểu đồ nối liền,
+  đoạn máy ngủ hoặc tắt vẽ bằng nét đứt.
 - **Kiểm tra cập nhật**: lúc mở app và mỗi 24 giờ, app đọc bản phát hành mới nhất trên GitHub (yêu cầu mạng duy nhất,
-  không kèm dữ liệu cá nhân, tắt được ở trang Giới thiệu). Có bản mới thì hiện banner, thông báo một lần cho mỗi phiên bản
-  và cửa sổ **Có gì mới** với ghi chú thay đổi, nút tải `.dmg`, xem trên GitHub, bỏ qua bản này hoặc để sau 24 giờ.
+  không kèm dữ liệu cá nhân, tắt được ở trang Giới thiệu). Có bản mới thì hiện banner, thông báo và cửa sổ **Có gì mới**.
+- **Giao diện tiếng Việt và tiếng Anh**, chọn được ngay trong app (Theo hệ thống / Tiếng Việt / English).
+- Trang Giới thiệu có thông tin tác giả HASOFTWARE (GitHub, Telegram, Facebook).
+
+### Sửa lỗi
+- Sức khỏe pin hiển thị đúng con số "Maximum Capacity" của macOS thay vì số đo tức thời.
+- Trạng thái "đang sạc" cập nhật ngay sau khi đổi giới hạn (đọc dòng điện pin trực tiếp từ SMC).
+- Ba nút nhanh ở trang Tổng quan bị lệch.
+
+### An toàn
+- Helper chỉ nhận lệnh từ đúng bản app đã cài nó (ghim cdhash). **Sau mỗi lần cập nhật app, hãy bấm "Cài lại helper"**
+  (app sẽ nhắc).
+- Xả pin có giới hạn 6 giờ, chỉ ngắt adapter khi đang cắm sạc, tự hủy nếu lệnh ngắt adapter không có hiệu lực.
+- Pin ≤ 10% luôn được sạc, kể cả khi ứng dụng khác đã ngắt adapter.
+- Trạng thái (giữ mức, sạc đầy một lần) được nhớ khi helper khởi động lại và xóa khi máy khởi động lại.
+- Máy đời cũ: chỉ điều khiển `CH0C`, để `CH0B` cho tính năng sạc tối ưu của macOS.
+
+### English
+- New sidebar UI, redesigned menu bar popover and a custom menu bar icon.
+- Full Charge Once, Charge to Limit Now, effect verification, automatic method fallback.
+- Detection of other charge controllers and external SMC writes.
+- Continuous 30-day history recorded by the helper.
+- Update checker with a What's New window.
+- English and Vietnamese UI with an in-app language picker.
+- macOS battery health figure, instant charging state.
+- The helper now only accepts the exact app build that installed it: **reinstall the helper after every app update**.
 
 ## [0.2.0] - 2026-10-07
 
