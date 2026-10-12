@@ -58,8 +58,13 @@ final class HistoryStore {
 
     /// Helper đang ghi lịch sử (mẫu cuối chưa quá `helperFreshness`).
     func helperIsFresh(now: Date = Date()) -> Bool {
-        guard let last = helperSamples.last else { return false }
-        return now.timeIntervalSince(last.date) < Self.helperFreshness
+        if let last = helperSamples.last, now.timeIntervalSince(last.date) < Self.helperFreshness { return true }
+        // Dữ liệu trong bộ nhớ có thể cũ (vừa mở app, vừa thức dậy, lần đọc file chưa xong): kiểm tra thêm thời điểm
+        // file của helper được ghi lần cuối, việc này rẻ và đồng bộ.
+        guard let helperURL,
+              let modified = (try? FileManager.default.attributesOfItem(atPath: helperURL.path))?[.modificationDate] as? Date
+        else { return false }
+        return now.timeIntervalSince(modified) < Self.helperFreshness
     }
 
     /// Gọi định kỳ (mỗi lần đọc pin). Đọc phần mới của lịch sử helper mỗi `helperPollInterval`; app chỉ tự ghi mẫu
@@ -154,9 +159,16 @@ final class HistoryStore {
         if let first = helperSamples.first, first.date < retained { helperSamples.removeAll { $0.date < retained } }
         if let first = appSamples.first, first.date < retained { appSamples.removeAll { $0.date < retained } }
         let cutoff = max(retained, clearedAt ?? .distantPast)
-        let helper = helperSamples.filter { $0.date >= cutoff }
-        let app = appSamples.filter { $0.date >= cutoff }
-        samples = helper.isEmpty ? app : HistoryLog.merge(helper: helper, app: app)
+        let helper = (helperSamples.first?.date ?? .distantFuture) >= cutoff ? helperSamples : helperSamples.filter { $0.date >= cutoff }
+        let app = (appSamples.first?.date ?? .distantFuture) >= cutoff ? appSamples : appSamples.filter { $0.date >= cutoff }
+        // Trường hợp thường gặp (chỉ có lịch sử helper): không cần gộp và sắp xếp lại ~43 nghìn mẫu mỗi phút.
+        if app.isEmpty {
+            samples = helper
+        } else if helper.isEmpty {
+            samples = app
+        } else {
+            samples = HistoryLog.merge(helper: helper, app: app)
+        }
     }
 
     private func loadAppFile(now: Date) {

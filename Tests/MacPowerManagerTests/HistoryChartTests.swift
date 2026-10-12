@@ -305,3 +305,52 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(reopened.samples.count, 1)
     }
 }
+
+final class HistoryReviewFixTests: XCTestCase {
+    private let t0 = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+    private func sample(_ minute: Double, powerIn: Double?, plugged: Bool = true) -> HistorySample {
+        HistorySample(date: t0.addingTimeInterval(minute * 60), percent: 50, temperature: 30, batteryPower: 0,
+                      pluggedIn: plugged, charging: false, powerIn: powerIn)
+    }
+
+    func testMissingValuesBreakLineWithoutNoDataBand() {
+        // Rút sạc 20 phút khi máy vẫn thức: có mẫu mỗi phút nhưng không có công suất adapter.
+        var samples = (0...5).map { sample(Double($0), powerIn: 60) }
+        samples += (6...25).map { sample(Double($0), powerIn: nil, plugged: false) }
+        samples += (26...30).map { sample(Double($0), powerIn: 60) }
+        let series = samples.series { $0.powerIn }
+        XCTAssertTrue(series.gaps.isEmpty, "Không phải máy ngủ")
+        XCTAssertTrue(series.bridges.isEmpty, "Không nối đường qua lúc rút sạc")
+        XCTAssertEqual(series.runs.count, 2)
+    }
+
+    func testRealSleepStillProducesBand() {
+        let samples = [sample(0, powerIn: 60), sample(1, powerIn: 60), sample(40, powerIn: 60), sample(41, powerIn: 60)]
+        let series = samples.series { $0.powerIn }
+        XCTAssertEqual(series.gaps.count, 1)
+        XCTAssertEqual(series.bridges.count, 1)
+    }
+
+    func testHoverInsideBandReportsGapEvenWithLargeSnap() {
+        let samples = [sample(0, powerIn: 60), sample(1, powerIn: 60), sample(300, powerIn: 60), sample(301, powerIn: 60)]
+        let series = samples.series { $0.powerIn }
+        let middle = t0.addingTimeInterval(150 * 60)
+        guard case .gap = series.selection(at: middle, snap: 11 * 3600) else {
+            return XCTFail("Di chuột giữa vùng máy ngủ phải hiện khoảng trống")
+        }
+    }
+
+    @MainActor
+    func testHelperFreshnessFromFileModificationDate() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let helperURL = dir.appendingPathComponent("helper.jsonl")
+        try Data().write(to: helperURL)
+        let store = HistoryStore(fileURL: dir.appendingPathComponent("app.jsonl"), helperURL: helperURL, defaults: nil)
+        XCTAssertTrue(store.helperIsFresh(), "File helper vừa được ghi: coi là helper đang ghi dù chưa đọc mẫu nào")
+        try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(-3600)], ofItemAtPath: helperURL.path)
+        XCTAssertFalse(store.helperIsFresh())
+    }
+}

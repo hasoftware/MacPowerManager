@@ -50,7 +50,9 @@ struct ChartSeries: Equatable {
 
     /// Dựng chuỗi từ các cặp (thời điểm, giá trị) đã sắp xếp. Khi có nhiều hơn `maxPoints` điểm, gộp theo các ô thời
     /// gian bằng nhau (trung bình) trên toàn chuỗi; khoảng trống nhỏ hơn một ô được coi là liền mạch ở độ phân giải đó.
-    init(_ raw: [(date: Date, value: Double)], maxPoints: Int = 300) {
+    /// - breaks: thời điểm các điểm đứng ngay sau mẫu không có giá trị (ví dụ không cắm sạc thì không có công suất
+    ///   adapter). Máy vẫn thức nên đó không phải "không có dữ liệu": chỉ ngắt đường, không vẽ nét đứt hay vùng tô.
+    init(_ raw: [(date: Date, value: Double)], breaks: Set<Date> = [], maxPoints: Int = 300) {
         guard let first = raw.first, let last = raw.last else { return }
         let span = last.date.timeIntervalSince(first.date)
 
@@ -92,7 +94,11 @@ struct ChartSeries: Equatable {
         var previous: (point: ChartPoint, lastRaw: Date)?
         for bucket in buckets {
             var point = ChartPoint(date: bucket.date, value: bucket.value, run: run)
-            if let previous {
+            if previous != nil, breaks.contains(bucket.firstRaw) {
+                // Thiếu giá trị nhưng máy vẫn thức: ngắt đường, không vẽ cầu nối hay vùng "không có dữ liệu".
+                run += 1
+                point.run = run
+            } else if let previous {
                 let hole = bucket.firstRaw.timeIntervalSince(previous.lastRaw)
                 if hole > bridgeLimit {
                     run += 1
@@ -138,6 +144,15 @@ struct ChartSeries: Equatable {
     /// Điểm gần `date` nhất; nếu `date` nằm giữa một khoảng trống dài và cách hai đầu hơn `snap` thì trả về khoảng trống.
     func selection(at date: Date, snap: TimeInterval) -> Selection? {
         guard !points.isEmpty else { return nil }
+        // Trong một vùng "không có dữ liệu" đang được vẽ thì luôn báo khoảng trống, kể cả ở khoảng 7/30 ngày
+        // (khi đó `snap` có thể dài hơn cả vùng).
+        if let gap = gaps.first(where: { $0.start < date && date < $0.end }) {
+            // Sát mép vùng thì vẫn chọn điểm dữ liệu; khoảng "sát" không vượt quá 10% độ rộng vùng.
+            let margin = min(snap, gap.end.timeIntervalSince(gap.start) * 0.1)
+            if date.timeIntervalSince(gap.start) > margin && gap.end.timeIntervalSince(date) > margin {
+                return .gap(start: gap.start, end: gap.end)
+            }
+        }
         // Tìm nhị phân điểm đầu tiên không trước `date`.
         var lo = 0, hi = points.count
         while lo < hi {
@@ -157,8 +172,21 @@ struct ChartSeries: Equatable {
 }
 
 extension Array where Element == HistorySample {
-    /// Trích một chuỗi giá trị liên tục (bỏ mẫu không có giá trị), gộp còn khoảng `maxPoints` điểm.
+    /// Trích một chuỗi giá trị, gộp còn khoảng `maxPoints` điểm. Mẫu không có giá trị ngắt đường (không bị coi là
+    /// máy ngủ); khoảng thời gian không có mẫu nào mới là "không có dữ liệu".
     func series(maxPoints: Int = 300, _ value: (HistorySample) -> Double?) -> ChartSeries {
-        ChartSeries(compactMap { s in value(s).map { (date: s.date, value: $0) } }, maxPoints: maxPoints)
+        var raw: [(date: Date, value: Double)] = []
+        var breaks = Set<Date>()
+        var missing = false
+        for sample in self {
+            if let v = value(sample) {
+                if missing && !raw.isEmpty { breaks.insert(sample.date) }
+                raw.append((date: sample.date, value: v))
+                missing = false
+            } else {
+                missing = true
+            }
+        }
+        return ChartSeries(raw, breaks: breaks, maxPoints: maxPoints)
     }
 }

@@ -235,7 +235,7 @@ private struct ChargerCard: View {
                  value: plugged ? (b?.adapterWatts.map(String.init) ?? "—") : String(localized: "Chưa cắm"),
                  unit: plugged && b?.adapterWatts != nil ? "W" : nil,
                  caption: plugged ? b?.systemPowerIn.map { String(localized: "Đang cấp \(Format.watts($0))") } : nil,
-                 series: model.lastHour.series { $0.powerIn })
+                 series: model.lastHour.series { $0.powerIn ?? ($0.pluggedIn ? nil : 0) })
     }
 }
 
