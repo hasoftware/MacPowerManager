@@ -6,6 +6,18 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Theo dõi hệ thống**, phần 2:
+  - **GPU**: mức dùng Device / Renderer / Tiler, bộ nhớ GPU đang dùng và đã cấp phát, số nhân GPU.
+  - **Ổ đĩa**: tốc độ đọc/ghi, tổng đã đọc/ghi từ lúc khởi động, dung lượng còn trống của từng ổ (định dạng, thiết bị).
+  - **Mạng**: tốc độ tải xuống/tải lên, tổng đã nhận/gửi từ lúc khởi động, giao diện đang dùng (Wi-Fi/Ethernet, IPv4,
+    IPv6, địa chỉ phần cứng).
+  - Tổng quan hệ thống có thêm thẻ GPU, ổ đĩa và mạng; thanh bên hiện số liệu trực tiếp.
+
+### English
+- System monitoring, part 2: GPU (device/renderer/tiler, GPU memory), Disk (read/write speed, totals since startup,
+  free space per volume) and Network (download/upload speed, totals since startup, active interface addresses).
+
 ## [0.12.0] - 2026-10-13
 
 ### Tính năng

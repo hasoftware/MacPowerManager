@@ -47,6 +47,47 @@ struct SystemOverviewPage: View {
                         .frame(height: 82)
                 }
 
+                OverviewTile(title: "GPU", symbol: "cube.transparent", tint: SystemTint.gpu, target: .gpu, page: $page) {
+                    let gpu = latest?.gpu
+                    BigValue(caption: "\(gpu?.model ?? "GPU")", value: Format.percentNumber(gpu?.device ?? 0, digits: 1), unit: "%")
+                    HStack {
+                        SystemStat(title: "Bộ nhớ", value: Format.bytes(gpu?.memoryInUse ?? 0))
+                        SystemStat(title: "Trung bình", value: monitor.stats { $0.gpu?.device ?? 0 }.map { Format.percent($0.average * 100) } ?? "—")
+                        SystemStat(title: "Cao nhất", value: monitor.stats { $0.gpu?.device ?? 0 }.map { Format.percent($0.peak * 100) } ?? "—")
+                    }
+                    DotMatrixChart(columns: monitor.columns(36) { [$0.gpu?.device ?? 0] }, colors: [SystemTint.gpu], rows: 6, tint: SystemTint.gpu)
+                        .frame(height: 82)
+                }
+
+                OverviewTile(title: "Ổ đĩa", symbol: "internaldrive", tint: SystemTint.disk, target: .disk, page: $page) {
+                    let root = monitor.volumes.first
+                    let free = Format.bytesParts(root?.available ?? 0)
+                    BigValue(caption: "Còn trống trong \(Format.bytes(root?.total ?? 0))", value: free.value, unit: free.unit)
+                    HStack {
+                        SystemStat(title: "Đọc", value: Format.rate(latest?.diskRead ?? 0))
+                        SystemStat(title: "Ghi", value: Format.rate(latest?.diskWrite ?? 0))
+                        SystemStat(title: "Đã ghi", value: Format.bytes(monitor.diskTotals?.bytesWritten ?? 0))
+                    }
+                    let peak = max(monitor.stats { $0.diskRead + $0.diskWrite }?.peak ?? 0, 1_000_000)
+                    DotMatrixChart(columns: monitor.columns(36) { [$0.diskWrite / peak, $0.diskRead / peak] },
+                                   colors: [SystemTint.diskWrite, SystemTint.diskRead], rows: 6, tint: SystemTint.disk)
+                        .frame(height: 82)
+                }
+
+                OverviewTile(title: "Mạng", symbol: "network", tint: SystemTint.network, target: .network, page: $page) {
+                    let down = Format.rateParts(latest?.networkIn ?? 0)
+                    BigValue(caption: "Tải xuống", value: down.value, unit: down.unit)
+                    HStack {
+                        SystemStat(title: "Tải lên", value: Format.rate(latest?.networkOut ?? 0))
+                        SystemStat(title: "Đã nhận", value: monitor.networkTotals.map { Format.bytes($0.received) } ?? "—")
+                        SystemStat(title: "Đã gửi", value: monitor.networkTotals.map { Format.bytes($0.sent) } ?? "—")
+                    }
+                    let peak = max(monitor.stats { $0.networkIn + $0.networkOut }?.peak ?? 0, 100_000)
+                    DotMatrixChart(columns: monitor.columns(36) { [$0.networkOut / peak, $0.networkIn / peak] },
+                                   colors: [SystemTint.networkUp, SystemTint.network], rows: 6, tint: SystemTint.network)
+                        .frame(height: 82)
+                }
+
                 OverviewTile(title: "Năng lượng", symbol: "bolt.fill", tint: SystemTint.energy, target: .health, page: $page) {
                     let battery = model.battery
                     BigValue(caption: battery?.externalConnected == true ? "Đang cắm sạc" : "Đang dùng pin",

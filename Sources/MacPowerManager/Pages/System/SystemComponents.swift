@@ -10,6 +10,12 @@ enum SystemTint {
     static let memoryCompressed = Color.cyan
     static let memoryCached = Color.gray
     static let energy = Color.yellow
+    static let gpu = Color.pink
+    static let disk = Color.orange
+    static let diskRead = Color.cyan
+    static let diskWrite = Color.orange
+    static let network = Color.teal
+    static let networkUp = Color.blue
 }
 
 /// Một chỉ số nhỏ: nhãn ở trên, giá trị đậm ở dưới, có thể kèm ghi chú.
@@ -162,6 +168,18 @@ extension Format {
     /// "59" cho 0,59 (phần trăm không có ký hiệu).
     static func percentNumber(_ fraction: Double, digits: Int = 0) -> String {
         number(fraction * 100, digits: digits)
+    }
+
+    /// "2,39 MB/s" (tốc độ đọc/ghi, mạng; theo hệ thập phân như Finder).
+    static func rate(_ bytesPerSecond: Double) -> String {
+        let parts = rateParts(bytesPerSecond)
+        return "\(parts.value) \(parts.unit)"
+    }
+
+    static func rateParts(_ bytesPerSecond: Double) -> (value: String, unit: String) {
+        let text = Int64(max(bytesPerSecond, 0).rounded()).formatted(.byteCount(style: .decimal).locale(locale))
+        guard let space = text.lastIndex(where: { $0 == " " || $0 == "\u{00A0}" }) else { return (text, "/s") }
+        return (String(text[..<space]), String(text[text.index(after: space)...]) + "/s")
     }
 
     /// "1 ngày 4 giờ", "3 giờ 12 phút".

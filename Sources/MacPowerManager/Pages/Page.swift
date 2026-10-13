@@ -6,7 +6,7 @@ enum Page: String, CaseIterable, Identifiable {
     // Theo dõi
     case overview, history, health
     // Hệ thống
-    case systemOverview, cpu, memory
+    case systemOverview, cpu, memory, gpu, disk, network
     // Chăm sóc pin
     case limit, heat, discharge, calibration, sleep
     // Ứng dụng
@@ -24,6 +24,9 @@ enum Page: String, CaseIterable, Identifiable {
         case .systemOverview: "Tổng quan hệ thống"
         case .cpu: "CPU"
         case .memory: "Bộ nhớ"
+        case .gpu: "GPU"
+        case .disk: "Ổ đĩa"
+        case .network: "Mạng"
         case .limit: "Giới hạn sạc"
         case .heat: "Chống nóng"
         case .discharge: "Xả pin"
@@ -44,6 +47,9 @@ enum Page: String, CaseIterable, Identifiable {
         case .systemOverview: "gauge.with.dots.needle.50percent"
         case .cpu: "cpu"
         case .memory: "memorychip"
+        case .gpu: "cube.transparent"
+        case .disk: "internaldrive"
+        case .network: "network"
         case .limit: "battery.75percent"
         case .heat: "thermometer.medium"
         case .discharge: "arrow.down.to.line"
@@ -57,7 +63,7 @@ enum Page: String, CaseIterable, Identifiable {
     }
 
     static let monitor: [Page] = [.overview, .history, .health]
-    static let systemGroup: [Page] = [.systemOverview, .cpu, .memory]
+    static let systemGroup: [Page] = [.systemOverview, .cpu, .memory, .gpu, .disk, .network]
     static let care: [Page] = [.limit, .heat, .discharge, .calibration, .sleep]
     static let app: [Page] = [.menuBar, .notifications, .system, .about]
 

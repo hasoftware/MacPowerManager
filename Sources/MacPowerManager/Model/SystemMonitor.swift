@@ -18,6 +18,12 @@ final class SystemMonitor {
         var cpuHottest: Double?
         /// Công suất cả máy (W), từ IOKit.
         var systemPower: Double?
+        var gpu: GPUSnapshot?
+        /// Byte/giây.
+        var diskRead: Double = 0
+        var diskWrite: Double = 0
+        var networkIn: Double = 0
+        var networkOut: Double = 0
     }
 
     enum Range: Int, CaseIterable, Identifiable {
@@ -39,6 +45,12 @@ final class SystemMonitor {
 
     private(set) var samples: [Sample] = []
     private(set) var activity = SystemActivity(load1: 0, load5: 0, load15: 0, processCount: 0, bootTime: nil)
+    /// Byte đã đọc/ghi từ lúc khởi động (mọi ổ).
+    private(set) var diskTotals: DiskCounters?
+    /// Byte đã nhận/gửi từ lúc khởi động: mốc từ `netstat`, cộng dồn phần tăng sau đó.
+    private(set) var networkTotals: (received: UInt64, sent: UInt64)?
+    private(set) var volumes: [VolumeInfo] = []
+    private(set) var primaryInterface: NetworkInterfaceInfo?
     var range: Range = .minute
     /// Tạm dừng: giữ nguyên biểu đồ, không đo thêm.
     var paused = false
@@ -50,6 +62,9 @@ final class SystemMonitor {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var lastTicks: [CPUTicks]?
     @ObservationIgnored private var lastCounters: (date: Date, pageins: UInt64, swapouts: UInt64)?
+    @ObservationIgnored private var lastDisk: DiskCounters?
+    @ObservationIgnored private var lastNetwork: NetworkCounters?
+    @ObservationIgnored private var ticks = 0
     @ObservationIgnored private var smc: SMC?
     @ObservationIgnored private var temperatureKeys: [String]?
     @ObservationIgnored private var discoveringKeys = false
@@ -63,10 +78,16 @@ final class SystemMonitor {
     }
 
     /// Dữ liệu cố định (chụp giao diện).
-    init(preview samples: [Sample], activity: SystemActivity, topology: CPUTopology) {
+    init(preview samples: [Sample], activity: SystemActivity, topology: CPUTopology, volumes: [VolumeInfo] = [],
+         primaryInterface: NetworkInterfaceInfo? = nil, diskTotals: DiskCounters? = nil,
+         networkTotals: (received: UInt64, sent: UInt64)? = nil) {
         self.samples = samples
         self.activity = activity
         self.topology = topology
+        self.volumes = volumes
+        self.primaryInterface = primaryInterface
+        self.diskTotals = diskTotals
+        self.networkTotals = networkTotals
         isPreview = true
     }
 
@@ -75,6 +96,15 @@ final class SystemMonitor {
     func retain() {
         consumers += 1
         guard consumers == 1, !isPreview else { return }
+        refreshSlow()
+        networkTotals = nil
+        Task.detached(priority: .utility) {
+            let totals = NetworkCounters.bootTotals()
+            await MainActor.run { [weak self] in
+                guard let self, let totals else { return }
+                self.networkTotals = totals
+            }
+        }
         sample()
         let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.sample() }
@@ -92,6 +122,14 @@ final class SystemMonitor {
         // Lần mở sau bắt đầu lại từ mốc mới, không tính khoảng nghỉ vào tốc độ.
         lastTicks = nil
         lastCounters = nil
+        lastDisk = nil
+        lastNetwork = nil
+    }
+
+    /// Ổ đĩa và giao diện mạng thay đổi ít: đọc lúc mở và mỗi 10 giây.
+    private func refreshSlow() {
+        volumes = VolumeInfo.mounted()
+        primaryInterface = NetworkInterfaceInfo.primary()
     }
 
     // MARK: Đo
@@ -99,9 +137,14 @@ final class SystemMonitor {
     private func sample() {
         guard !paused, let ticks = CPUReader.ticks(), let memory = MemoryReader.snapshot() else { return }
         let now = Date()
+        let disk = DiskCounters.read()
+        let network = NetworkCounters.read()
         defer {
             lastTicks = ticks
             lastCounters = (now, memory.pageins, memory.swapouts)
+            lastDisk = disk
+            lastNetwork = network
+            diskTotals = disk
         }
         guard let previous = lastTicks, let counters = lastCounters else { return }
         let elapsed = max(now.timeIntervalSince(counters.date), 0.001)
@@ -117,8 +160,23 @@ final class SystemMonitor {
                             pageinsPerSecond: rate(memory.pageins, counters.pageins),
                             swapoutsPerSecond: rate(memory.swapouts, counters.swapouts),
                             cpuTemperature: temperature?.average, cpuHottest: temperature?.hottest,
-                            systemPower: BatteryReader.read()?.systemLoad)
-        samples.append(sample)
+                            systemPower: BatteryReader.read()?.systemLoad, gpu: GPUReader.snapshot())
+        var withIO = sample
+        if let lastDisk {
+            withIO.diskRead = Double(disk.bytesRead &- min(lastDisk.bytesRead, disk.bytesRead)) / elapsed
+            withIO.diskWrite = Double(disk.bytesWritten &- min(lastDisk.bytesWritten, disk.bytesWritten)) / elapsed
+        }
+        if let lastNetwork {
+            let delta = NetworkCounters.delta(from: lastNetwork, to: network)
+            withIO.networkIn = Double(delta.received) / elapsed
+            withIO.networkOut = Double(delta.sent) / elapsed
+            if let totals = networkTotals {
+                networkTotals = (totals.received &+ delta.received, totals.sent &+ delta.sent)
+            }
+        }
+        samples.append(withIO)
+        self.ticks += 1
+        if self.ticks % 10 == 0 { refreshSlow() }
         if samples.count > Self.capacity { samples.removeFirst(samples.count - Self.capacity) }
         activity = SystemActivity.read()
     }

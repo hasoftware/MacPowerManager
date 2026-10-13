@@ -160,9 +160,12 @@ private struct Scenario {
                 AnyView(HistoryPage(fixedRange: range).environment(model))
             })
         }
-        page("system", .systemOverview, Mock.model(.holding), size: CGSize(width: 1000, height: 560))
+        page("system", .systemOverview, Mock.model(.holding), size: CGSize(width: 1000, height: 700))
         page("cpu", .cpu, Mock.model(.holding), size: CGSize(width: 1000, height: 760))
         page("memory", .memory, Mock.model(.holding), size: CGSize(width: 1000, height: 780))
+        page("gpu", .gpu, Mock.model(.holding), size: CGSize(width: 1000, height: 640))
+        page("disk", .disk, Mock.model(.holding), size: CGSize(width: 1000, height: 640))
+        page("network", .network, Mock.model(.holding), size: CGSize(width: 1000, height: 600))
         page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 900))
 
         list.append(Scenario(name: "glyphs", size: CGSize(width: 600, height: 1180), backend: .imageRenderer, scale: 2) {
@@ -288,12 +291,23 @@ private enum Mock {
             memory.free = 32 * gb - min(memory.used + memory.cached, 32 * gb)
             return SystemMonitor.Sample(date: now.addingTimeInterval(t - 3600), cpu: CPUUsage(user: user, system: system, perCore: cores),
                                         memory: memory, pageinsPerSecond: 57, swapoutsPerSecond: 0, cpuTemperature: 50 + 6 * wave,
-                                        cpuHottest: 56 + 8 * wave, systemPower: 9 + 6 * wave)
+                                        cpuHottest: 56 + 8 * wave, systemPower: 9 + 6 * wave,
+                                        gpu: GPUSnapshot(model: "Apple M2 Pro", cores: 19, device: 0.04 + 0.3 * wave * wave,
+                                                         renderer: 0.1 + 0.3 * wave, tiler: 0.08 + 0.25 * wave,
+                                                         memoryInUse: UInt64(1.1 * Double(gb)), memoryAllocated: UInt64(5.6 * Double(gb))),
+                                        diskRead: 200_000 + 900_000 * max(sin(t / 7), 0), diskWrite: 110_000 + 300_000 * wave,
+                                        networkIn: 2_390_000 * wave, networkOut: 13_700 + 40_000 * wave)
         }
         return SystemMonitor(preview: samples,
                              activity: SystemActivity(load1: 5.08, load5: 4.83, load15: 4.77, processCount: 612,
                                                       bootTime: now.addingTimeInterval(-24 * 86_400 - 14 * 3600)),
-                             topology: CPUTopology(brand: "Apple M2 Pro", logicalCores: 12, performanceCores: 8, efficiencyCores: 4))
+                             topology: CPUTopology(brand: "Apple M2 Pro", logicalCores: 12, performanceCores: 8, efficiencyCores: 4),
+                             volumes: [VolumeInfo(name: "Macintosh HD", path: "/", format: "APFS", device: "disk3s1s1",
+                                                  total: 995 * 1_000_000_000, available: 408 * 1_000_000_000, isInternal: true)],
+                             primaryInterface: NetworkInterfaceInfo(bsdName: "en0", displayName: "Wi-Fi", ipv4: "192.168.1.24",
+                                                                    ipv6: "fe80::1c4b:7aff:fe2d:9e31", hardwareAddress: "a4:83:e7:2b:5c:19"),
+                             diskTotals: DiskCounters(bytesRead: 2_480_000_000_000, bytesWritten: 1_010_000_000_000),
+                             networkTotals: (198_000_000_000, 24_700_000_000))
     }
 
     /// Khoảng 14 tháng nhật ký sức khỏe: macOS hạ "Maximum Capacity" từng bậc 1% vài tuần một lần.
