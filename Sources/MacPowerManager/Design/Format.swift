@@ -73,4 +73,16 @@ enum Format {
             : Date.FormatStyle(date: .abbreviated, time: .shortened)
         return date.formatted(style.locale(locale))
     }
+
+    /// "27,4 GB" (bộ nhớ, ổ đĩa).
+    static func bytes(_ value: UInt64) -> String {
+        Int64(clamping: value).formatted(.byteCount(style: .memory).locale(locale))
+    }
+
+    /// Tách số và đơn vị ("27,4", "GB") để hiện số lớn.
+    static func bytesParts(_ value: UInt64) -> (value: String, unit: String) {
+        let text = bytes(value)
+        guard let space = text.lastIndex(where: { $0 == " " || $0 == "\u{00A0}" }) else { return (text, "") }
+        return (String(text[..<space]), String(text[text.index(after: space)...]))
+    }
 }

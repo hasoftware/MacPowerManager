@@ -5,6 +5,8 @@ import SwiftUI
 enum Page: String, CaseIterable, Identifiable {
     // Theo dõi
     case overview, history, health
+    // Hệ thống
+    case systemOverview, cpu, memory
     // Chăm sóc pin
     case limit, heat, discharge, calibration, sleep
     // Ứng dụng
@@ -19,6 +21,9 @@ enum Page: String, CaseIterable, Identifiable {
         case .overview: "Tổng quan"
         case .history: "Lịch sử"
         case .health: "Tình trạng pin"
+        case .systemOverview: "Tổng quan hệ thống"
+        case .cpu: "CPU"
+        case .memory: "Bộ nhớ"
         case .limit: "Giới hạn sạc"
         case .heat: "Chống nóng"
         case .discharge: "Xả pin"
@@ -36,6 +41,9 @@ enum Page: String, CaseIterable, Identifiable {
         case .overview: "square.grid.2x2"
         case .history: "chart.xyaxis.line"
         case .health: "heart.text.square"
+        case .systemOverview: "gauge.with.dots.needle.50percent"
+        case .cpu: "cpu"
+        case .memory: "memorychip"
         case .limit: "battery.75percent"
         case .heat: "thermometer.medium"
         case .discharge: "arrow.down.to.line"
@@ -49,6 +57,7 @@ enum Page: String, CaseIterable, Identifiable {
     }
 
     static let monitor: [Page] = [.overview, .history, .health]
+    static let systemGroup: [Page] = [.systemOverview, .cpu, .memory]
     static let care: [Page] = [.limit, .heat, .discharge, .calibration, .sleep]
     static let app: [Page] = [.menuBar, .notifications, .system, .about]
 

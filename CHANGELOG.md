@@ -6,6 +6,23 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Theo dõi hệ thống** (nhóm "Hệ thống" mới trên thanh bên), phần 1:
+  - **Tổng quan hệ thống**: thẻ CPU, bộ nhớ và năng lượng với biểu đồ nhỏ; bấm thẻ để xem chi tiết.
+  - **CPU**: tải hiện tại (người dùng / hệ thống), nhiệt độ CPU (trung bình và nóng nhất, tự tìm cảm biến trên mọi
+    chip Apple Silicon), từng nhân chia theo nhân hiệu năng / tiết kiệm điện, tải 1/5/15 phút, số tiến trình,
+    thời gian chạy.
+  - **Bộ nhớ**: đang dùng, App / Wired / Đã nén / Cache theo cách Activity Monitor tính, áp lực bộ nhớ, swap,
+    tốc độ đọc trang và đẩy ra swap.
+  - Biểu đồ dạng chấm, chọn khoảng 1 phút / 5 phút / 15 phút / 1 giờ, nút tạm dừng.
+  - Chỉ đo khi bảng điều khiển đang mở (mỗi giây), đóng lại là dừng hẳn để không tốn pin.
+- `smc-probe` in thêm các cảm biến nhiệt độ CPU tìm được.
+
+### English
+- System monitoring, part 1: System Overview, CPU (user/system load, temperature, per-core with performance and
+  efficiency cores, load averages) and Memory (App/Wired/Compressed/Cached, pressure, swap). Dot-matrix charts with
+  1m/5m/15m/1h ranges. Sampling runs only while the dashboard is open.
+
 ## [0.11.0] - 2026-10-13
 
 ### Tính năng

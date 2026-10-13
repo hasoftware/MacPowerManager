@@ -29,6 +29,12 @@ do {
             print("  \(key)  type=\(r.type)  attr=\(attr)\(r.isWritable ? " (ghi được)" : "")  bytes=\(r.hex)\(value)")
         }
     }
+    let all = smc.allKeys()
+    let cpuKeys = SMCSensors.cpuTemperatureKeys(smc, allKeys: all)
+    print("[Nhiệt độ CPU] \(all.count) key, \(cpuKeys.count) cảm biến CPU")
+    if let t = SMCSensors.cpuTemperature(smc, keys: cpuKeys) {
+        print(String(format: "  trung bình %.1f°C, cao nhất %.1f°C (%@)", t.average, t.hottest, cpuKeys.joined(separator: " ")))
+    }
     let control = ChargingControl(smc: smc)
     print("---")
     print("[Khả năng] (chỉ đọc; key bị firmware khóa chỉ phát hiện được khi helper ghi)")

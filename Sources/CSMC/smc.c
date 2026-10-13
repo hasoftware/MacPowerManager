@@ -4,6 +4,7 @@
 #define KERNEL_INDEX_SMC      2
 #define SMC_CMD_READ_BYTES    5
 #define SMC_CMD_WRITE_BYTES   6
+#define SMC_CMD_READ_INDEX    8
 #define SMC_CMD_READ_KEYINFO  9
 
 #define SMC_RESULT_SUCCESS        0
@@ -133,4 +134,22 @@ kern_return_t smc_write_key(io_connect_t conn, const char *key, const uint8_t *b
     r = smc_call(conn, &in, &out);
     if (r != KERN_SUCCESS) return r;
     return smc_result(out.result);
+}
+
+kern_return_t smc_key_at_index(io_connect_t conn, uint32_t index, char *out) {
+    SMCKeyData_t in, outData;
+    memset(&in, 0, sizeof(in));
+    memset(&outData, 0, sizeof(outData));
+    in.data8 = SMC_CMD_READ_INDEX;
+    in.data32 = index;
+    kern_return_t r = smc_call(conn, &in, &outData);
+    if (r != KERN_SUCCESS) return r;
+    r = smc_result(outData.result);
+    if (r != KERN_SUCCESS) return r;
+    out[0] = (char)(outData.key >> 24);
+    out[1] = (char)(outData.key >> 16);
+    out[2] = (char)(outData.key >> 8);
+    out[3] = (char)outData.key;
+    out[4] = 0;
+    return KERN_SUCCESS;
 }

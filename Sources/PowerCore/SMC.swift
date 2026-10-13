@@ -100,6 +100,19 @@ public final class SMC: SMCAccess {
 
     public func hasKey(_ key: String) -> Bool { read(key) != nil }
 
+    /// Tất cả tên key của SMC (đọc "#KEY" rồi lần lượt theo chỉ số). Vài nghìn key, mất khoảng chục mili giây.
+    public func allKeys() -> [String] {
+        guard let count = read("#KEY").flatMap({ $0.bytes.count == 4 ? $0.bytes : nil }) else { return [] }
+        let total = count.reduce(0) { $0 << 8 | Int($1) }   // ui32, big-endian
+        var keys: [String] = []
+        keys.reserveCapacity(min(total, 10_000))
+        var name = [CChar](repeating: 0, count: 5)
+        for index in 0..<min(total, 10_000) where smc_key_at_index(connection, UInt32(index), &name) == KERN_SUCCESS {
+            keys.append(String(cString: name))
+        }
+        return keys
+    }
+
     public func write(_ key: String, _ bytes: [UInt8]) throws {
         let result = smc_write_key(connection, key, bytes, UInt32(bytes.count))
         guard result == KERN_SUCCESS else { throw SMCError(key: key, code: result) }

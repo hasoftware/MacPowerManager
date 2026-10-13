@@ -1,0 +1,176 @@
+import Foundation
+import Observation
+import PowerCore
+
+/// Số liệu hệ thống (CPU, bộ nhớ…) cho các trang Hệ thống. Chỉ đo khi có trang cần (bảng điều khiển đang mở),
+/// mỗi giây một lần, giữ tối đa 1 giờ trong bộ nhớ. App chăm sóc pin không được tự làm hao pin khi không ai xem.
+@MainActor
+@Observable
+final class SystemMonitor {
+    struct Sample: Equatable {
+        var date: Date
+        var cpu: CPUUsage
+        var memory: MemorySnapshot
+        /// Trang/giây trong khoảng vừa qua.
+        var pageinsPerSecond: Double
+        var swapoutsPerSecond: Double
+        var cpuTemperature: Double?
+        var cpuHottest: Double?
+        /// Công suất cả máy (W), từ IOKit.
+        var systemPower: Double?
+    }
+
+    enum Range: Int, CaseIterable, Identifiable {
+        case minute = 60, fiveMinutes = 300, fifteenMinutes = 900, hour = 3600
+        var id: Int { rawValue }
+        var seconds: TimeInterval { TimeInterval(rawValue) }
+        var title: String {
+            switch self {
+            case .minute: "1m"
+            case .fiveMinutes: "5m"
+            case .fifteenMinutes: "15m"
+            case .hour: "1h"
+            }
+        }
+    }
+
+    static let interval: TimeInterval = 1
+    static let capacity = 3600
+
+    private(set) var samples: [Sample] = []
+    private(set) var activity = SystemActivity(load1: 0, load5: 0, load15: 0, processCount: 0, bootTime: nil)
+    var range: Range = .minute
+    /// Tạm dừng: giữ nguyên biểu đồ, không đo thêm.
+    var paused = false
+    let topology: CPUTopology
+
+    var latest: Sample? { samples.last }
+
+    @ObservationIgnored private var consumers = 0
+    @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var lastTicks: [CPUTicks]?
+    @ObservationIgnored private var lastCounters: (date: Date, pageins: UInt64, swapouts: UInt64)?
+    @ObservationIgnored private var smc: SMC?
+    @ObservationIgnored private var temperatureKeys: [String]?
+    @ObservationIgnored private var discoveringKeys = false
+    /// Đọc nhiệt độ mỗi 3 giây (khoảng 60 cảm biến), các lần giữa dùng lại giá trị trước.
+    @ObservationIgnored private var lastTemperature: (date: Date, value: (average: Double, hottest: Double)?)?
+    @ObservationIgnored private let isPreview: Bool
+
+    init() {
+        topology = .current
+        isPreview = false
+    }
+
+    /// Dữ liệu cố định (chụp giao diện).
+    init(preview samples: [Sample], activity: SystemActivity, topology: CPUTopology) {
+        self.samples = samples
+        self.activity = activity
+        self.topology = topology
+        isPreview = true
+    }
+
+    // MARK: Bật/tắt theo người xem
+
+    func retain() {
+        consumers += 1
+        guard consumers == 1, !isPreview else { return }
+        sample()
+        let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.sample() }
+        }
+        timer.tolerance = 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    func release() {
+        consumers = max(consumers - 1, 0)
+        guard consumers == 0 else { return }
+        timer?.invalidate()
+        timer = nil
+        // Lần mở sau bắt đầu lại từ mốc mới, không tính khoảng nghỉ vào tốc độ.
+        lastTicks = nil
+        lastCounters = nil
+    }
+
+    // MARK: Đo
+
+    private func sample() {
+        guard !paused, let ticks = CPUReader.ticks(), let memory = MemoryReader.snapshot() else { return }
+        let now = Date()
+        defer {
+            lastTicks = ticks
+            lastCounters = (now, memory.pageins, memory.swapouts)
+        }
+        guard let previous = lastTicks, let counters = lastCounters else { return }
+        let elapsed = max(now.timeIntervalSince(counters.date), 0.001)
+        func rate(_ current: UInt64, _ before: UInt64) -> Double { current >= before ? Double(current - before) / elapsed : 0 }
+        let temperature: (average: Double, hottest: Double)?
+        if let last = lastTemperature, now.timeIntervalSince(last.date) < 3 {
+            temperature = last.value
+        } else {
+            temperature = readTemperature()
+            lastTemperature = (now, temperature)
+        }
+        let sample = Sample(date: now, cpu: CPUUsage.between(previous, ticks), memory: memory,
+                            pageinsPerSecond: rate(memory.pageins, counters.pageins),
+                            swapoutsPerSecond: rate(memory.swapouts, counters.swapouts),
+                            cpuTemperature: temperature?.average, cpuHottest: temperature?.hottest,
+                            systemPower: BatteryReader.read()?.systemLoad)
+        samples.append(sample)
+        if samples.count > Self.capacity { samples.removeFirst(samples.count - Self.capacity) }
+        activity = SystemActivity.read()
+    }
+
+    /// Nhiệt độ CPU từ SMC. Lần đầu tìm danh sách cảm biến ở luồng nền (liệt kê vài nghìn key mất khoảng 1 giây).
+    private func readTemperature() -> (average: Double, hottest: Double)? {
+        if let keys = temperatureKeys, let smc { return SMCSensors.cpuTemperature(smc, keys: keys) }
+        guard !discoveringKeys else { return nil }
+        discoveringKeys = true
+        Task.detached(priority: .utility) {
+            let smc = try? SMC()
+            let keys = smc.map { SMCSensors.cpuTemperatureKeys($0, allKeys: $0.allKeys()) } ?? []
+            await MainActor.run { [weak self] in
+                self?.smc = smc
+                self?.temperatureKeys = keys
+            }
+        }
+        return nil
+    }
+
+    // MARK: Dữ liệu cho biểu đồ
+
+    /// Mẫu trong khoảng đang xem.
+    var visibleSamples: [Sample] {
+        guard let last = samples.last else { return [] }
+        let start = last.date.addingTimeInterval(-range.seconds)
+        return samples.filter { $0.date > start }
+    }
+
+    /// Chia khoảng đang xem thành `count` cột (cũ → mới), mỗi cột là trung bình các mẫu trong đó.
+    /// Cột chưa có dữ liệu (mới mở) là nil. `value` trả về các tầng xếp chồng (0…1).
+    func columns(_ count: Int, _ value: (Sample) -> [Double]) -> [[Double]?] {
+        guard count > 0, let last = samples.last else { return Array(repeating: nil, count: max(count, 0)) }
+        let end = last.date.timeIntervalSinceReferenceDate
+        let width = range.seconds / Double(count)
+        var sums = [[Double]?](repeating: nil, count: count)
+        var counts = [Int](repeating: 0, count: count)
+        for sample in samples.reversed() {
+            let age = end - sample.date.timeIntervalSinceReferenceDate
+            guard age < range.seconds else { break }
+            let index = count - 1 - min(Int(age / width), count - 1)
+            let v = value(sample)
+            sums[index] = sums[index].map { zip($0, v).map(+) } ?? v
+            counts[index] += 1
+        }
+        return zip(sums, counts).map { sum, n in sum.map { $0.map { $0 / Double(n) } } }
+    }
+
+    /// Trung bình và cao nhất của một giá trị trong khoảng đang xem.
+    func stats(_ value: (Sample) -> Double) -> (average: Double, peak: Double)? {
+        let values = visibleSamples.map(value)
+        guard let peak = values.max() else { return nil }
+        return (values.reduce(0, +) / Double(values.count), peak)
+    }
+}

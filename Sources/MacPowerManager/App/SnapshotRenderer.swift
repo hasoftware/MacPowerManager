@@ -160,6 +160,9 @@ private struct Scenario {
                 AnyView(HistoryPage(fixedRange: range).environment(model))
             })
         }
+        page("system", .systemOverview, Mock.model(.holding), size: CGSize(width: 1000, height: 560))
+        page("cpu", .cpu, Mock.model(.holding), size: CGSize(width: 1000, height: 760))
+        page("memory", .memory, Mock.model(.holding), size: CGSize(width: 1000, height: 780))
         page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 900))
 
         list.append(Scenario(name: "glyphs", size: CGSize(width: 600, height: 1180), backend: .imageRenderer, scale: 2) {
@@ -268,6 +271,30 @@ private enum Mock {
                   downloadURL: URL(string: "https://github.com/hasoftware/MacPowerManager/releases/download/v0.3.0/SHA256SUMS.txt")!,
                   size: 184),
         ])
+
+    /// 1 giờ số liệu hệ thống giả: CPU dao động, bộ nhớ gần 85%.
+    static func system() -> SystemMonitor {
+        let now = Date()
+        let gb: UInt64 = 1 << 30
+        let samples = (0..<3600).map { i -> SystemMonitor.Sample in
+            let t = Double(i)
+            let wave = 0.5 + 0.5 * sin(t / 9) * cos(t / 23)
+            let user = 0.12 + 0.3 * wave, system = 0.06 + 0.12 * wave
+            let cores = (0..<12).map { c in min(max(user + system + 0.25 * sin(t / 5 + Double(c)), 0.02), 1) }
+            var memory = MemorySnapshot(total: 32 * gb, app: UInt64(Double(gb) * (8 + wave)), wired: UInt64(5.3 * Double(gb)),
+                                        compressed: UInt64(Double(gb) * (12 + wave)), cached: UInt64(3.2 * Double(gb)),
+                                        free: UInt64(Double(gb) * (1.5 - wave)), swapUsed: 12 * gb, swapTotal: 13 * gb,
+                                        pressureLevel: 2, pressurePercent: 63)
+            memory.free = 32 * gb - min(memory.used + memory.cached, 32 * gb)
+            return SystemMonitor.Sample(date: now.addingTimeInterval(t - 3600), cpu: CPUUsage(user: user, system: system, perCore: cores),
+                                        memory: memory, pageinsPerSecond: 57, swapoutsPerSecond: 0, cpuTemperature: 50 + 6 * wave,
+                                        cpuHottest: 56 + 8 * wave, systemPower: 9 + 6 * wave)
+        }
+        return SystemMonitor(preview: samples,
+                             activity: SystemActivity(load1: 5.08, load5: 4.83, load15: 4.77, processCount: 612,
+                                                      bootTime: now.addingTimeInterval(-24 * 86_400 - 14 * 3600)),
+                             topology: CPUTopology(brand: "Apple M2 Pro", logicalCores: 12, performanceCores: 8, efficiencyCores: 4))
+    }
 
     /// Khoảng 14 tháng nhật ký sức khỏe: macOS hạ "Maximum Capacity" từng bậc 1% vài tuần một lần.
     static func healthLog() -> [HealthPoint] {
@@ -406,7 +433,7 @@ private enum Mock {
         b.currentCapacity = b.maxCapacity * b.percent / 100
         return AppModel(preview: b, status: install == .outdated("?") ? nil : status, installState: install,
                         samples: history(endPercent: b.percent, limit: 80, hours: historyHours),
-                        healthPoints: healthLog(), conflicts: conflicts,
+                        healthPoints: healthLog(), system: system(), conflicts: conflicts,
                         temperature: temperature, prefs: prefs, needsMove: kind == .noHelper, update: update)
     }
 

@@ -11,6 +11,7 @@ struct RootView: View {
         NavigationSplitView {
             List(selection: Binding<Page?>(get: { current }, set: { if let p = $0 { page = p } })) {
                 Section("Theo dõi") { rows(Page.monitor) }
+                Section("Hệ thống") { rows(Page.systemGroup) }
                 Section("Chăm sóc pin") { rows(Page.care.filter(isVisible)) }
                 Section("Ứng dụng") { rows(Page.app) }
             }
@@ -20,6 +21,9 @@ struct RootView: View {
                 .navigationTitle(current.title)
         }
         // App chỉ sống trên thanh menu; hiện biểu tượng Dock khi bảng điều khiển đang mở để dễ chuyển cửa sổ.
+        // Đo số liệu hệ thống chỉ khi bảng điều khiển đang mở (giá trị trên thanh bên, các trang Hệ thống).
+        .onAppear { model.system.retain() }
+        .onDisappear { model.system.release() }
         .onAppear {
             guard !model.isPreview else { return }
             NSApp.setActivationPolicy(.regular)
@@ -28,6 +32,16 @@ struct RootView: View {
         .onDisappear {
             guard !model.isPreview else { return }
             NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    private func badge(for page: Page) -> Text? {
+        let latest = model.system.latest
+        switch page {
+        case .system: return model.hasSystemIssue ? Text("!") : nil
+        case .cpu: return latest.map { Text(verbatim: Format.percent($0.cpu.total * 100)) }
+        case .memory: return latest.map { Text(verbatim: Format.percent(Double($0.memory.used) / Double(max($0.memory.total, 1)) * 100)) }
+        default: return nil
         }
     }
 
@@ -41,7 +55,7 @@ struct RootView: View {
     private func rows(_ pages: [Page]) -> some View {
         ForEach(pages) { page in
             Label(page.title, systemImage: page.symbol)
-                .badge(page == .system && model.hasSystemIssue ? Text("!") : nil)
+                .badge(badge(for: page))
                 .tag(page)
         }
     }
@@ -55,6 +69,9 @@ struct PageView: View {
         case .overview: OverviewPage()
         case .history: HistoryPage()
         case .health: HealthPage()
+        case .systemOverview: SystemOverviewPage()
+        case .cpu: CPUPage()
+        case .memory: MemoryPage()
         case .limit: LimitPage()
         case .heat: HeatPage()
         case .discharge: DischargePage()
