@@ -30,6 +30,16 @@ final class UpdateInstaller {
 
     @ObservationIgnored private var task: Task<Void, Never>?
 
+    /// Xóa thư mục tải tạm của lần cập nhật trước: app thoát để tự thay mình nên không kịp dọn.
+    static func removeLeftovers() {
+        let fm = FileManager.default
+        let temp = fm.temporaryDirectory
+        guard let items = try? fm.contentsOfDirectory(atPath: temp.path) else { return }
+        for name in items where name.hasPrefix("MacPowerManager-update-") {
+            try? fm.removeItem(at: temp.appendingPathComponent(name))
+        }
+    }
+
     func install(_ release: ReleaseInfo) {
         guard !isBusy, let archive = release.updateArchive, let signature = release.updateSignature else { return }
         task = Task { await run(release: release, archive: archive, signature: signature) }

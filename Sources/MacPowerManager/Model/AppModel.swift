@@ -56,6 +56,7 @@ final class AppModel {
         guard !started, !isPreview else { return }
         started = true
         notifier.requestAuthorization()
+        UpdateInstaller.removeLeftovers()
         needsMove = AppMover.needsMove
         refresh()
         scanConflicts()

@@ -6,6 +6,12 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- Dọn thư mục tải tạm của lần tự cập nhật trước khi mở app (khoảng 3 MB mỗi lần cập nhật).
+
+### English
+- Clean up the temporary download folder left by the previous in-app update.
+
 ## [0.5.1] - 2026-10-13
 
 ### Sửa lỗi
