@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-13
+
 ### Tính năng
 - **Hiệu chuẩn pin** (trang mới "Hiệu chuẩn", Apple Silicon): một nút bấm chạy cả chu trình sạc lên 100% và giữ
   1 giờ, xả xuống 15%, sạc đầy lại, giữ 1 giờ rồi trở về giới hạn. Giúp số % và "Dung lượng tối đa" chính xác lại
@@ -200,7 +202,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.2...v0.6.0
