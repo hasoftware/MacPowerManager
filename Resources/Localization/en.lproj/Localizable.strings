@@ -782,3 +782,23 @@
 "Tiến trình đã kết thúc" = "Process Ended";
 "Tìm tiến trình" = "Search processes";
 "Xem tất cả" = "Show All";
+
+/* Giới thiệu máy này (v0.15.0) */
+"%lld (%lld hiệu năng, %lld tiết kiệm điện)" = "%1$lld (%2$lld Performance, %3$lld Efficiency)";
+"Bản dựng" = "Build";
+"còn trống %@ / %@" = "%1$@ free of %2$@";
+"Đã chạy %@" = "Up %@";
+"Giới thiệu máy này" = "About This Mac";
+"Hệ điều hành" = "System";
+"Khởi động lúc" = "Started";
+"Kiến trúc" = "Architecture";
+"Lưu trữ" = "Storage";
+"Mã mẫu máy" = "Model identifier";
+"macOS %@ (%@)" = "macOS %1$@ (%2$@)";
+"Mẫu máy" = "Model";
+"Nhân CPU" = "CPU cores";
+"Nhân GPU" = "GPU cores";
+"Nhân hệ thống" = "Kernel";
+"Phần cứng" = "Hardware";
+"Phần mềm" = "Software";
+"Tên máy" = "Computer name";

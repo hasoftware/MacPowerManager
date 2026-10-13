@@ -165,6 +165,7 @@ private struct Scenario {
         page("memory", .memory, Mock.model(.holding), size: CGSize(width: 1000, height: 780))
         page("processes", .processes, Mock.model(.holding), size: CGSize(width: 1000, height: 560))
         page("energy", .energy, Mock.model(.holding), size: CGSize(width: 1000, height: 900))
+        page("aboutmac", .aboutMac, Mock.model(.holding), size: CGSize(width: 1000, height: 700))
         page("gpu", .gpu, Mock.model(.holding), size: CGSize(width: 1000, height: 640))
         page("disk", .disk, Mock.model(.holding), size: CGSize(width: 1000, height: 900))
         page("network", .network, Mock.model(.holding), size: CGSize(width: 1000, height: 600))

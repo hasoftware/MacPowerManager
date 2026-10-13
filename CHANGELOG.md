@@ -6,6 +6,14 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Giới thiệu máy này** (nhóm Hệ thống): mẫu máy, chip, số nhân CPU (hiệu năng / tiết kiệm điện) và GPU, bộ nhớ,
+  phiên bản và bản dựng macOS, nhân hệ thống, tên máy, thời điểm khởi động, thời gian chạy, dung lượng các ổ.
+
+### English
+- About This Mac page: model, chip, CPU and GPU cores, memory, macOS version and build, kernel, computer name,
+  uptime and storage.
+
 ## [0.14.0] - 2026-10-13
 
 ### Tính năng

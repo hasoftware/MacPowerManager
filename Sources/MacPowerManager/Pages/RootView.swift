@@ -82,6 +82,7 @@ struct PageView: View {
         case .network: NetworkPage()
         case .processes: ProcessesPage()
         case .energy: EnergyPage()
+        case .aboutMac: AboutMacPage()
         case .limit: LimitPage()
         case .heat: HeatPage()
         case .discharge: DischargePage()
