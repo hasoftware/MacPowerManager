@@ -157,7 +157,7 @@ private struct Scenario {
                 AnyView(HistoryPage(fixedRange: range).environment(model))
             })
         }
-        page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 760))
+        page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 900))
 
         list.append(Scenario(name: "glyphs", size: CGSize(width: 600, height: 1180), backend: .imageRenderer, scale: 2) {
             AnyView(GlyphSheet())
@@ -266,6 +266,19 @@ private enum Mock {
                   size: 184),
         ])
 
+    /// Khoảng 14 tháng nhật ký sức khỏe: macOS hạ "Maximum Capacity" từng bậc 1% vài tuần một lần.
+    static func healthLog() -> [HealthPoint] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return stride(from: 420, through: 0, by: -3).map { daysAgo in
+            let progress = Double(420 - daysAgo) / 420
+            let day = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            return HealthPoint(day: day, maximumCapacityPercent: 96 - Int(progress * 5.4),
+                               estimatedPercent: 95.5 - progress * 5.2 + sin(Double(daysAgo)) * 0.6,
+                               cycleCount: 40 + Int(progress * 52), nominalCapacity: 7822, designCapacity: 8694)
+        }
+    }
+
     static func model(_ kind: Kind, update: UpdateChecker.State = .idle, historyHours: Double = 26) -> AppModel {
         var b = BatteryInfo()
         b.designCapacity = 8694
@@ -373,7 +386,8 @@ private enum Mock {
 
         b.currentCapacity = b.maxCapacity * b.percent / 100
         return AppModel(preview: b, status: install == .outdated("?") ? nil : status, installState: install,
-                        samples: history(endPercent: b.percent, limit: 80, hours: historyHours), conflicts: conflicts,
+                        samples: history(endPercent: b.percent, limit: 80, hours: historyHours),
+                        healthPoints: healthLog(), conflicts: conflicts,
                         temperature: temperature, prefs: prefs, needsMove: kind == .noHelper, update: update)
     }
 

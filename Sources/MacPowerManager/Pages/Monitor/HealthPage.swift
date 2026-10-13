@@ -53,6 +53,8 @@ struct HealthPage: View {
                         .frame(width: 300, height: 210)
                     }
 
+                    HealthTrendCard(points: model.healthLog.points, trend: model.healthLog.trend)
+
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.Space.m, alignment: .top),
                                              count: width >= 1000 ? 4 : 2),
                               spacing: Theme.Space.m) {

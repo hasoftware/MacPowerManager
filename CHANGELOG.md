@@ -6,6 +6,15 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Sức khỏe pin theo thời gian** (trang Tình trạng pin): app ghi mỗi ngày một điểm (con số "Dung lượng tối đa" của
+  macOS, ước tính từ IOKit và số lần sạc) và lưu lâu dài. Biểu đồ nhiều tháng cho thấy pin chai dần thế nào. Sau khoảng
+  30 ngày dữ liệu, app ước tính tốc độ chai mỗi năm, còn bao lâu pin xuống dưới 80% và số lần sạc mỗi tháng.
+
+### English
+- Long-term battery health tracking: one point per day, a multi-month chart, yearly wear rate and an estimate of
+  when the battery drops below 80% (after about 30 days of data).
+
 ## [0.6.0] - 2026-10-13
 
 ### Tính năng

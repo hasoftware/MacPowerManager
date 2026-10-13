@@ -42,6 +42,8 @@ giới hạn sạc, sạc đầy một lần, xả pin, chống nóng, lịch s�
 ## Tính năng
 
 - **Thông tin pin**: %, dung lượng (mAh), sức khỏe, chu kỳ, điện áp, dòng, công suất, nhiệt độ (SMC + IOKit), adapter.
+- **Sức khỏe theo thời gian**: mỗi ngày ghi một điểm, vẽ biểu đồ nhiều tháng, tính tốc độ chai pin mỗi năm và ước tính
+  còn bao lâu pin xuống dưới 80%.
 - **Giới hạn sạc**: dừng sạc ở X% và chỉ sạc lại khi pin giảm quá **khoảng sạc lại** (chỉnh được), tránh bật/tắt sạc liên tục.
   - **Sạc tới giới hạn ngay**: bỏ qua khoảng sạc lại một lần, sạc thẳng tới giới hạn rồi tự tắt.
   - **Sạc đầy một lần**: sạc tới 100% một lần (ví dụ trước chuyến đi); giới hạn trở lại khi rút sạc hoặc hết hạn.
@@ -260,7 +262,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 - Heat Guard (pause charging above a temperature threshold, resume once cool)
 - effect verification: after blocking charging the helper checks that the battery really stopped charging and warns you if not
 - conflict detection: other charge controllers (AlDente, batt, Battery Toolkit, actuallymentor/battery) and foreign writes to the SMC keys the helper manages
-- battery details, health and history charts
+- battery details, health and history charts, long-term health tracking with a wear-rate estimate
 - notifications
 - a sidebar window (Overview, History, Battery Health, Charge Limit, Heat Guard, Discharge, Sleep, Menu Bar, Notifications, System & Helper, About) plus a menu bar popover
 
