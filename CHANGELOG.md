@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-13
+
 ### Tính năng
 - **Biểu tượng pin kiểu iPhone** trên thanh menu: số % nằm ngay trong viên pin, tô theo mức pin, kèm huy hiệu trạng thái
   (tia sét khi sạc, lá khi giữ mức…). Đây là kiểu mặc định mới; đổi lại trong Cài đặt → Thanh menu → Kiểu hiển thị.
@@ -160,7 +162,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.4.0...v0.5.0
