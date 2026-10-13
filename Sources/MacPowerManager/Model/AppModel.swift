@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 import PowerCore
@@ -19,6 +20,8 @@ final class AppModel {
     let notifier = Notifier()
     /// Kiểm tra bản mới trên GitHub (yêu cầu mạng duy nhất của app).
     let updates: UpdateChecker
+    /// Tải và cài bản cập nhật ngay trong app.
+    let installer = UpdateInstaller()
     var prefs: Preferences {
         didSet {
             guard prefs != oldValue, !isPreview else { return }
@@ -61,7 +64,10 @@ final class AppModel {
             AppMover.promptIfNeeded()
             needsMove = AppMover.needsMove
         }
-        Task { await helper.refresh() }
+        Task {
+            await helper.refresh()
+            await promptHelperReinstallAfterUpdate()
+        }
         updates.setAutomatic(prefs.autoCheckUpdates)
 
         observer = BatteryReader.observeChanges { [weak self] in
@@ -122,6 +128,27 @@ final class AppModel {
             }.value
             if let health { macOSHealth = health } else { healthFetchedAt = nil }
         }
+    }
+
+    /// Vừa tự cập nhật xong: bản app mới có cdhash khác nên helper cũ không nhận lệnh; nhắc cài lại helper ngay.
+    private func promptHelperReinstallAfterUpdate() async {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: UpdateInstaller.pendingHelperReinstallKey) else { return }
+        defaults.removeObject(forKey: UpdateInstaller.pendingHelperReinstallKey)
+        guard helper.installState != .installed, helper.installState != .notInstalled || helperPlistExists else { return }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Đã cập nhật lên MacPowerManager \(AppVersion.current)")
+        alert.informativeText = String(localized: "Cần cài lại helper để app tiếp tục điều khiển sạc. macOS sẽ hỏi mật khẩu quản trị.")
+        alert.addButton(withTitle: String(localized: "Cài lại helper"))
+        alert.addButton(withTitle: String(localized: "Để sau"))
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            await helper.install()
+        }
+    }
+
+    private var helperPlistExists: Bool {
+        FileManager.default.fileExists(atPath: PowerConstants.launchDaemonPath)
     }
 
     /// Quét ứng dụng điều khiển sạc khác ở luồng nền (đọc file và danh sách tiến trình).

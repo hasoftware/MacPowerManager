@@ -523,7 +523,6 @@
 "Bạn đang dùng v%@" = "You have v%@";
 "Bản phát hành này chưa có ghi chú." = "This release has no notes yet.";
 "Ghi chú phát hành được viết bằng tiếng Việt." = "Release notes are written in Vietnamese.";
-"Sau khi cập nhật, mở app và cài lại helper (app sẽ tự nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó." = "After updating, open the app and reinstall the helper (the app will prompt you): the helper only accepts commands from the exact app build that installed it.";
 "Bỏ qua bản này" = "Skip This Version";
 "Không nhắc lại bản này. Bản mới hơn vẫn được thông báo." = "Don’t remind me about this version. Newer versions will still be announced.";
 "Nhắc lại sau 24 giờ." = "Remind me in 24 hours.";
@@ -549,3 +548,19 @@
 "Mở lại app để áp dụng ngôn ngữ mới." = "Relaunch the app to apply the new language.";
 "\"Theo hệ thống\" dùng ngôn ngữ ưu tiên trong Cài đặt hệ thống › Chung › Ngôn ngữ & Khu vực." = "“System Default” follows the preferred language in System Settings › General › Language & Region.";
 "English" = "English";
+
+/* Cập nhật tự động */
+"Đã cập nhật lên MacPowerManager %@" = "Updated to MacPowerManager %@";
+"Cần cài lại helper để app tiếp tục điều khiển sạc. macOS sẽ hỏi mật khẩu quản trị." = "Reinstall the helper so the app can keep controlling charging. macOS will ask for an administrator password.";
+"Cài lại helper" = "Reinstall Helper";
+"Chữ ký bản cập nhật không hợp lệ. Đã hủy để bảo vệ máy của bạn." = "The update’s signature is invalid. The update was cancelled to protect your Mac.";
+"Bản tải về không phải bản cập nhật hợp lệ (%@)." = "The download isn’t a valid update (%@).";
+"Không ghi được vào %@. Hãy tải bản cập nhật thủ công." = "Can’t write to %@. Please download the update manually.";
+"Kiểm tra bản cập nhật thất bại (%@)." = "Update verification failed (%@).";
+"Sau khi cập nhật, app tự mở lại và nhắc cài lại helper (cần mật khẩu quản trị): helper chỉ nhận lệnh từ đúng bản app đã cài nó." = "After updating, the app relaunches and asks you to reinstall the helper (administrator password required): the helper only accepts commands from the exact app build that installed it.";
+"Cập nhật ngay" = "Update Now";
+"Tải, kiểm tra chữ ký và cài bản mới, rồi mở lại app." = "Download, verify the signature, install the new version and relaunch the app.";
+"Đang tải %lld%%" = "Downloading %lld%%";
+"Đang kiểm tra chữ ký…" = "Verifying signature…";
+"Đang cài và mở lại app…" = "Installing and relaunching…";
+"Tải .dmg thủ công" = "Download .dmg Manually";

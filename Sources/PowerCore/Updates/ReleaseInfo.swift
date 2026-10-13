@@ -170,6 +170,21 @@ public struct ReleaseInfo: Decodable, Equatable, Sendable {
         return dmgs.first
     }
 
+    /// File `.zip` của app dùng cho cập nhật tự động (`MacPowerManager-X.Y.Z.zip`).
+    public var updateArchive: Asset? {
+        guard let version else { return nil }
+        return assets.first { $0.name == "MacPowerManager-\(version).zip" }
+    }
+
+    /// Chữ ký Ed25519 của file `.zip` (`MacPowerManager-X.Y.Z.zip.sig`). Bản phát hành cũ không có.
+    public var updateSignature: Asset? {
+        guard let archive = updateArchive else { return nil }
+        return assets.first { $0.name == archive.name + ".sig" }
+    }
+
+    /// Cập nhật tự động được khi bản phát hành có cả file .zip và chữ ký.
+    public var supportsAutomaticUpdate: Bool { updateArchive != nil && updateSignature != nil }
+
     /// Liên kết tải: file .dmg nếu có, nếu không thì trang release.
     public var downloadURL: URL { diskImage?.downloadURL ?? pageURL }
 

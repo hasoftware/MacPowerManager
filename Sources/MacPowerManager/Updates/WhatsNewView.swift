@@ -109,7 +109,7 @@ private struct WhatsNewContent: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 20)
-            Text("Sau khi cập nhật, mở app và cài lại helper (app sẽ tự nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó.")
+            Text("Sau khi cập nhật, app tự mở lại và nhắc cài lại helper (cần mật khẩu quản trị): helper chỉ nhận lệnh từ đúng bản app đã cài nó.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -141,17 +141,64 @@ private struct WhatsNewContent: View {
                 model.updates.openReleasePage(release)
             }
             .fixedSize()
-            Button("Tải bản cập nhật") {
-                model.updates.download(release)
-                dismiss()
+            if release.supportsAutomaticUpdate {
+                Button("Cập nhật ngay") {
+                    model.installer.install(release)
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .help("Tải, kiểm tra chữ ký và cài bản mới, rồi mở lại app.")
+                .fixedSize()
+            } else {
+                // Bản phát hành cũ chưa có chữ ký: chỉ tải thủ công được.
+                Button("Tải bản cập nhật") {
+                    model.updates.download(release)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .help(release.downloadURL.absoluteString)
+                .fixedSize()
             }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
-            .help(release.downloadURL.absoluteString)
-            .fixedSize()
         }
         .controlSize(.regular)
         .fixedSize(horizontal: false, vertical: true)
+        .disabled(model.installer.isBusy)
+        .overlay(alignment: .top) { progress.offset(y: -36) }
+    }
+
+    /// Tiến độ cập nhật tự động (tải, kiểm tra, cài) hoặc lỗi kèm đường tải thủ công.
+    @ViewBuilder
+    private var progress: some View {
+        switch model.installer.phase {
+        case .idle:
+            EmptyView()
+        case .downloading(let fraction):
+            HStack(spacing: Theme.Space.s) {
+                ProgressView(value: fraction).frame(maxWidth: .infinity)
+                Text("Đang tải \(Int(fraction * 100))%").font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                Button("Hủy") { model.installer.cancel() }.controlSize(.small)
+            }
+        case .verifying:
+            HStack(spacing: Theme.Space.s) {
+                ProgressView().controlSize(.small)
+                Text("Đang kiểm tra chữ ký…").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+            }
+        case .installing:
+            HStack(spacing: Theme.Space.s) {
+                ProgressView().controlSize(.small)
+                Text("Đang cài và mở lại app…").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+            }
+        case .failed(let message):
+            HStack(spacing: Theme.Space.s) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Text(message).font(.caption).lineLimit(2)
+                Spacer()
+                Button("Tải .dmg thủ công") { model.updates.download(release) }.controlSize(.small)
+            }
+        }
     }
 }
 

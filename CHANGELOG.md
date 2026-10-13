@@ -6,6 +6,14 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Tự động cập nhật**: bấm "Cập nhật ngay" trong cửa sổ Có gì mới, app tự tải, kiểm tra chữ ký số và cài bản mới
+  rồi mở lại; không cần tải và kéo file `.dmg` nữa. Sau khi mở lại, app nhắc cài lại helper (cần mật khẩu quản trị).
+- Bản cập nhật được ký bằng Ed25519; app chỉ cài bản có chữ ký hợp lệ của HASOFTWARE, đúng app và mới hơn bản đang chạy.
+
+### English
+- One-click in-app updates: download, Ed25519 signature check, install and relaunch; the app then prompts to reinstall the helper.
+
 ## [0.4.0] - 2026-10-13
 
 ### Cải tiến

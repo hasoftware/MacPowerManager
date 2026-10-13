@@ -123,6 +123,12 @@ Giao diện có cả tiếng Việt và tiếng Anh (chọn trong **Thanh menu �
    **Sau mỗi lần cập nhật app phải cài lại helper** (app sẽ nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó
    (ghim theo cdhash), nên bản app mới chưa điều khiển được sạc cho tới khi cài lại.
 
+## Cập nhật
+
+Từ v0.5.0, app tự kiểm tra bản mới. Bấm **Cập nhật ngay** trong cửa sổ **Có gì mới**: app tự tải, kiểm tra chữ ký số
+(Ed25519, khóa của HASOFTWARE) và cài bản mới rồi mở lại. Sau đó app nhắc **cài lại helper** (cần mật khẩu quản trị),
+vì helper chỉ nhận lệnh từ đúng bản app đã cài nó.
+
 ## Quyền riêng tư
 
 Dữ liệu pin (lịch sử 7 ngày, cài đặt) chỉ nằm trên máy của bạn. Yêu cầu mạng **duy nhất** của app là kiểm tra cập nhật:
