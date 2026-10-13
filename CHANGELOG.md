@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-13
+
 ### Tính năng
 - **Sạc đầy theo lịch** (trang Giới hạn sạc): chọn các ngày trong tuần và giờ cần pin đầy (ví dụ 8:00 thứ Hai–thứ
   Sáu). Helper tự bắt đầu sạc sớm vừa đủ (khoảng 1 giờ từ 80%, lâu hơn nếu pin thấp), giữ 100% thêm 2 giờ rồi trở về
@@ -183,7 +185,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.1...v0.5.2
