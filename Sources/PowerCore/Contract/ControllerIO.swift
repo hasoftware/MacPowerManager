@@ -41,11 +41,14 @@ public struct TopUpState: Codable, Equatable, Sendable {
     public var expiresAt: Date
     /// `kern.bootsessionuuid` lúc bắt đầu: khác thì máy đã khởi động lại.
     public var bootSessionUUID: String
+    /// Giờ hẹn pin đầy nếu phiên này do lịch sạc đầy bắt đầu (nil = người dùng bấm).
+    public var scheduledFor: Date?
 
-    public init(startedAt: Date, expiresAt: Date, bootSessionUUID: String) {
+    public init(startedAt: Date, expiresAt: Date, bootSessionUUID: String, scheduledFor: Date? = nil) {
         self.startedAt = startedAt
         self.expiresAt = expiresAt
         self.bootSessionUUID = bootSessionUUID
+        self.scheduledFor = scheduledFor
     }
 }
 
@@ -58,6 +61,8 @@ public struct ControllerState: Codable, Equatable, Sendable {
     public var topUp: TopUpState?
     /// Thời điểm bắt đầu ngắt adapter của lần xả hiện tại (hạn thuê I2). Nil khi không xả.
     public var dischargeStartedAt: Date?
+    /// Giờ hẹn của lần sạc đầy theo lịch đã xử lý (đã bắt đầu, hoặc người dùng đã hủy): không bắt đầu lại lần nữa.
+    public var scheduledChargeHandled: Date?
 
     public init() {}
 
@@ -68,6 +73,7 @@ public struct ControllerState: Codable, Equatable, Sendable {
         chargeToLimitOnce = (try? c.decodeIfPresent(Bool.self, forKey: .chargeToLimitOnce)) ?? nil ?? false
         topUp = (try? c.decodeIfPresent(TopUpState.self, forKey: .topUp)) ?? nil
         dischargeStartedAt = (try? c.decodeIfPresent(Date.self, forKey: .dischargeStartedAt)) ?? nil
+        scheduledChargeHandled = (try? c.decodeIfPresent(Date.self, forKey: .scheduledChargeHandled)) ?? nil
     }
 }
 

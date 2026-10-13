@@ -95,7 +95,8 @@ public enum ChargeController {
             return .newBoot
         }
         if input.now >= topUp.expiresAt { return .expired }
-        if !input.acPresent { return .unplugged }
+        // Sạc đầy theo lịch: rút sạc trước giờ hẹn (ví dụ chuyển chỗ ngồi) không hủy, cắm lại thì sạc tiếp.
+        if !input.acPresent, topUp.scheduledFor.map({ input.now >= $0 }) ?? true { return .unplugged }
         if config.dischargeEnabled { return .cancelled }
         return nil
     }

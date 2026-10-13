@@ -293,6 +293,7 @@ private enum Mock {
         var config = PowerConfig()
         config.chargeLimit = 80
         config.sailingGap = 5
+        config.fullChargeSchedule = ChargeSchedule(enabled: true, weekdays: [2, 3, 4, 5, 6], hour: 8, minute: 0)
         var status = HelperStatus(version: AppVersion.current, config: config, chargingKeys: "CHTE", adapterKeys: "CHIE",
                                   chargingEnabled: false, adapterEnabled: true, reason: .limitReached,
                                   temperature: 33.4, lastError: nil)

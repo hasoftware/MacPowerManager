@@ -584,3 +584,15 @@
 "~%lld tháng" = "~%lld mo";
 "~%lld năm" = "~%lld yr";
 "~%lld năm %lld tháng" = "~%1$lld yr %2$lld mo";
+
+/* Sạc đầy theo lịch (v0.8.0) */
+"Đang sạc đầy theo lịch" = "Scheduled full charge in progress";
+"Đầy lúc %@; giữ 100%% tới %@ hoặc tới khi rút sạc sau giờ hẹn." = "Full by %1$@; stays at 100%% until %2$@ or until you unplug after that time.";
+"Sạc đầy theo lịch" = "Scheduled Full Charge";
+"Pin đầy lúc" = "Full by";
+"Lần tới" = "Next";
+"%@ %@ · bắt đầu sạc khoảng %@" = "%1$@ %2$@ · charging starts around %3$@";
+"Chưa chọn ngày nào" = "No days selected";
+"Pin được sạc tới 100% đúng giờ hẹn (ví dụ trước khi đi làm), giữ đầy thêm 2 giờ rồi trở về giới hạn. Rút sạc sau giờ hẹn cũng trả lại giới hạn. Máy cần cắm sạc; nếu máy đang ngủ, helper hẹn giờ đánh thức máy để bắt đầu sạc." = "The battery reaches 100% by the time you set (for example before work), stays full for 2 more hours, then returns to the limit. Unplugging after that time also restores the limit. The Mac must be plugged in; if it is asleep, the helper schedules a wake to start charging.";
+"Hôm nay" = "Today";
+"Ngày mai" = "Tomorrow";

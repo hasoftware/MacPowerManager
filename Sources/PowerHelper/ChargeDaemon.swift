@@ -69,6 +69,8 @@ final class ChargeDaemon {
     private var notifyPort: IONotificationPortRef?
     private var notifier: io_object_t = 0
     private var sleepAssertion: IOPMAssertionID = 0
+    /// Giờ đánh thức máy đã hẹn với hệ thống cho lịch sạc đầy (để hủy khi lịch đổi).
+    private var scheduledWake: Date?
     /// Lịch sử pin do helper ghi (chạy cả khi app đã thoát và trong dark wake).
     private let history = HistoryRecorder()
 
@@ -152,6 +154,9 @@ final class ChargeDaemon {
         let input = ControllerInput(now: now, percent: battery.percent, temperature: temperature,
                                     acPresent: acPresent, lidClosed: lidClosed ?? false,
                                     bootSessionUUID: bootSessionUUID)
+        if let readyBy = ScheduledCharge.startIfDue(state: &runtime.controller, config: effective, input: input) {
+            log("Bắt đầu sạc đầy theo lịch ở \(battery.percent)%: đầy lúc \(readyBy)")
+        }
         let decision = ChargeController.decide(input: input, config: effective, state: &runtime.controller)
         handle(effects: decision.effects, percent: battery.percent)
         // I1: pin nguy hiểm thì bật adapter bằng mọi key ngắt adapter, kể cả do tiến trình khác ghi (CH0I/CH0J).
@@ -512,6 +517,7 @@ final class ChargeDaemon {
     }
 
     private func prepareForSleep() {
+        scheduleChargeWake()
         guard intel == nil else { return }  // Intel: firmware tự giữ giới hạn khi ngủ.
         // Không bao giờ để máy ngủ khi adapter đang bị ngắt.
         let state = SleepGate.sleepState(config: config, currentCharging: control.isChargingEnabled,
@@ -523,6 +529,36 @@ final class ChargeDaemon {
         adapterCutSince = nil
         adapterCut = .notApplicable
         saveRuntimeIfChanged()
+    }
+
+    /// Máy ngủ thì vòng điều khiển không chạy: hẹn hệ thống đánh thức máy (thường là thức ngầm) đúng lúc cần bắt đầu
+    /// sạc đầy theo lịch. Khi thức, `evaluate` bắt đầu sạc; sạc đầy được phép tiếp tục cả khi máy ngủ lại.
+    /// Chỉ hẹn khi đang cắm sạc, để không đánh thức máy đang nằm trong balo.
+    private func scheduleChargeWake(now: Date = Date()) {
+        var desired: Date?
+        if let battery = BatteryReader.read(), resolveACPresent(battery),
+           config.chargeLimitEnabled, config.chargeLimit < 100, !config.pauseCharging,
+           let next = ScheduledCharge.nextStart(now: now, percent: battery.percent, schedule: config.fullChargeSchedule),
+           next.start > now.addingTimeInterval(60) {
+            desired = next.start
+        }
+        guard desired != scheduledWake else { return }
+        cancelChargeWake()
+        guard let desired else { return }
+        // kIOPMAutoWake ("wake"): đánh thức máy nếu đang ngủ.
+        let result = IOPMSchedulePowerEvent(desired as CFDate, PowerConstants.helperLabel as CFString, "wake" as CFString)
+        if result == kIOReturnSuccess {
+            scheduledWake = desired
+            log("Hẹn đánh thức máy lúc \(desired) để sạc đầy theo lịch")
+        } else {
+            log("Không hẹn được giờ đánh thức máy (\(result))")
+        }
+    }
+
+    private func cancelChargeWake() {
+        guard let wake = scheduledWake else { return }
+        IOPMCancelScheduledPowerEvent(wake as CFDate, PowerConstants.helperLabel as CFString, "wake" as CFString)
+        scheduledWake = nil
     }
 
     // MARK: Cấu hình và lệnh
@@ -644,6 +680,7 @@ final class ChargeDaemon {
         if !control.restoreDefaults(clearing: Set(runtime.lastWritten.keys)) {
             log("Khôi phục mặc định chưa xác minh được")
         }
+        if forUninstall { cancelChargeWake() }
         if forUninstall, let intel, !intel.restoreDefaults() {
             log("Không trả được BCLM về 100%")
         }

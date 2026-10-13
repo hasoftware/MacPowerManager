@@ -82,8 +82,13 @@ struct LimitPage: View {
                             Button("Hủy") { Task { await helper.cancelTopUp() } }
                                 .disabled(helper.isSending)
                         } label: {
-                            Label("Đang sạc đầy một lần", systemImage: "arrow.up.to.line")
-                            Text("Tự kết thúc lúc \(Format.dateTime(topUp.expiresAt)), hoặc khi rút sạc.")
+                            if let ready = topUp.scheduledFor {
+                                Label("Đang sạc đầy theo lịch", systemImage: "calendar.badge.clock")
+                                Text("Đầy lúc \(Format.time(ready)); giữ 100% tới \(Format.time(topUp.expiresAt)) hoặc tới khi rút sạc sau giờ hẹn.")
+                            } else {
+                                Label("Đang sạc đầy một lần", systemImage: "arrow.up.to.line")
+                                Text("Tự kết thúc lúc \(Format.dateTime(topUp.expiresAt)), hoặc khi rút sạc.")
+                            }
                         }
                     } else {
                         Picker("Tự kết thúc sau", selection: $model.prefs.topUpHours) {
@@ -104,6 +109,9 @@ struct LimitPage: View {
                 } footer: {
                     Footnote("Dùng khi cần pin đầy (ví dụ trước chuyến đi). Giới hạn được áp dụng lại khi rút sạc, khi hết hạn hoặc khi khởi động lại máy.")
                 }
+
+                ScheduleSection(config: config, percent: model.battery?.percent)
+                    .disabled(!config.chargeLimitEnabled || config.chargeLimit >= 100)
 
                 Section {
                     Toggle("Tạm dừng sạc", isOn: helper.binding(\.pauseCharging))
@@ -142,5 +150,91 @@ struct LimitPage: View {
         if !config.chargeLimitEnabled || config.chargeLimit >= 100 { return "Cần bật giới hạn sạc dưới 100%." }
         if model.battery?.externalConnected != true { return "Cần cắm sạc." }
         return nil
+    }
+}
+
+/// Sạc đầy theo lịch: các thứ trong tuần và giờ pin cần đầy.
+private struct ScheduleSection: View {
+    @Environment(AppModel.self) private var model
+    let config: PowerConfig
+    let percent: Int?
+
+    private var schedule: ChargeSchedule { config.fullChargeSchedule }
+
+    var body: some View {
+        let helper = model.helper
+        Section {
+            Toggle("Sạc đầy theo lịch", isOn: helper.binding(\.fullChargeSchedule.enabled))
+            if schedule.enabled {
+                LabeledContent("Ngày") {
+                    WeekdayPicker(selection: schedule.weekdays) { days in
+                        helper.update { $0.fullChargeSchedule.weekdays = days }
+                    }
+                }
+                DatePicker("Pin đầy lúc", selection: timeBinding, displayedComponents: .hourAndMinute)
+                LabeledContent("Lần tới") {
+                    if let next = ScheduledCharge.nextStart(now: Date(), percent: percent ?? 80, schedule: schedule) {
+                        Text("\(Self.dayText(next.readyBy)) \(Format.time(next.readyBy)) · bắt đầu sạc khoảng \(Format.time(next.start))")
+                            .monospacedDigit()
+                    } else {
+                        Text("Chưa chọn ngày nào").foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Sạc đầy theo lịch")
+        } footer: {
+            Footnote("Pin được sạc tới 100% đúng giờ hẹn (ví dụ trước khi đi làm), giữ đầy thêm 2 giờ rồi trở về giới hạn. Rút sạc sau giờ hẹn cũng trả lại giới hạn. Máy cần cắm sạc; nếu máy đang ngủ, helper hẹn giờ đánh thức máy để bắt đầu sạc.")
+        }
+    }
+
+    private var timeBinding: Binding<Date> {
+        Binding(
+            get: { Calendar.current.date(bySettingHour: schedule.hour, minute: schedule.minute, second: 0, of: Date()) ?? Date() },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                model.helper.update {
+                    $0.fullChargeSchedule.hour = parts.hour ?? 8
+                    $0.fullChargeSchedule.minute = parts.minute ?? 0
+                }
+            }
+        )
+    }
+
+    /// "Hôm nay", "Ngày mai" hoặc tên thứ.
+    static func dayText(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return String(localized: "Hôm nay") }
+        if calendar.isDateInTomorrow(date) { return String(localized: "Ngày mai") }
+        return date.formatted(.dateTime.weekday(.wide).locale(Format.locale))
+    }
+}
+
+/// Bảy nút chọn thứ trong tuần, theo thứ tự và tên ngắn của ngôn ngữ đang dùng.
+private struct WeekdayPicker: View {
+    let selection: Set<Int>
+    let onChange: (Set<Int>) -> Void
+
+    var body: some View {
+        var calendar = Calendar.current
+        calendar.locale = Format.locale
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        let order = (0..<7).map { (calendar.firstWeekday - 1 + $0) % 7 + 1 }
+        return HStack(spacing: 4) {
+            ForEach(order, id: \.self) { day in
+                let on = selection.contains(day)
+                Button {
+                    onChange(on ? selection.subtracting([day]) : selection.union([day]))
+                } label: {
+                    Text(verbatim: symbols[day - 1])
+                        .font(.caption.weight(.semibold))
+                        .frame(width: 26, height: 22)
+                        .background(on ? Color.accentColor : Theme.track, in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(on ? Color.white : Color.primary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
     }
 }

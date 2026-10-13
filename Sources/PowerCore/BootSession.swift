@@ -11,6 +11,8 @@ public enum BootSession {
         s.controller.topUp = nil
         s.controller.holdingAtLimit = false
         s.controller.chargeToLimitOnce = false
+        // Khởi động lại trong khung giờ của lịch sạc đầy thì bắt đầu lại.
+        s.controller.scheduledChargeHandled = nil
         s.lastWritten = [:]
         s.bootSessionUUID = currentUUID
         return (s, true)

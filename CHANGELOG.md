@@ -6,6 +6,16 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Sạc đầy theo lịch** (trang Giới hạn sạc): chọn các ngày trong tuần và giờ cần pin đầy (ví dụ 8:00 thứ Hai–thứ
+  Sáu). Helper tự bắt đầu sạc sớm vừa đủ (khoảng 1 giờ từ 80%, lâu hơn nếu pin thấp), giữ 100% thêm 2 giờ rồi trở về
+  giới hạn; rút sạc sau giờ hẹn cũng trả lại giới hạn. Rút sạc trước giờ hẹn rồi cắm lại thì sạc tiếp.
+- Nếu máy đang ngủ và cắm sạc, helper hẹn giờ đánh thức máy (thức ngầm) để bắt đầu sạc đúng lúc.
+
+### English
+- Scheduled full charge: pick weekdays and a "full by" time; the helper starts charging early enough, keeps 100%
+  for 2 more hours, then returns to the limit. It schedules a wake if the Mac is asleep and plugged in.
+
 ## [0.7.0] - 2026-10-13
 
 ### Tính năng
