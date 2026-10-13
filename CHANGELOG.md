@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-13
+
 ### Tính năng
 - **Lệnh `mpm`** (cài trong Hệ thống & helper → Dòng lệnh & Phím tắt): `mpm status [--json]`, `limit`, `pause`,
   `resume`, `topup`, `discharge`, `charge-to-limit`, `calibrate`, `magsafe`. Dùng được trong script và tác vụ
@@ -231,7 +233,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.7.0...v0.8.0
