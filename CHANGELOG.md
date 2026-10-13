@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-13
+
 ### Tính năng
 - **Đèn MagSafe báo trạng thái** (Thanh menu → Đèn MagSafe): khi giữ pin ở giới hạn, macOS để đèn cam vì tưởng pin
   chưa đầy. Chế độ "Báo trạng thái sạc" cho đèn cam khi đang sạc, xanh khi pin được giữ hoặc đã đầy, tắt khi đang
@@ -217,7 +219,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.6.0...v0.7.0
