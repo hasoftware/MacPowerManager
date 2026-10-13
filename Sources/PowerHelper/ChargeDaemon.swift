@@ -71,6 +71,13 @@ final class ChargeDaemon {
     private var sleepAssertion: IOPMAssertionID = 0
     /// Giờ đánh thức máy đã hẹn với hệ thống cho lịch sạc đầy (để hủy khi lịch đổi).
     private var scheduledWake: Date?
+    /// Máy có đèn MagSafe điều khiển được (key `ACLC`).
+    private let hasMagSafeLED: Bool
+    /// Helper đã đặt màu đèn (cần trả quyền cho hệ thống khi tắt tính năng, rút sạc hoặc helper dừng).
+    private var magSafeOwned = false
+    private var lastMagSafeColor: MagSafeLEDColor?
+    /// Đang thử màu đèn theo yêu cầu của app: không đổi đèn tới lúc này.
+    private var magSafeTestUntil: Date?
     /// Lịch sử pin do helper ghi (chạy cả khi app đã thoát và trong dark wake).
     private let history = HistoryRecorder()
 
@@ -87,6 +94,7 @@ final class ChargeDaemon {
         runtime = reconciled.state
         savedRuntime = saved
         lastCapabilities = control.capabilities
+        hasMagSafeLED = smc.read(MagSafeLED.key)?.bytes.count == 1
         auditSuppressedUntil = Date().addingTimeInterval(auditGraceSeconds)
         smc.onWrite = { [weak self] key, bytes in
             guard CapabilityProbe.controlKeys.contains(key) else { return }
@@ -188,6 +196,8 @@ final class ChargeDaemon {
                 adapterEnabled: control.isAdapterEnabled, check: adapterCut))
             updateEffect(now: now, acPresent: acPresent, battery: battery)
         }
+        let charging = (control.batteryCurrentmA ?? battery.amperage) > PowerConstants.effectCurrentThresholdmA
+        applyMagSafeLED(now: now, acPresent: acPresent, charging: charging)
         recordHistory(now: now, battery: battery, temperature: temperature, decision: decision)
         finishLoop(now: now)
     }
@@ -537,6 +547,10 @@ final class ChargeDaemon {
                                          topUpActive: runtime.controller.chargesToFull)
         log("Chuẩn bị ngủ: adapter bật, sạc \(state.charging ? "bật" : "tắt")")
         applyToHardware(charging: state.charging, adapter: state.adapter)
+        // Đèn theo trạng thái khi ngủ: xanh nếu giữ mức, cam nếu sẽ sạc tiếp.
+        if let battery = BatteryReader.read() {
+            applyMagSafeLED(acPresent: resolveACPresent(battery), charging: state.charging && battery.percent < 100)
+        }
         updateSleepAssertion(preventSleep: false)
         adapterCutSince = nil
         adapterCut = .notApplicable
@@ -571,6 +585,42 @@ final class ChargeDaemon {
         guard let wake = scheduledWake else { return }
         IOPMCancelScheduledPowerEvent(wake as CFDate, PowerConstants.helperLabel as CFString, "wake" as CFString)
         scheduledWake = nil
+    }
+
+    // MARK: Đèn MagSafe
+
+    /// Đặt màu đèn theo chế độ người dùng chọn. Ghi lại nếu macOS đổi màu (ví dụ lúc cắm sạc lại).
+    private func applyMagSafeLED(now: Date = Date(), acPresent: Bool, charging: Bool) {
+        guard hasMagSafeLED else { return }
+        if let until = magSafeTestUntil {
+            guard now >= until else { return }
+            magSafeTestUntil = nil
+        }
+        let desired = MagSafeLED.desiredColor(mode: config.magSafeLED, acPresent: acPresent,
+                                              adapterEnabled: control.isAdapterEnabled, charging: charging)
+        guard let color = MagSafeLED.nextWrite(desired: desired, owned: magSafeOwned,
+                                               current: smc.read(MagSafeLED.key)?.bytes.first) else { return }
+        writeMagSafeLED(color)
+    }
+
+    private func writeMagSafeLED(_ color: MagSafeLEDColor) {
+        do {
+            try smc.write(MagSafeLED.key, [color.rawValue])
+            magSafeOwned = color != .system
+            if color != lastMagSafeColor { log("Đèn MagSafe: \(color)") }
+            lastMagSafeColor = color
+        } catch {
+            // Không ghi được (key bị khóa): trả lại như chưa đặt, tránh ghi lại mỗi vòng.
+            if lastMagSafeColor != nil || magSafeOwned { log("Không đặt được đèn MagSafe: \(error)") }
+            magSafeOwned = false
+            lastMagSafeColor = nil
+        }
+    }
+
+    /// Trả quyền điều khiển đèn cho hệ thống (gỡ cài đặt, helper dừng).
+    private func releaseMagSafeLED() {
+        guard hasMagSafeLED, magSafeOwned else { return }
+        writeMagSafeLED(.system)
     }
 
     // MARK: Cấu hình và lệnh
@@ -672,6 +722,15 @@ final class ChargeDaemon {
             suspendedUntil = nil
             if ControllerCommands.cancelCalibration(state: &runtime.controller) { log("Hủy hiệu chuẩn pin") }
             evaluate()
+        case .testMagSafeLED(let color):
+            guard hasMagSafeLED else {
+                return HelperResponse(ok: false, error: .unsupported, message: "Máy không có đèn MagSafe điều khiển được",
+                                      status: status())
+            }
+            writeMagSafeLED(color)
+            magSafeOwned = true
+            magSafeTestUntil = Date().addingTimeInterval(4)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.2) { [weak self] in self?.evaluate() }
         }
         saveRuntimeIfChanged()
         return HelperResponse(ok: true, message: reportedError, status: status())
@@ -713,6 +772,7 @@ final class ChargeDaemon {
     /// - forUninstall true: trả mọi thứ về mặc định của macOS, kể cả `BCLM` = 100.
     func restoreDefaults(forUninstall: Bool) {
         updateSleepAssertion(preventSleep: false)
+        releaseMagSafeLED()
         if !control.restoreDefaults(clearing: Set(runtime.lastWritten.keys)) {
             log("Khôi phục mặc định chưa xác minh được")
         }
@@ -758,6 +818,7 @@ final class ChargeDaemon {
         status.chargeToLimitOnce = runtime.controller.chargeToLimitOnce
         status.calibration = runtime.controller.calibration
         status.lastCalibrationAt = runtime.controller.lastCalibrationAt
+        status.magSafeLED = hasMagSafeLED ? smc.read(MagSafeLED.key)?.bytes.first : nil
         status.foreignWrites = foreignWrites
         status.lidClosed = lidClosed
         status.firmware = firmware

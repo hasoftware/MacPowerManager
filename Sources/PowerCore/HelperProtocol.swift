@@ -34,6 +34,8 @@ public struct HelperStatus: Codable, Equatable, Sendable {
     public var chargeToLimitOnce: Bool?
     public var calibration: CalibrationState?
     public var lastCalibrationAt: Date?
+    /// Giá trị hiện tại của key `ACLC`; nil nếu máy không có đèn MagSafe điều khiển được.
+    public var magSafeLED: UInt8?
     public var foreignWrites: [ForeignWrite]?
     public var lidClosed: Bool?
     /// Ví dụ "iBoot-11881.121.1".

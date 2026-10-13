@@ -633,3 +633,16 @@
 "Rút sạc và dùng máy tới khi pin còn %lld%%" = "Unplug and use the Mac until the battery reaches %lld%%";
 "Hiệu chuẩn" = "Calibration";
 "Đang hiệu chuẩn pin" = "Calibrating battery";
+
+/* Đèn MagSafe (v0.10.0) */
+"Đèn MagSafe" = "MagSafe Light";
+"Do macOS điều khiển" = "Controlled by macOS";
+"Báo trạng thái sạc" = "Show Charging Status";
+"Luôn tắt" = "Always Off";
+"Ý nghĩa" = "Meaning";
+"Giữ ở giới hạn / đầy" = "Held at limit / full";
+"Đang xả" = "Discharging";
+"Thử màu" = "Test Color";
+"Khi giữ pin ở giới hạn, macOS để đèn cam vì tưởng pin chưa đầy. Chế độ \"Báo trạng thái sạc\" cho đèn xanh khi pin đang được giữ. Cắm sạc MagSafe rồi bấm \"Thử màu\": nếu đèn không đổi màu, máy chưa hỗ trợ, hãy để macOS điều khiển. Rút sạc hoặc gỡ helper sẽ trả đèn về cho macOS." = "While the battery is held at the limit, macOS keeps the light amber because it thinks charging isn’t finished. \"Show Charging Status\" turns it green while the battery is held. Plug in MagSafe and press \"Test Color\": if the light doesn’t change, this Mac isn’t supported, so leave it to macOS. Unplugging or removing the helper returns the light to macOS.";
+"Xanh" = "Green";
+"Cam" = "Amber";

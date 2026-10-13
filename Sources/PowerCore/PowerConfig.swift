@@ -28,6 +28,9 @@ public struct PowerConfig: Codable, Equatable, Sendable {
     /// Sạc đầy theo lịch: tạm bỏ giới hạn để pin đầy đúng giờ hẹn (v0.8.0).
     public var fullChargeSchedule = ChargeSchedule()
 
+    /// Đèn MagSafe (v0.10.0). Mặc định để macOS điều khiển.
+    public var magSafeLED: MagSafeLEDMode = .system
+
     public init() {}
 
     /// Thiếu trường (cấu hình từ bản cũ) hoặc sai kiểu thì dùng giá trị mặc định cho trường đó,
@@ -49,6 +52,7 @@ public struct PowerConfig: Codable, Equatable, Sendable {
         thermalResumeBelow = value(.thermalResumeBelow, d.thermalResumeBelow)
         disableChargingBeforeSleep = value(.disableChargingBeforeSleep, d.disableChargingBeforeSleep)
         fullChargeSchedule = value(.fullChargeSchedule, d.fullChargeSchedule)
+        magSafeLED = value(.magSafeLED, d.magSafeLED)
     }
 
     /// Kẹp các giá trị về khoảng hợp lệ.

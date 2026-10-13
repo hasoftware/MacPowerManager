@@ -1,3 +1,4 @@
+import PowerCore
 import ServiceManagement
 import SwiftUI
 
@@ -24,7 +25,7 @@ struct MenuBarPage: View {
             } footer: {
                 if MenuBarRenderer.size(for: content).width > MenuBarRenderer.notchWarningWidth {
                     Footnote("Mục rộng có thể bị che bởi notch.")
-                } else {
+                } else if model.prefs.menuBarStyle == .glyph {
                     Footnote("Vạch dọc trên biểu tượng là mức giới hạn sạc đang áp dụng.")
                 }
             }
@@ -54,12 +55,17 @@ struct MenuBarPage: View {
                 Text("Kiểu hiển thị")
             }
 
-            if model.prefs.menuBarStyle == .glyph {
+            if model.helper.status?.magSafeLED != nil {
+                MagSafeSection()
+            }
+
+            if model.prefs.menuBarStyle == .glyph || model.prefs.menuBarStyle == .inside {
                 Section {
                     LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)],
                               alignment: .leading, spacing: 10) {
                         ForEach(Self.legend, id: \.self) { state in
-                            LegendItem(state: state, percent: Self.legendPercent(state), colored: model.prefs.menuBarColored)
+                            LegendItem(state: state, percent: Self.legendPercent(state), style: model.prefs.menuBarStyle,
+                                       colored: model.prefs.menuBarColored)
                         }
                     }
                     .padding(.vertical, 4)
@@ -128,17 +134,19 @@ struct MenuBarPage: View {
 private struct LegendItem: View {
     let state: PowerState
     let percent: Int
+    let style: MenuBarStyle
     let colored: Bool
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         HStack(spacing: Theme.Space.s) {
             Image(nsImage: MenuBarRenderer.previewImage(
-                for: MenuBarContent(percent: percent, limit: 80, state: state, showPercent: false, colored: colored),
+                for: MenuBarContent(percent: percent, limit: 80, state: state, style: style, showPercent: false,
+                                    colored: colored),
                 dark: scheme == .dark))
                 .renderingMode(colored ? .original : .template)
                 .foregroundStyle(.primary)
-                .frame(width: 30, alignment: .leading)
+                .frame(width: style == .inside ? 46 : 30, alignment: .leading)
             Text(state.legendTitle)
                 .font(.callout)
                 .lineLimit(1)
@@ -234,5 +242,60 @@ struct LoginItemState {
             self.error = String(localized: "Không thể thay đổi: \(error.localizedDescription)")
         }
         refresh()
+    }
+}
+
+/// Đèn MagSafe: để macOS điều khiển, báo trạng thái của MacPowerManager hoặc luôn tắt.
+private struct MagSafeSection: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let helper = model.helper
+        Section {
+            Picker("Đèn MagSafe", selection: helper.binding(\.magSafeLED)) {
+                Text("Do macOS điều khiển").tag(MagSafeLEDMode.system)
+                Text("Báo trạng thái sạc").tag(MagSafeLEDMode.status)
+                Text("Luôn tắt").tag(MagSafeLEDMode.off)
+            }
+            if helper.config.magSafeLED == .status {
+                LabeledContent("Ý nghĩa") {
+                    HStack(spacing: Theme.Space.m) {
+                        legend(.orange, "Đang sạc")
+                        legend(.green, "Giữ ở giới hạn / đầy")
+                        legend(.secondary.opacity(0.4), "Đang xả")
+                    }
+                    .font(.callout)
+                }
+            }
+            LabeledContent("Thử màu") {
+                HStack {
+                    ForEach([MagSafeLEDColor.green, .amber, .off], id: \.self) { color in
+                        Button(Self.title(color)) { Task { await helper.perform(.testMagSafeLED(color)) } }
+                    }
+                }
+                .disabled(helper.isSending || model.battery?.externalConnected != true)
+            }
+        } header: {
+            Text("Đèn MagSafe")
+        } footer: {
+            Footnote("Khi giữ pin ở giới hạn, macOS để đèn cam vì tưởng pin chưa đầy. Chế độ \"Báo trạng thái sạc\" cho đèn xanh khi pin đang được giữ. Cắm sạc MagSafe rồi bấm \"Thử màu\": nếu đèn không đổi màu, máy chưa hỗ trợ, hãy để macOS điều khiển. Rút sạc hoặc gỡ helper sẽ trả đèn về cho macOS.")
+        }
+        .disabled(!model.canControl)
+    }
+
+    private func legend(_ color: Color, _ title: LocalizedStringKey) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(title)
+        }
+    }
+
+    private static func title(_ color: MagSafeLEDColor) -> LocalizedStringKey {
+        switch color {
+        case .green: "Xanh"
+        case .amber: "Cam"
+        case .off: "Tắt"
+        case .system: "Hệ thống"
+        }
     }
 }

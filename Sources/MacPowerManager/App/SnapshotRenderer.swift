@@ -313,6 +313,8 @@ private enum Mock {
         status.lidClosed = false
         status.firmware = "iBoot-11881.121.1"
         status.lastCalibrationAt = Date().addingTimeInterval(-74 * 24 * 3600)
+        status.magSafeLED = 3
+        status.config.magSafeLED = .status
         var install = HelperClient.InstallState.installed
         var conflicts: [ConflictFinding] = [
             ConflictFinding(product: .aldente, installedPaths: ["/Applications/AlDente.app",
@@ -321,7 +323,7 @@ private enum Mock {
         ]
         var temperature = 33.4
         var prefs = Preferences()
-        prefs.menuBarStyle = .glyph
+        prefs.menuBarStyle = .inside
 
         switch kind {
         case .holding:

@@ -6,6 +6,21 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Đèn MagSafe báo trạng thái** (Thanh menu → Đèn MagSafe): khi giữ pin ở giới hạn, macOS để đèn cam vì tưởng pin
+  chưa đầy. Chế độ "Báo trạng thái sạc" cho đèn cam khi đang sạc, xanh khi pin được giữ hoặc đã đầy, tắt khi đang
+  xả. Có thêm chế độ "Luôn tắt" và nút "Thử màu" để kiểm tra máy có hỗ trợ không. Mặc định vẫn để macOS điều khiển;
+  rút sạc hoặc gỡ helper sẽ trả đèn về cho macOS.
+
+### Sửa lỗi
+- Chú giải biểu tượng (trang Thanh menu) bị chồng chữ từ khi kiểu "phần trăm trong pin" thành mặc định; giờ chú giải
+  hiện đúng theo kiểu đang chọn.
+
+### English
+- MagSafe light: amber while charging, green while held at the limit or full, off while discharging; or always off.
+  Includes a "Test Color" button. Defaults to macOS control.
+- Fixed the overlapping icon legend on the Menu Bar page.
+
 ## [0.9.0] - 2026-10-13
 
 ### Tính năng

@@ -46,6 +46,7 @@ giới hạn sạc, sạc đầy một lần, xả pin, chống nóng, lịch s�
   khi máy đang ngủ, rồi trở về giới hạn.
 - **Hiệu chuẩn pin**: một nút bấm chạy chu trình đầy → 15% → đầy để số % và dung lượng tối đa chính xác lại, kèm nhắc
   mỗi 2 tháng.
+- **Đèn MagSafe báo trạng thái**: xanh khi pin được giữ ở giới hạn (thay vì cam mãi), cam khi sạc, hoặc luôn tắt.
 - **Sức khỏe theo thời gian**: mỗi ngày ghi một điểm, vẽ biểu đồ nhiều tháng, tính tốc độ chai pin mỗi năm và ước tính
   còn bao lâu pin xuống dưới 80%.
 - **Giới hạn sạc**: dừng sạc ở X% và chỉ sạc lại khi pin giảm quá **khoảng sạc lại** (chỉnh được), tránh bật/tắt sạc liên tục.
@@ -267,6 +268,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 - effect verification: after blocking charging the helper checks that the battery really stopped charging and warns you if not
 - conflict detection: other charge controllers (AlDente, batt, Battery Toolkit, actuallymentor/battery) and foreign writes to the SMC keys the helper manages
 - scheduled full charge ("full by 8:00 on weekdays"), even while the Mac sleeps
+- MagSafe light that shows the real charging state (green while held at the limit)
 - one-click battery calibration (full → 15% → full) with a reminder every 2 months
 - battery details, health and history charts, long-term health tracking with a wear-rate estimate
 - notifications

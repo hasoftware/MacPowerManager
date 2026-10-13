@@ -15,6 +15,8 @@ public enum HelperCommand: Codable, Equatable, Sendable {
     /// Hiệu chuẩn pin (v0.9.0): sạc đầy, xả xuống thấp, sạc đầy lại rồi trở về giới hạn.
     case startCalibration
     case cancelCalibration
+    /// Đặt thử màu đèn MagSafe vài giây (v0.10.0), để người dùng xem máy có hỗ trợ không.
+    case testMagSafeLED(MagSafeLEDColor)
 }
 
 public enum HelperError: String, Codable, Sendable {
