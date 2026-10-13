@@ -6,6 +6,14 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Cải tiến
+- **Icon app mới** (Finder, Dock, Launchpad, ổ đĩa `.dmg`): viên pin với vạch giới hạn trên nền xanh ngọc, rõ nét ở mọi kích thước.
+- Trang Giới thiệu dùng icon mới.
+- README có logo, ảnh chụp giao diện (sáng/tối, tiếng Việt và tiếng Anh); thêm logo, favicon và ảnh social preview trong `docs/assets`.
+
+### English
+- New app icon (Finder, Dock, Launchpad, DMG volume), README logo and screenshots, favicon and social preview assets.
+
 ## [0.3.0] - 2026-10-12
 
 ### Tính năng

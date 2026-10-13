@@ -8,6 +8,8 @@
     <string>MacPowerManager</string>
     <key>CFBundleDisplayName</key>
     <string>MacPowerManager</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleExecutable</key>
     <string>MacPowerManager</string>
     <key>CFBundlePackageType</key>

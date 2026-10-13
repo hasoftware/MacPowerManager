@@ -21,14 +21,17 @@ enum SnapshotRenderer {
 
         let scenes = Scenario.all
         let filter = ProcessInfo.processInfo.environment["MPM_SNAPSHOT_FILTER"]
+        let minimumScale = ProcessInfo.processInfo.environment["MPM_SNAPSHOT_SCALE"].flatMap(Double.init).map { CGFloat($0) } ?? 1
         for scene in scenes where filter.map({ scene.name.contains($0) }) ?? true {
             for dark in [false, true] {
                 let view = AnyView(scene.view()
                     .environment(\.colorScheme, dark ? .dark : .light)
                     .environment(\.locale, Format.locale))
+                // MPM_SNAPSHOT_SCALE=2: ảnh Retina cho README.
+                let scale = max(scene.scale, minimumScale)
                 let image: CGImage? = switch scene.backend {
-                case .imageRenderer: renderWithImageRenderer(view, size: scene.size, scale: scene.scale, dark: dark)
-                case .hosting: renderWithHostingView(view, size: scene.size, scale: scene.scale, dark: dark)
+                case .imageRenderer: renderWithImageRenderer(view, size: scene.size, scale: scale, dark: dark)
+                case .hosting: renderWithHostingView(view, size: scene.size, scale: scale, dark: dark)
                 }
                 let url = directory.appendingPathComponent("\(scene.name)-\(dark ? "dark" : "light").png")
                 if let image, write(image, to: url) {

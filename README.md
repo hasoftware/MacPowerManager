@@ -1,16 +1,40 @@
-# MacPowerManager
+<p align="center">
+  <img src="docs/assets/logo-256.png" width="128" height="128" alt="MacPowerManager">
+</p>
 
-[![Release](https://img.shields.io/github/v/release/hasoftware/MacPowerManager)](https://github.com/hasoftware/MacPowerManager/releases/latest)
-[![CI](https://github.com/hasoftware/MacPowerManager/actions/workflows/ci.yml/badge.svg)](https://github.com/hasoftware/MacPowerManager/actions/workflows/ci.yml)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Telegram](https://img.shields.io/badge/Telegram-@hoanganhdev-26A5E4?logo=telegram&logoColor=white)](https://t.me/hoanganhdev)
+<h1 align="center">MacPowerManager</h1>
 
-Phát triển bởi **[HASOFTWARE](https://github.com/hasoftware)**.
+<p align="center">
+  <b>Quản lý pin &amp; sạc miễn phí, mã nguồn mở cho MacBook</b><br>
+  <sub>Free, open-source battery care for Mac · <a href="#english">English</a></sub>
+</p>
 
-App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook Apple Silicon: giới hạn sạc, xả pin, bảo vệ nhiệt, lịch sử pin và thông báo.
+<p align="center">
+  <a href="https://github.com/hasoftware/MacPowerManager/releases/latest"><img src="https://img.shields.io/github/v/release/hasoftware/MacPowerManager?label=t%E1%BA%A3i%20v%E1%BB%81&color=14a38b" alt="Release"></a>
+  <a href="https://github.com/hasoftware/MacPowerManager/actions/workflows/ci.yml"><img src="https://github.com/hasoftware/MacPowerManager/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-black?logo=apple" alt="macOS 14+">
+  <a href="https://t.me/hoanganhdev"><img src="https://img.shields.io/badge/Telegram-@hoanganhdev-26A5E4?logo=telegram&amp;logoColor=white" alt="Telegram"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/hasoftware/MacPowerManager/releases/latest"><b>⬇️ Tải bản mới nhất</b></a> ·
+  <a href="#tính-năng">Tính năng</a> ·
+  <a href="#ảnh-chụp">Ảnh chụp</a> ·
+  <a href="#tải-về-không-cần-build">Cài đặt</a> ·
+  <a href="#tác-giả">Tác giả</a>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/vi/window-dark.png">
+  <img src="docs/screenshots/vi/window-light.png" alt="Bảng điều khiển MacPowerManager" width="860">
+</picture>
+</p>
+
+Phát triển bởi **[HASOFTWARE](https://github.com/hasoftware)**. App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook:
+giới hạn sạc, sạc đầy một lần, xả pin, chống nóng, lịch sử pin 30 ngày và thông báo.
 Đây là dự án vì cộng đồng, là một lựa chọn thay thế miễn phí cho các app giới hạn sạc trả phí.
-
-*A free, open-source battery & charging manager for Apple Silicon MacBooks: charge limiter, discharge, heat guard, history and notifications. [English summary below](#english).*
 
 > ⚠️ **Lưu ý:** App điều khiển sạc bằng cách ghi vào các SMC key không được Apple công bố.
 > Đã thử nghiệm trên MacBook Pro M2 Pro, macOS 15.5. Hãy dùng với sự hiểu biết về rủi ro (xem [Giấy phép](#giấy-phép), phần không bảo hành).
@@ -38,6 +62,47 @@ App mã nguồn mở, miễn phí, để quản lý pin và sạc trên MacBook 
   hoặc để sau; app không tự tải hay cài gì. Tắt được ở trang **Giới thiệu**.
 
 Vòng điều khiển chạy trong một helper nền (LaunchDaemon), nên giới hạn sạc vẫn có hiệu lực khi app đã thoát.
+
+## Ảnh chụp
+
+<table>
+  <tr>
+    <td width="38%" align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/vi/popover-holding-dark.png">
+  <img src="docs/screenshots/vi/popover-holding-light.png" alt="Bảng nhanh trên thanh menu" width="300">
+</picture>
+      <br><sub>Bảng nhanh trên thanh menu</sub>
+    </td>
+    <td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/vi/page-limit-dark.png">
+  <img src="docs/screenshots/vi/page-limit-light.png" alt="Trang Giới hạn sạc" width="480">
+</picture>
+      <br><sub>Giới hạn sạc, khoảng sạc lại, sạc đầy một lần</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/vi/page-history-day-dark.png">
+  <img src="docs/screenshots/vi/page-history-day-light.png" alt="Lịch sử pin" width="780">
+</picture>
+      <br><sub>Lịch sử 30 ngày do helper ghi, kể cả khi app đã thoát; đoạn máy ngủ vẽ bằng nét đứt</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/vi/page-health-dark.png">
+  <img src="docs/screenshots/vi/page-health-light.png" alt="Tình trạng pin" width="780">
+</picture>
+      <br><sub>Tình trạng pin theo macOS, số lần sạc, điện áp, nhiệt độ</sub>
+    </td>
+  </tr>
+</table>
+
+Giao diện có cả tiếng Việt và tiếng Anh (chọn trong **Thanh menu → Ngôn ngữ**), tự theo chế độ sáng/tối.
 
 ## Yêu cầu
 
@@ -149,6 +214,8 @@ Rất hoan nghênh issue và pull request!
 - Chuỗi giao diện viết bằng tiếng Việt trong mã (đó là khóa); thêm bản dịch tiếng Anh vào
   `Resources/Localization/en.lproj/Localizable.strings` (số nhiều: `Localizable.stringsdict` của cả `en.lproj` và `vi.lproj`).
 - Ghi thay đổi vào mục `[Unreleased]` trong [CHANGELOG.md](CHANGELOG.md).
+- Icon và logo được vẽ bằng code: sửa `scripts/make-icons.swift` rồi chạy `swift scripts/make-icons.swift`.
+  Ảnh chụp trong README tạo bằng `./scripts/make-screenshots.sh` (dữ liệu mẫu, tiếng Việt và tiếng Anh, sáng/tối).
 
 ### Version & phát hành
 
@@ -167,6 +234,13 @@ Khi tag được đẩy lên, GitHub Actions sẽ build bản universal, đóng 
 - Nếu máy của bạn khác (M1/M3/M4, macOS khác), gửi kết quả `make probe` trong issue để mở rộng hỗ trợ.
 
 ## English
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/window-dark.png">
+  <img src="docs/screenshots/en/window-light.png" alt="MacPowerManager dashboard" width="760">
+</picture>
+</p>
 
 **Download:** grab the `.dmg` from [Releases](https://github.com/hasoftware/MacPowerManager/releases/latest), drag the app to Applications, and allow it via *System Settings → Privacy & Security → Open Anyway* (not notarized yet). Then click the menu bar icon → **Install Helper**. **Reinstall the helper after every app update**: the helper only accepts commands from the exact app build that installed it (pinned by cdhash), so a new build cannot control charging until you reinstall.
 

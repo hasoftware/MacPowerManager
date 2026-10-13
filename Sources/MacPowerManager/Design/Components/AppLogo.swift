@@ -1,12 +1,31 @@
+import AppKit
 import SwiftUI
 
 /// Biểu trưng của app: viên pin trên nền bo tròn, phần tô dừng ở "vạch giới hạn" (motif riêng của app).
 struct AppLogo: View {
     var size: CGFloat = 64
 
+    /// Icon thật của app (Resources/AppIcon.icns) khi chạy trong app bundle; bản vẽ bên dưới chỉ dùng khi không có
+    /// (chạy bằng `swift run`, chụp giao diện).
+    private static let bundleIcon: NSImage? = Bundle.main.url(forResource: "AppIcon", withExtension: "icns")
+        .flatMap(NSImage.init(contentsOf:))
+
     var body: some View {
+        if let icon = Self.bundleIcon {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: size * 1.18, height: size * 1.18)   // icon macOS có lề trong suốt
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            drawnLogo
+        }
+    }
+
+    private var drawnLogo: some View {
         let s = size / 64
-        ZStack {
+        return ZStack {
             RoundedRectangle(cornerRadius: 14 * s, style: .continuous)
                 .fill(LinearGradient(colors: [Color(red: 0.13, green: 0.72, blue: 0.62), Color(red: 0.06, green: 0.45, blue: 0.52)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
