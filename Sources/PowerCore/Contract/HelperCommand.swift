@@ -17,6 +17,8 @@ public enum HelperCommand: Codable, Equatable, Sendable {
     case cancelCalibration
     /// Đặt thử màu đèn MagSafe vài giây (v0.10.0), để người dùng xem máy có hỗ trợ không.
     case testMagSafeLED(MagSafeLEDColor)
+    /// Danh sách tiến trình của mọi người dùng (v0.14.0, chỉ đọc). App chỉ tự đọc được tiến trình của chính mình.
+    case processes
 }
 
 public enum HelperError: String, Codable, Sendable {
@@ -33,11 +35,15 @@ public struct HelperResponse: Codable, Sendable {
     public var error: HelperError?
     public var message: String?
     public var status: HelperStatus?
+    /// Trả lời `HelperCommand.processes`.
+    public var processes: [ProcessSample]?
 
-    public init(ok: Bool, error: HelperError? = nil, message: String? = nil, status: HelperStatus? = nil) {
+    public init(ok: Bool, error: HelperError? = nil, message: String? = nil, status: HelperStatus? = nil,
+                processes: [ProcessSample]? = nil) {
         self.ok = ok
         self.error = error
         self.message = message
         self.status = status
+        self.processes = processes
     }
 }

@@ -161,10 +161,12 @@ private struct Scenario {
             })
         }
         page("system", .systemOverview, Mock.model(.holding), size: CGSize(width: 1000, height: 700))
-        page("cpu", .cpu, Mock.model(.holding), size: CGSize(width: 1000, height: 760))
+        page("cpu", .cpu, Mock.model(.holding), size: CGSize(width: 1000, height: 1000))
         page("memory", .memory, Mock.model(.holding), size: CGSize(width: 1000, height: 780))
+        page("processes", .processes, Mock.model(.holding), size: CGSize(width: 1000, height: 560))
+        page("energy", .energy, Mock.model(.holding), size: CGSize(width: 1000, height: 900))
         page("gpu", .gpu, Mock.model(.holding), size: CGSize(width: 1000, height: 640))
-        page("disk", .disk, Mock.model(.holding), size: CGSize(width: 1000, height: 640))
+        page("disk", .disk, Mock.model(.holding), size: CGSize(width: 1000, height: 900))
         page("network", .network, Mock.model(.holding), size: CGSize(width: 1000, height: 600))
         page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 900))
 
@@ -274,6 +276,34 @@ private enum Mock {
                   downloadURL: URL(string: "https://github.com/hasoftware/MacPowerManager/releases/download/v0.3.0/SHA256SUMS.txt")!,
                   size: 184),
         ])
+
+    /// Tiến trình giả (tên, % CPU, MB, W, luồng, PID, ứng dụng).
+    static func processes() -> [ProcessMonitor.Row] {
+        let list: [(String, Double, Double, Double, Int32, Int32, String?)] = [
+            ("Xcode", 0.42, 3400, 2.6, 64, 400, "/Applications/Xcode.app"),
+            ("node", 0.21, 642, 0.9, 11, 844, nil),
+            ("Safari", 0.18, 1780, 1.1, 41, 437, "/Applications/Safari.app"),
+            ("python3.12", 0.094, 288, 0.38, 4, 881, nil),
+            ("Photos", 0.09, 1110, 0.42, 28, 474, "/System/Applications/Photos.app"),
+            ("WindowServer", 0.081, 512, 0.31, 24, 992, nil),
+            ("kernel_task", 0.064, 40, 0.22, 520, 0, nil),
+            ("mds_stores", 0.031, 98, 0.09, 7, 1066, nil),
+            ("Music", 0.03, 386, 0.18, 22, 511, "/System/Applications/Music.app"),
+            ("Mail", 0.012, 418, 0.05, 19, 548, "/System/Applications/Mail.app"),
+            ("coreaudiod", 0.012, 22, 0.03, 9, 1103, nil),
+            ("Finder", 0.011, 262, 0.04, 9, 622, "/System/Library/CoreServices/Finder.app"),
+        ]
+        return list.map { name, cpu, mb, watts, threads, pid, app in
+            let system = app == nil && ["WindowServer", "kernel_task", "mds_stores", "coreaudiod"].contains(name)
+            return ProcessMonitor.Row(pid: pid, name: name, user: system ? "root" : "appleseed", isMine: !system, isApp: app != nil,
+                                      bundleURL: app.flatMap { FileManager.default.fileExists(atPath: $0) ? URL(fileURLWithPath: $0) : nil },
+                                      path: app, cpu: cpu, power: watts, memory: UInt64(mb * 1_048_576),
+                                      virtualMemory: UInt64(mb * 25 * 1_048_576), threads: threads, cpuTime: cpu * 3600,
+                                      diskReadRate: cpu * 2_800_000, diskWriteRate: cpu * 900_000, diskRead: UInt64(cpu * 3e9),
+                                      diskWritten: UInt64(cpu * 1.2e9), wakeupsPerSecond: cpu * 180,
+                                      started: Date().addingTimeInterval(-3 * 3600))
+        }
+    }
 
     /// 1 giờ số liệu hệ thống giả: CPU dao động, bộ nhớ gần 85%.
     static func system() -> SystemMonitor {
@@ -447,7 +477,7 @@ private enum Mock {
         b.currentCapacity = b.maxCapacity * b.percent / 100
         return AppModel(preview: b, status: install == .outdated("?") ? nil : status, installState: install,
                         samples: history(endPercent: b.percent, limit: 80, hours: historyHours),
-                        healthPoints: healthLog(), system: system(), conflicts: conflicts,
+                        healthPoints: healthLog(), system: system(), processes: processes(), conflicts: conflicts,
                         temperature: temperature, prefs: prefs, needsMove: kind == .noHelper, update: update)
     }
 

@@ -29,6 +29,10 @@ struct DiskPage: View {
                         .frame(height: 200)
                 }
 
+                TopProcessesCard(title: "Đọc ghi nhiều nhất", symbol: "internaldrive", tint: SystemTint.disk,
+                                 rows: model.processes.top(8) { $0.diskRate }, value: { $0.diskRate },
+                                 format: { Format.rate($0.diskRate) })
+
                 ForEach(monitor.volumes) { volume in
                     Card(title: Text(verbatim: volume.name), symbol: volume.isInternal ? "internaldrive" : "externaldrive", tint: SystemTint.disk) {
                         let free = Format.bytesParts(volume.available)
@@ -44,5 +48,7 @@ struct DiskPage: View {
             }
         }
         .toolbar { SystemToolbar(monitor: monitor) }
+        .onAppear { model.processes.retain() }
+        .onDisappear { model.processes.release() }
     }
 }

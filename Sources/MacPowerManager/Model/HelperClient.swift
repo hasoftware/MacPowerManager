@@ -159,6 +159,13 @@ final class HelperClient {
         await perform(.chargeToLimitNow)
     }
 
+    /// Danh sách tiến trình của mọi người dùng từ helper (root). Không báo lỗi lên giao diện; nil nếu không lấy được.
+    func processes() async -> [ProcessSample]? {
+        guard isReady, let data = try? JSONEncoder().encode(HelperCommand.processes) else { return nil }
+        let reply: Data?? = try? await call { proxy, reply in proxy.perform(command: data, reply: reply) }
+        return reply?.flatMap { try? JSONDecoder().decode(HelperResponse.self, from: $0) }?.processes
+    }
+
     func startCalibration() async {
         await perform(.startCalibration)
     }

@@ -6,6 +6,23 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Theo dõi hệ thống**, phần 3:
+  - **Tiến trình**: bảng mọi tiến trình (% CPU, bộ nhớ, năng lượng, luồng, thời gian CPU, PID, người dùng), sắp xếp
+    theo từng cột, tìm kiếm, lọc Tất cả / Ứng dụng / Của tôi / Hệ thống. Bảng chi tiết có biểu đồ CPU và bộ nhớ, số
+    lần đánh thức, đọc/ghi ổ đĩa, thời điểm bắt đầu, và nút Thoát / Buộc thoát / Hiện trong Finder (chỉ với tiến trình
+    của bạn).
+  - Helper (root) cung cấp danh sách đầy đủ gồm cả tiến trình hệ thống (chỉ đọc); không có helper thì app chỉ thấy
+    tiến trình của bạn.
+  - **Năng lượng**: pin, công suất cả máy (trung bình, cao nhất), năng lượng theo ứng dụng, nhiệt độ bộ xử lý / GPU /
+    pin, trạng thái nhiệt của macOS.
+  - Trang CPU có "Dùng CPU nhiều nhất", trang Ổ đĩa có "Đọc ghi nhiều nhất".
+
+### English
+- System monitoring, part 3: Processes (sortable table, search, filters, detail inspector with Quit / Force Quit,
+  full list via the helper) and Energy (whole-Mac power, energy by app, CPU/GPU/battery temperatures). Top CPU and
+  disk users on the CPU and Disk pages.
+
 ## [0.13.0] - 2026-10-13
 
 ### Tính năng

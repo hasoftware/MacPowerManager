@@ -21,6 +21,8 @@ final class AppModel {
     let healthLog: HealthStore
     /// Số liệu hệ thống (CPU, bộ nhớ…), chỉ đo khi bảng điều khiển đang mở.
     let system: SystemMonitor
+    /// Tiến trình (trang Tiến trình, Năng lượng, các bảng "dùng nhiều nhất").
+    let processes: ProcessMonitor
     let notifier = Notifier()
     /// Kiểm tra bản mới trên GitHub (yêu cầu mạng duy nhất của app).
     let updates: UpdateChecker
@@ -49,6 +51,7 @@ final class AppModel {
         history = HistoryStore()
         healthLog = HealthStore()
         system = SystemMonitor()
+        processes = ProcessMonitor { [helper] in await helper.processes() }
         prefs = Preferences.load()
         updates = UpdateChecker()
         isPreview = false
@@ -288,7 +291,7 @@ final class AppModel {
     #if DEBUG
     /// Mô hình với dữ liệu giả cho chế độ chụp giao diện. Không đọc phần cứng, không ghi file hay cài đặt.
     init(preview battery: BatteryInfo?, status: HelperStatus?, installState: HelperClient.InstallState,
-         samples: [HistorySample], healthPoints: [HealthPoint] = [], system: SystemMonitor? = nil, conflicts: [ConflictFinding] = [], temperature: Double? = nil,
+         samples: [HistorySample], healthPoints: [HealthPoint] = [], system: SystemMonitor? = nil, processes: [ProcessMonitor.Row] = [], conflicts: [ConflictFinding] = [], temperature: Double? = nil,
          prefs: Preferences = Preferences(), needsMove: Bool = false, update: UpdateChecker.State = .idle) {
         helper = HelperClient()
         updates = UpdateChecker(defaults: nil) { _ in throw URLError(.notConnectedToInternet) }
@@ -298,6 +301,7 @@ final class AppModel {
         self.system = system ?? SystemMonitor(preview: [], activity: SystemActivity(load1: 0, load5: 0, load15: 0, processCount: 0,
                                                                                    bootTime: nil),
                                               topology: .current)
+        self.processes = ProcessMonitor(preview: processes)
         self.prefs = prefs
         isPreview = true
         self.battery = battery

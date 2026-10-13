@@ -58,10 +58,16 @@ struct CPUPage: View {
                     }
                 }
 
+                TopProcessesCard(title: "Dùng CPU nhiều nhất", symbol: "cpu", tint: SystemTint.cpu,
+                                 rows: model.processes.top(8) { $0.cpu }, value: { $0.cpu },
+                                 format: { Format.percent($0.cpu * 100) })
+
                 Footnote("Tải là số tác vụ đang chờ CPU trung bình theo thời gian; dưới số nhân (\(topology.logicalCores)) là máy còn rảnh.")
             }
         }
         .toolbar { SystemToolbar(monitor: monitor) }
+        .onAppear { model.processes.retain() }
+        .onDisappear { model.processes.release() }
     }
 
     private func loadLabel(_ load: Double, _ topology: CPUTopology) -> String {

@@ -12,7 +12,16 @@ extension SMCSensors {
     /// Key nhiệt độ CPU trên Apple Silicon: `Tp…` (nhân hiệu năng), `Te…` (nhân tiết kiệm điện). Tên cụ thể khác nhau
     /// theo từng chip (M1, M2, M3…), nên tìm theo tiền tố trong danh sách key rồi chỉ giữ key đọc ra nhiệt độ hợp lý.
     public static func cpuTemperatureKeys(_ smc: SMCAccess, allKeys: [String]) -> [String] {
-        allKeys.filter { $0.hasPrefix("Tp") || $0.hasPrefix("Te") }
+        temperatureKeys(smc, allKeys: allKeys, prefixes: ["Tp", "Te"])
+    }
+
+    /// Key nhiệt độ GPU trên Apple Silicon (`Tg…`).
+    public static func gpuTemperatureKeys(_ smc: SMCAccess, allKeys: [String]) -> [String] {
+        temperatureKeys(smc, allKeys: allKeys, prefixes: ["Tg"])
+    }
+
+    static func temperatureKeys(_ smc: SMCAccess, allKeys: [String], prefixes: [String]) -> [String] {
+        allKeys.filter { key in prefixes.contains { key.hasPrefix($0) } }
             .filter { key in smc.read(key)?.doubleValue.map(isPlausibleTemperature) ?? false }
     }
 

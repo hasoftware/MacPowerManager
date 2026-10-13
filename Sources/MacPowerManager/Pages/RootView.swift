@@ -41,6 +41,8 @@ struct RootView: View {
         case .system: return model.hasSystemIssue ? Text("!") : nil
         case .cpu: return latest.map { Text(verbatim: Format.percent($0.cpu.total * 100)) }
         case .memory: return latest.map { Text(verbatim: Format.percent(Double($0.memory.used) / Double(max($0.memory.total, 1)) * 100)) }
+        case .processes: return model.processes.rows.isEmpty ? nil : Text(verbatim: "\(model.processes.rows.count)")
+        case .energy: return (latest?.systemPower).map { Text(verbatim: Format.watts($0)) }
         case .gpu: return latest?.gpu.map { Text(verbatim: Format.percent($0.device * 100)) }
         case .disk: return latest.map { Text(verbatim: Format.rate($0.diskRead + $0.diskWrite)) }
         case .network: return latest.map { Text(verbatim: Format.rate($0.networkIn + $0.networkOut)) }
@@ -78,6 +80,8 @@ struct PageView: View {
         case .gpu: GPUPage()
         case .disk: DiskPage()
         case .network: NetworkPage()
+        case .processes: ProcessesPage()
+        case .energy: EnergyPage()
         case .limit: LimitPage()
         case .heat: HeatPage()
         case .discharge: DischargePage()

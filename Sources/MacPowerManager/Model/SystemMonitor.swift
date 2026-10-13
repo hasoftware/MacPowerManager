@@ -16,6 +16,7 @@ final class SystemMonitor {
         var swapoutsPerSecond: Double
         var cpuTemperature: Double?
         var cpuHottest: Double?
+        var gpuTemperature: Double?
         /// Công suất cả máy (W), từ IOKit.
         var systemPower: Double?
         var gpu: GPUSnapshot?
@@ -67,9 +68,10 @@ final class SystemMonitor {
     @ObservationIgnored private var ticks = 0
     @ObservationIgnored private var smc: SMC?
     @ObservationIgnored private var temperatureKeys: [String]?
+    @ObservationIgnored private var gpuTemperatureKeys: [String] = []
     @ObservationIgnored private var discoveringKeys = false
     /// Đọc nhiệt độ mỗi 3 giây (khoảng 60 cảm biến), các lần giữa dùng lại giá trị trước.
-    @ObservationIgnored private var lastTemperature: (date: Date, value: (average: Double, hottest: Double)?)?
+    @ObservationIgnored private var lastTemperature: (date: Date, value: (average: Double, hottest: Double)?, gpu: Double?)?
     @ObservationIgnored private let isPreview: Bool
 
     init() {
@@ -150,16 +152,20 @@ final class SystemMonitor {
         let elapsed = max(now.timeIntervalSince(counters.date), 0.001)
         func rate(_ current: UInt64, _ before: UInt64) -> Double { current >= before ? Double(current - before) / elapsed : 0 }
         let temperature: (average: Double, hottest: Double)?
+        let gpuTemperature: Double?
         if let last = lastTemperature, now.timeIntervalSince(last.date) < 3 {
             temperature = last.value
+            gpuTemperature = last.gpu
         } else {
             temperature = readTemperature()
-            lastTemperature = (now, temperature)
+            gpuTemperature = smc.flatMap { SMCSensors.cpuTemperature($0, keys: gpuTemperatureKeys)?.average }
+            lastTemperature = (now, temperature, gpuTemperature)
         }
         let sample = Sample(date: now, cpu: CPUUsage.between(previous, ticks), memory: memory,
                             pageinsPerSecond: rate(memory.pageins, counters.pageins),
                             swapoutsPerSecond: rate(memory.swapouts, counters.swapouts),
                             cpuTemperature: temperature?.average, cpuHottest: temperature?.hottest,
+                            gpuTemperature: gpuTemperature,
                             systemPower: BatteryReader.read()?.systemLoad, gpu: GPUReader.snapshot())
         var withIO = sample
         if let lastDisk {
@@ -188,10 +194,13 @@ final class SystemMonitor {
         discoveringKeys = true
         Task.detached(priority: .utility) {
             let smc = try? SMC()
-            let keys = smc.map { SMCSensors.cpuTemperatureKeys($0, allKeys: $0.allKeys()) } ?? []
+            let all = smc?.allKeys() ?? []
+            let keys = smc.map { SMCSensors.cpuTemperatureKeys($0, allKeys: all) } ?? []
+            let gpuKeys = smc.map { SMCSensors.gpuTemperatureKeys($0, allKeys: all) } ?? []
             await MainActor.run { [weak self] in
                 self?.smc = smc
                 self?.temperatureKeys = keys
+                self?.gpuTemperatureKeys = gpuKeys
             }
         }
         return nil

@@ -722,6 +722,9 @@ final class ChargeDaemon {
             suspendedUntil = nil
             if ControllerCommands.cancelCalibration(state: &runtime.controller) { log("Hủy hiệu chuẩn pin") }
             evaluate()
+        case .processes:
+            // Chỉ đọc; không kèm trạng thái để phản hồi gọn (app gọi mỗi 2 giây khi đang xem trang Tiến trình).
+            return HelperResponse(ok: true, processes: ProcessSampler.sample())
         case .testMagSafeLED(let color):
             guard hasMagSafeLED else {
                 return HelperResponse(ok: false, error: .unsupported, message: "Máy không có đèn MagSafe điều khiển được",

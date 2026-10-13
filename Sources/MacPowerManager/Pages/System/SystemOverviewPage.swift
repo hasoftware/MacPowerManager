@@ -88,7 +88,7 @@ struct SystemOverviewPage: View {
                         .frame(height: 82)
                 }
 
-                OverviewTile(title: "Năng lượng", symbol: "bolt.fill", tint: SystemTint.energy, target: .health, page: $page) {
+                OverviewTile(title: "Năng lượng", symbol: "bolt.fill", tint: SystemTint.energy, target: .energy, page: $page) {
                     let battery = model.battery
                     BigValue(caption: battery?.externalConnected == true ? "Đang cắm sạc" : "Đang dùng pin",
                              value: "\(battery?.percent ?? 0)", unit: "%")
