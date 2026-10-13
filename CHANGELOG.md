@@ -6,6 +6,12 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- Thông báo lỗi khi bản cập nhật tải về không hợp lệ giờ dễ hiểu (trước đây hiện mã kỹ thuật).
+
+### English
+- Readable error messages when a downloaded update is rejected.
+
 ## [0.5.0] - 2026-10-13
 
 ### Tính năng

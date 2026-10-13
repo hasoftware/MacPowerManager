@@ -69,7 +69,7 @@ final class UpdateInstaller {
                                                  version: bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
                                                  expectedIdentifier: PowerConstants.appBundleID,
                                                  currentVersion: AppVersion.current) {
-                throw UpdateError.message(String(localized: "Bản tải về không phải bản cập nhật hợp lệ (\(String(describing: failure)))."))
+                throw UpdateError.message(Self.describe(failure))
             }
             try await Self.runTool("/usr/bin/codesign", ["--verify", "--deep", "--strict", newApp.path])
 
@@ -102,6 +102,20 @@ final class UpdateInstaller {
         } catch {
             try? FileManager.default.removeItem(at: work)
             phase = .failed((error as? UpdateError)?.text ?? error.localizedDescription)
+        }
+    }
+
+    /// Lý do bản tải về không cài được, bằng lời dễ hiểu.
+    static func describe(_ failure: UpdatePlan.Failure) -> String {
+        switch failure {
+        case .wrongBundle:
+            String(localized: "Bản tải về không phải MacPowerManager. Đã hủy để bảo vệ máy của bạn.")
+        case .notNewer(let version):
+            String(localized: "Bản tải về (\(version ?? "?")) không mới hơn bản đang dùng (\(AppVersion.current)).")
+        case .badSignature:
+            String(localized: "Chữ ký bản cập nhật không hợp lệ. Đã hủy để bảo vệ máy của bạn.")
+        case .unsupportedLocation:
+            String(localized: "Không cài được bản cập nhật vào vị trí hiện tại của app. Hãy tải bản cập nhật thủ công.")
         }
     }
 

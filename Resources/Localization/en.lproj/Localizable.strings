@@ -554,7 +554,6 @@
 "Cần cài lại helper để app tiếp tục điều khiển sạc. macOS sẽ hỏi mật khẩu quản trị." = "Reinstall the helper so the app can keep controlling charging. macOS will ask for an administrator password.";
 "Cài lại helper" = "Reinstall Helper";
 "Chữ ký bản cập nhật không hợp lệ. Đã hủy để bảo vệ máy của bạn." = "The update’s signature is invalid. The update was cancelled to protect your Mac.";
-"Bản tải về không phải bản cập nhật hợp lệ (%@)." = "The download isn’t a valid update (%@).";
 "Không ghi được vào %@. Hãy tải bản cập nhật thủ công." = "Can’t write to %@. Please download the update manually.";
 "Kiểm tra bản cập nhật thất bại (%@)." = "Update verification failed (%@).";
 "Sau khi cập nhật, app tự mở lại và nhắc cài lại helper (cần mật khẩu quản trị): helper chỉ nhận lệnh từ đúng bản app đã cài nó." = "After updating, the app relaunches and asks you to reinstall the helper (administrator password required): the helper only accepts commands from the exact app build that installed it.";
@@ -564,3 +563,6 @@
 "Đang kiểm tra chữ ký…" = "Verifying signature…";
 "Đang cài và mở lại app…" = "Installing and relaunching…";
 "Tải .dmg thủ công" = "Download .dmg Manually";
+"Bản tải về không phải MacPowerManager. Đã hủy để bảo vệ máy của bạn." = "The download isn’t MacPowerManager. The update was cancelled to protect your Mac.";
+"Bản tải về (%@) không mới hơn bản đang dùng (%@)." = "The download (%1$@) isn’t newer than the installed version (%2$@).";
+"Không cài được bản cập nhật vào vị trí hiện tại của app. Hãy tải bản cập nhật thủ công." = "The update can’t be installed where the app is located. Please download it manually.";
