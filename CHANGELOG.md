@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-13
+
 ### Cải tiến
 - **Icon app mới** (Finder, Dock, Launchpad, ổ đĩa `.dmg`): viên pin với vạch giới hạn trên nền xanh ngọc, rõ nét ở mọi kích thước.
 - Trang Giới thiệu dùng icon mới.
@@ -116,7 +118,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.0...v0.1.1
