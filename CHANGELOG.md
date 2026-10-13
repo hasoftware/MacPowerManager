@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-13
+
 ### Tính năng
 - **Tự động cập nhật**: bấm "Cập nhật ngay" trong cửa sổ Có gì mới, app tự tải, kiểm tra chữ ký số và cài bản mới
   rồi mở lại; không cần tải và kéo file `.dmg` nữa. Sau khi mở lại, app nhắc cài lại helper (cần mật khẩu quản trị).
@@ -126,7 +128,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.1.1...v0.2.0
