@@ -6,6 +6,21 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Hiệu chuẩn pin** (trang mới "Hiệu chuẩn", Apple Silicon): một nút bấm chạy cả chu trình sạc lên 100% và giữ
+  1 giờ, xả xuống 15%, sạc đầy lại, giữ 1 giờ rồi trở về giới hạn. Giúp số % và "Dung lượng tối đa" chính xác lại
+  sau thời gian dài giữ pin ở 80%. Helper điều khiển cả khi app đã đóng.
+  - Bước xả tự ngắt bộ sạc nếu máy hỗ trợ (giữ máy thức, gập máy thì tạm ngừng); máy không ngắt được thì app báo
+    rút sạc. Pin nóng vẫn tạm dừng sạc; pin dưới 10% luôn được sạc; tự hủy sau 48 giờ nếu chưa xong.
+  - Bật tạm dừng sạc hoặc xả pin thủ công sẽ hủy hiệu chuẩn; "Sạc đầy một lần" và sạc đầy theo lịch không chen
+    ngang khi đang hiệu chuẩn.
+- Thông báo khi cần rút sạc, khi hiệu chuẩn xong và nhắc hiệu chuẩn mỗi 2 tháng (tắt được).
+
+### English
+- Battery calibration (new Calibration page, Apple Silicon): one click charges to 100% and holds 1 hour, discharges
+  to 15%, charges to full again, holds 1 hour, then returns to the limit. The helper runs it even when the app is
+  closed. Notifications when unplugging is needed, when done, and a reminder every 2 months.
+
 ## [0.8.0] - 2026-10-13
 
 ### Tính năng

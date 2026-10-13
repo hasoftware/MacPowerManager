@@ -67,7 +67,7 @@ public enum IntelPolicy {
         switch reason {
         case .manualPause, .thermal:
             return min(clamp(hardwarePercent ?? percent), limit)
-        case .topUp:
+        case .topUp, .calibrating:
             return IntelChargeLimiter.defaultLimit
         case .normal, .limitReached, .sailing, .discharging, .clamshellSuspended, .critical:
             return limit

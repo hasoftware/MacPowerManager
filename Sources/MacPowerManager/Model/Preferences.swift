@@ -42,6 +42,9 @@ struct Preferences: Codable, Equatable {
     var notifyForeignController = true
     /// Thông báo khi có phiên bản mới (một lần cho mỗi phiên bản).
     var notifyUpdate = true
+    /// Thông báo các bước của hiệu chuẩn pin (cần rút sạc, đã xong) và nhắc hiệu chuẩn định kỳ.
+    var notifyCalibration = true
+    var calibrationReminder = true
 
     /// Tự kiểm tra bản mới trên GitHub lúc mở app và mỗi 24 giờ.
     var autoCheckUpdates = true
@@ -73,6 +76,8 @@ struct Preferences: Codable, Equatable {
         notifyIneffective = value(.notifyIneffective, d.notifyIneffective)
         notifyForeignController = value(.notifyForeignController, d.notifyForeignController)
         notifyUpdate = value(.notifyUpdate, d.notifyUpdate)
+        notifyCalibration = value(.notifyCalibration, d.notifyCalibration)
+        calibrationReminder = value(.calibrationReminder, d.calibrationReminder)
         autoCheckUpdates = value(.autoCheckUpdates, d.autoCheckUpdates)
         topUpHours = value(.topUpHours, d.topUpHours)
     }

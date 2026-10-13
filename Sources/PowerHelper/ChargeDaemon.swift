@@ -176,7 +176,7 @@ final class ChargeDaemon {
             applyIntel(intel, decision: decision, battery: battery)
             effect = .notApplicable
         } else {
-            let topUpActive = runtime.controller.topUp != nil
+            let topUpActive = runtime.controller.chargesToFull
             let gated = SleepGate.constrain(charging: decision.chargingEnabled, adapter: decision.adapterEnabled,
                                             currentCharging: control.isChargingEnabled,
                                             currentAdapter: control.isAdapterEnabled, phase: phase,
@@ -264,6 +264,14 @@ final class ChargeDaemon {
         }
         adapterCutSince = nil
         adapterCut = .notApplicable
+        // Hiệu chuẩn: không hủy, chuyển sang chờ người dùng rút sạc để pin tự xả.
+        if runtime.controller.calibration != nil {
+            runtime.controller.calibration?.needsUnplug = true
+            runtime.controller.dischargeStartedAt = nil
+            log("Hiệu chuẩn pin: không ngắt được adapter (\(detail)), chờ rút sạc để xả")
+            saveRuntimeIfChanged()
+            return
+        }
         dischargeAbortedAt = Date()
         handle(effects: [.dischargeAborted(reason)], percent: percent)
         dischargeError = "Đã hủy xả pin: \(detail)"
@@ -290,6 +298,10 @@ final class ChargeDaemon {
                 log("Kết thúc sạc đầy một lần (\(reason.rawValue)) ở \(percent)%")
             case .chargeToLimitDone:
                 log("Đã sạc tới giới hạn (\(percent)%)")
+            case .calibrationPhase(let phase):
+                log("Hiệu chuẩn pin: sang bước \(phase.rawValue) ở \(percent)%")
+            case .calibrationEnded(let reason):
+                log("Kết thúc hiệu chuẩn pin (\(reason.rawValue)) ở \(percent)%")
             }
         }
     }
@@ -522,7 +534,7 @@ final class ChargeDaemon {
         // Không bao giờ để máy ngủ khi adapter đang bị ngắt.
         let state = SleepGate.sleepState(config: config, currentCharging: control.isChargingEnabled,
                                          percent: BatteryReader.read()?.percent,
-                                         topUpActive: runtime.controller.topUp != nil)
+                                         topUpActive: runtime.controller.chargesToFull)
         log("Chuẩn bị ngủ: adapter bật, sạc \(state.charging ? "bật" : "tắt")")
         applyToHardware(charging: state.charging, adapter: state.adapter)
         updateSleepAssertion(preventSleep: false)
@@ -591,6 +603,7 @@ final class ChargeDaemon {
         // Bật tạm dừng/xả hủy sạc đầy một lần; nâng giới hạn thì sạc tới giới hạn mới; tắt giới hạn bỏ "sạc tới giới hạn ngay".
         for effect in ControllerCommands.configDidChange(from: old, to: config, state: &runtime.controller) {
             if case .topUpEnded = effect { log("Hủy sạc đầy một lần vì bật tạm dừng sạc hoặc xả pin") }
+            if case .calibrationEnded = effect { log("Hủy hiệu chuẩn pin vì bật tạm dừng sạc hoặc xả pin") }
         }
         saveConfig()
         evaluate()
@@ -636,6 +649,29 @@ final class ChargeDaemon {
             evaluate()
         case .installUpdate(let archivePath, let signature):
             return installUpdate(archivePath: archivePath, signature: signature)
+        case .startCalibration:
+            suspendedUntil = nil
+            guard intel == nil else {
+                return HelperResponse(ok: false, error: .unsupported, message: "Máy Intel chưa hỗ trợ hiệu chuẩn pin",
+                                      status: status())
+            }
+            let acPresent = BatteryReader.read().map { resolveACPresent($0) } ?? false
+            if let error = ControllerCommands.startCalibration(state: &runtime.controller, now: Date(), acPresent: acPresent,
+                                                               adapterSupported: control.adapterKeys != nil) {
+                return HelperResponse(ok: false, error: error, message: Self.message(for: error), status: status())
+            }
+            log("Bắt đầu hiệu chuẩn pin")
+            // Hiệu chuẩn thay cho tạm dừng sạc và xả pin.
+            let calibrationConfig = ControllerCommands.configForTopUp(config)
+            if calibrationConfig != config {
+                config = calibrationConfig
+                saveConfig()
+            }
+            evaluate()
+        case .cancelCalibration:
+            suspendedUntil = nil
+            if ControllerCommands.cancelCalibration(state: &runtime.controller) { log("Hủy hiệu chuẩn pin") }
+            evaluate()
         }
         saveRuntimeIfChanged()
         return HelperResponse(ok: true, message: reportedError, status: status())
@@ -720,6 +756,8 @@ final class ChargeDaemon {
         status.effectiveLimit = lastDecision?.effectiveLimit
         status.topUp = runtime.controller.topUp
         status.chargeToLimitOnce = runtime.controller.chargeToLimitOnce
+        status.calibration = runtime.controller.calibration
+        status.lastCalibrationAt = runtime.controller.lastCalibrationAt
         status.foreignWrites = foreignWrites
         status.lidClosed = lidClosed
         status.firmware = firmware

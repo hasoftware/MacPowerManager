@@ -12,6 +12,8 @@ final class Notifier {
     /// Mục tiêu xả ở lần helper báo đang xả gần nhất; nil khi không xả. Không đổi khi mất kết nối helper.
     private var dischargeTarget: Int?
     private var lastTopUp: TopUpState?
+    private var lastCalibration: CalibrationState?
+    private var unplugNotified = false
     private var ineffectiveNotified = false
     private var notifiedControllers: Set<String> = []
 
@@ -27,6 +29,11 @@ final class Notifier {
     static let updateVersionKey = "notifier.update.version"
     /// Định danh của thông báo "Có phiên bản mới" (bấm vào sẽ mở cửa sổ Có gì mới).
     nonisolated static let updateNotificationID = "update-available"
+    /// Mốc tính "đã lâu chưa hiệu chuẩn" khi chưa hiệu chuẩn lần nào (lần đầu app thấy helper có tính năng này).
+    static let calibrationSinceKey = "notifier.calibration.since"
+    static let calibrationRemindedKey = "notifier.calibration.remindedAt"
+    static let calibrationInterval: TimeInterval = 60 * 24 * 3600
+    static let calibrationRemindAgain: TimeInterval = 30 * 24 * 3600
 
     init(defaults: UserDefaults = .standard, sink: ((String, String, String) -> Void)? = nil) {
         self.defaults = defaults
@@ -87,6 +94,8 @@ final class Notifier {
         }
         if helper != nil { lastTopUp = topUp }
 
+        if let helper { evaluateCalibration(helper, battery: battery, prefs: prefs, now: now) }
+
         // Không dùng chi tiết của helper (tiếng Việt, không dịch được) trong thông báo.
         if case .ineffective = helper?.effect {
             if !ineffectiveNotified && prefs.notifyIneffective {
@@ -141,6 +150,46 @@ final class Notifier {
         } else if battery.percent < 95 {
             fullNotified = false
         }
+    }
+
+    /// Hiệu chuẩn: báo khi xong, khi cần người dùng rút sạc (máy không tự ngắt được bộ sạc), và nhắc định kỳ.
+    private func evaluateCalibration(_ helper: HelperStatus, battery: BatteryInfo, prefs: Preferences, now: Date) {
+        let calibration = helper.calibration
+        if let last = lastCalibration, calibration == nil, let done = helper.lastCalibrationAt, done >= last.startedAt,
+           prefs.notifyCalibration {
+            let limit = helper.config.chargeLimitEnabled ? helper.config.chargeLimit : 100
+            post(id: "calibration", String(localized: "Đã hiệu chuẩn pin xong"),
+                 String(localized: "Pin trở về giới hạn \(limit)%. Số % và dung lượng tối đa giờ được đo lại chính xác hơn."))
+        }
+        lastCalibration = calibration
+
+        if calibration?.phase == .discharge, calibration?.needsUnplug == true, battery.externalConnected {
+            if !unplugNotified && prefs.notifyCalibration {
+                post(id: "calibration", String(localized: "Rút sạc để tiếp tục hiệu chuẩn"),
+                     String(localized: "Máy không tự ngắt được bộ sạc. Hãy rút sạc và dùng máy tới khi pin còn \(Calibration.lowPercent)%."))
+            }
+            unplugNotified = true
+        } else {
+            unplugNotified = false
+        }
+
+        // Nhắc định kỳ (không áp dụng cho Intel: chưa hỗ trợ hiệu chuẩn).
+        guard prefs.calibrationReminder, calibration == nil, helper.chargingKeys != "BCLM" else { return }
+        let since: Date
+        if let last = helper.lastCalibrationAt {
+            since = last
+        } else if let first = defaults.object(forKey: Self.calibrationSinceKey) as? Date {
+            since = first
+        } else {
+            defaults.set(now, forKey: Self.calibrationSinceKey)
+            return
+        }
+        guard now.timeIntervalSince(since) >= Self.calibrationInterval else { return }
+        if let reminded = defaults.object(forKey: Self.calibrationRemindedKey) as? Date,
+           now.timeIntervalSince(reminded) < Self.calibrationRemindAgain { return }
+        defaults.set(now, forKey: Self.calibrationRemindedKey)
+        post(id: "calibration-reminder", String(localized: "Đã lâu chưa hiệu chuẩn pin"),
+             String(localized: "Hiệu chuẩn vài tháng một lần giúp số % pin chính xác hơn. Mở MacPowerManager → Hiệu chuẩn."))
     }
 
     /// Có phiên bản mới: báo một lần cho mỗi phiên bản. `post` false (người dùng tự bấm kiểm tra và đã thấy kết quả)

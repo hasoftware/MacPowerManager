@@ -22,7 +22,7 @@ extension AppModel {
     }
 
     /// Sạc đầy một lần cần cắm sạc (hủy thì luôn được).
-    var canTopUp: Bool { helper.topUpActive || battery?.externalConnected == true }
+    var canTopUp: Bool { helper.topUpActive || (battery?.externalConnected == true && !helper.calibrating) }
 
     func setLimit(_ value: Int) {
         helper.update { $0.chargeLimit = value }

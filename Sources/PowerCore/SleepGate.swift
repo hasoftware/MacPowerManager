@@ -31,7 +31,7 @@ public enum SleepGate {
     }
 
     public static func holdsLevelDuringSleep(_ config: PowerConfig, state: ControllerState) -> Bool {
-        holdsLevelDuringSleep(config, topUpActive: state.topUp != nil)
+        holdsLevelDuringSleep(config, topUpActive: state.chargesToFull)
     }
 
     /// Trạng thái khi chuẩn bị ngủ: luôn bật adapter; giữ mức pin nếu người dùng chọn và đang có giới hạn;
@@ -45,6 +45,6 @@ public enum SleepGate {
     public static func sleepState(config: PowerConfig, currentCharging: Bool?, percent: Int?,
                                   state: ControllerState) -> (charging: Bool, adapter: Bool) {
         sleepState(config: config, currentCharging: currentCharging, percent: percent,
-                   topUpActive: state.topUp != nil)
+                   topUpActive: state.chargesToFull)
     }
 }

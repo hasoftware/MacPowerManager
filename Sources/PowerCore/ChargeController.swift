@@ -8,6 +8,8 @@ import Foundation
 ///    nắp đóng thì tạm ngừng xả.
 /// 3. Pin nóng: không chặn sạc dưới `thermalFloorPercent`; vẫn áp dụng khi đang sạc đầy một lần.
 /// 4. Tạm dừng sạc thủ công.
+/// 2a. Hiệu chuẩn pin: bước xả ngắt adapter (có hạn thuê) hoặc chờ pin tự xả; các bước sạc như sạc đầy một lần
+///     (vẫn tôn trọng pin nóng). Bật tạm dừng hoặc xả thủ công thì hủy hiệu chuẩn.
 /// 5. Sạc đầy một lần: giới hạn hiệu lực 100%, bỏ qua khoảng sailing.
 /// 6. Giới hạn + khoảng sailing: không chặn sạc dưới `sailingFloorPercent`.
 ///
@@ -26,7 +28,15 @@ public enum ChargeController {
             state.topUp = nil
             effects.append(.topUpEnded(reason))
         }
-        let topUpActive = state.topUp != nil
+        if let calibration = state.calibration, let reason = Calibration.endReason(calibration, input: input, config: config) {
+            state.calibration = nil
+            state.dischargeStartedAt = nil
+            effects.append(.calibrationEnded(reason))
+        }
+        Calibration.advance(state: &state, input: input, effects: &effects)
+        let calibrationPhase = state.calibration?.phase
+        // Hiệu chuẩn cũng sạc tới 100% như sạc đầy một lần (không giữ mức, bỏ "sạc tới giới hạn ngay").
+        let topUpActive = state.topUp != nil || calibrationPhase != nil
         let limitActive = config.chargeLimitEnabled && config.chargeLimit < 100
         let limit = limitActive ? clampLimit(config.chargeLimit) : 100
         let effectiveLimit = topUpActive ? 100 : limit
@@ -42,12 +52,23 @@ public enum ChargeController {
         }
 
         // Thời điểm bắt đầu ngắt adapter chỉ có nghĩa khi đang bật xả.
-        if !config.dischargeEnabled { state.dischargeStartedAt = nil }
+        if !config.dischargeEnabled && calibrationPhase != .discharge { state.dischargeStartedAt = nil }
 
         // An toàn trên hết: pin quá yếu thì luôn cho sạc.
         if percent <= PowerConstants.criticalPercent {
             if config.dischargeEnabled { effects.append(.dischargeFinished) }
             return decision(charging: true, .critical)
+        }
+
+        if let calibrationPhase {
+            if calibrationPhase == .discharge {
+                let d = Calibration.dischargeDecision(state: &state, input: input)
+                return decision(charging: d.charging, adapter: d.adapter, d.reason)
+            }
+            if state.thermalPaused && percent >= PowerConstants.thermalFloorPercent {
+                return decision(charging: false, .thermal)
+            }
+            return decision(charging: true, .calibrating)
         }
 
         if config.dischargeEnabled {

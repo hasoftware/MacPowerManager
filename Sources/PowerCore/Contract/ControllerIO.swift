@@ -18,6 +18,8 @@ public enum ChargeReason: String, Codable, Sendable {
     /// Đang xả nhưng nắp máy đóng: tạm ngừng xả (tránh vòng lặp ngủ/thức).
     case clamshellSuspended
     case critical
+    /// Đang hiệu chuẩn pin (xem `CalibrationState`): sạc tới 100%, giữ, xả xuống thấp rồi sạc lại.
+    case calibrating
 
     /// Mô tả cho giao diện. Dịch theo `Bundle.main` của app (helper không có bản dịch nên luôn là tiếng Việt).
     public var label: String {
@@ -31,6 +33,7 @@ public enum ChargeReason: String, Codable, Sendable {
         case .topUp: String(localized: "Đang sạc đầy một lần")
         case .clamshellSuspended: String(localized: "Tạm ngừng xả (nắp máy đóng)")
         case .critical: String(localized: "Pin yếu, cho phép sạc")
+        case .calibrating: String(localized: "Đang hiệu chuẩn pin")
         }
     }
 }
@@ -63,6 +66,13 @@ public struct ControllerState: Codable, Equatable, Sendable {
     public var dischargeStartedAt: Date?
     /// Giờ hẹn của lần sạc đầy theo lịch đã xử lý (đã bắt đầu, hoặc người dùng đã hủy): không bắt đầu lại lần nữa.
     public var scheduledChargeHandled: Date?
+    /// Đang hiệu chuẩn pin (v0.9.0).
+    public var calibration: CalibrationState?
+    /// Lần hiệu chuẩn hoàn tất gần nhất.
+    public var lastCalibrationAt: Date?
+
+    /// Đang cần sạc tới 100% (sạc đầy một lần hoặc bước sạc của hiệu chuẩn): không giữ mức khi máy ngủ.
+    public var chargesToFull: Bool { topUp != nil || calibration?.phase.chargesToFull == true }
 
     public init() {}
 
@@ -74,6 +84,8 @@ public struct ControllerState: Codable, Equatable, Sendable {
         topUp = (try? c.decodeIfPresent(TopUpState.self, forKey: .topUp)) ?? nil
         dischargeStartedAt = (try? c.decodeIfPresent(Date.self, forKey: .dischargeStartedAt)) ?? nil
         scheduledChargeHandled = (try? c.decodeIfPresent(Date.self, forKey: .scheduledChargeHandled)) ?? nil
+        calibration = (try? c.decodeIfPresent(CalibrationState.self, forKey: .calibration)) ?? nil
+        lastCalibrationAt = (try? c.decodeIfPresent(Date.self, forKey: .lastCalibrationAt)) ?? nil
     }
 }
 
@@ -120,6 +132,9 @@ public enum ControllerEffect: Codable, Equatable, Sendable {
     case topUpEnded(TopUpEndReason)
     /// Đã sạc tới giới hạn sau lệnh "sạc tới giới hạn ngay".
     case chargeToLimitDone
+    /// Hiệu chuẩn chuyển sang bước mới.
+    case calibrationPhase(CalibrationPhase)
+    case calibrationEnded(CalibrationEndReason)
 }
 
 public struct ControlDecision: Equatable, Sendable {

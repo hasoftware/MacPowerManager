@@ -12,6 +12,9 @@ public enum HelperCommand: Codable, Equatable, Sendable {
     /// Helper tự cập nhật từ bản phát hành đã tải và đã ký (v0.6.0+): kiểm tra lại chữ ký, thay helper,
     /// ghim cdhash của app mới rồi tự khởi động lại. Không cần mật khẩu quản trị.
     case installUpdate(archivePath: String, signature: String)
+    /// Hiệu chuẩn pin (v0.9.0): sạc đầy, xả xuống thấp, sạc đầy lại rồi trở về giới hạn.
+    case startCalibration
+    case cancelCalibration
 }
 
 public enum HelperError: String, Codable, Sendable {

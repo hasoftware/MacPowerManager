@@ -32,6 +32,8 @@ public struct HelperStatus: Codable, Equatable, Sendable {
     public var effectiveLimit: Int?
     public var topUp: TopUpState?
     public var chargeToLimitOnce: Bool?
+    public var calibration: CalibrationState?
+    public var lastCalibrationAt: Date?
     public var foreignWrites: [ForeignWrite]?
     public var lidClosed: Bool?
     /// Ví dụ "iBoot-11881.121.1".

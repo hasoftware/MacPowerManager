@@ -58,6 +58,7 @@ struct PageView: View {
         case .limit: LimitPage()
         case .heat: HeatPage()
         case .discharge: DischargePage()
+        case .calibration: CalibrationPage()
         case .sleep: SleepPage()
         case .menuBar: MenuBarPage()
         case .notifications: NotificationsPage()

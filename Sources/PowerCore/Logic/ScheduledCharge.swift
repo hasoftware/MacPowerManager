@@ -44,7 +44,7 @@ public enum ScheduledCharge {
                                   calendar: Calendar = .current) -> Date? {
         let config = rawConfig.sanitized()
         guard config.fullChargeSchedule.enabled, config.chargeLimitEnabled, config.chargeLimit < 100,
-              !config.pauseCharging, !config.dischargeEnabled, input.acPresent,
+              !config.pauseCharging, !config.dischargeEnabled, input.acPresent, state.calibration == nil,
               input.percent > PowerConstants.criticalPercent,
               let next = nextStart(now: input.now, percent: input.percent, schedule: config.fullChargeSchedule,
                                    calendar: calendar),

@@ -187,6 +187,11 @@ struct PowerSummary: Equatable {
         case .unknown:
             return .empty
         }
+        if let calibration = status?.calibration {
+            summary.title = String(localized: "Hiệu chuẩn pin · bước \(calibration.phase.step)/3")
+            summary.detail = CalibrationText.detail(calibration, battery: b, adapterCut: status?.adapterEnabled == false,
+                                                    lidClosed: status?.reason == .clamshellSuspended)
+        }
         return summary
     }
 
@@ -202,6 +207,7 @@ struct PowerSummary: Equatable {
         switch status.reason {
         case .critical: return .critical
         case .discharging: return .discharging
+        case .calibrating where status.adapterEnabled == false: return .discharging
         case .clamshellSuspended: return .dischargeSuspended
         default: break
         }
@@ -215,6 +221,7 @@ struct PowerSummary: Equatable {
         case .limitReached: return .holding
         case .sailing: return .sailing
         case .topUp: return natural == .full ? .full : .topUp
+        case .calibrating: return natural == .charging ? .topUp : natural
         default: return natural
         }
     }

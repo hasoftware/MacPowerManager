@@ -120,6 +120,7 @@ private struct Scenario {
         popover("nohelper", Mock.model(.noHelper))
         popover("discharging", Mock.model(.discharging))
         popover("topup-heat", Mock.model(.topUpHeat))
+        popover("calibrating", Mock.model(.calibrating))
         popover("update", Mock.model(.holding, update: .available(Mock.release)))
 
         list.append(Scenario(name: "window", size: CGSize(width: 1080, height: 720)) {
@@ -130,6 +131,8 @@ private struct Scenario {
         page("overview-nohelper", .overview, Mock.model(.noHelper), size: CGSize(width: 1100, height: 1000))
         page("limit", .limit, Mock.model(.holding), size: CGSize(width: 760, height: 1100))
         page("limit-topup", .limit, Mock.model(.topUpHeat), size: CGSize(width: 760, height: 1100))
+        page("calibration", .calibration, Mock.model(.holding), size: CGSize(width: 760, height: 640))
+        page("calibration-active", .calibration, Mock.model(.calibrating), size: CGSize(width: 760, height: 700))
         page("heat", .heat, Mock.model(.topUpHeat), size: CGSize(width: 760, height: 820))
         page("discharge", .discharge, Mock.model(.discharging), size: CGSize(width: 760, height: 720))
         page("sleep", .sleep, Mock.model(.holding), size: CGSize(width: 760, height: 640))
@@ -229,7 +232,7 @@ private struct GlyphSheet: View {
 
 @MainActor
 private enum Mock {
-    enum Kind { case holding, chargingConflict, noHelper, discharging, topUpHeat }
+    enum Kind { case holding, chargingConflict, noHelper, discharging, topUpHeat, calibrating }
 
     /// Bản phát hành giả theo đúng định dạng của GitHub Release: ghi chú từ CHANGELOG, rồi phần chân từ dòng `---`.
     static let release = ReleaseInfo(
@@ -309,6 +312,7 @@ private enum Mock {
         status.effectiveLimit = 80
         status.lidClosed = false
         status.firmware = "iBoot-11881.121.1"
+        status.lastCalibrationAt = Date().addingTimeInterval(-74 * 24 * 3600)
         var install = HelperClient.InstallState.installed
         var conflicts: [ConflictFinding] = [
             ConflictFinding(product: .aldente, installedPaths: ["/Applications/AlDente.app",
@@ -383,6 +387,18 @@ private enum Mock {
             status.effect = .ineffective(detail: "Pin vẫn nhận 1,2 A sau 90 giây.")  // l10n-ignore
             temperature = 41.3
             prefs.menuBarStyle = .symbol
+        case .calibrating:
+            b.percent = 62
+            b.externalConnected = false
+            b.amperage = -1650
+            b.systemLoad = 21.4
+            status.reason = .calibrating
+            status.adapterEnabled = false
+            status.chargingEnabled = false
+            status.effectiveLimit = 100
+            status.effect = .notApplicable
+            status.calibration = CalibrationState(phase: .discharge, startedAt: Date().addingTimeInterval(-3.2 * 3600),
+                                                  phaseStartedAt: Date().addingTimeInterval(-1.1 * 3600))
         }
 
         b.currentCapacity = b.maxCapacity * b.percent / 100

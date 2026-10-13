@@ -40,6 +40,7 @@ final class HelperClient {
     var needsReinstall: Bool { installState == .outdated("?") }
 
     var topUpActive: Bool { status?.topUp != nil }
+    var calibrating: Bool { status?.calibration != nil }
 
     // MARK: Trạng thái
 
@@ -158,6 +159,14 @@ final class HelperClient {
         await perform(.chargeToLimitNow)
     }
 
+    func startCalibration() async {
+        await perform(.startCalibration)
+    }
+
+    func cancelCalibration() async {
+        await perform(.cancelCalibration)
+    }
+
     /// Nhờ helper đang chạy tự cập nhật từ bản đã tải và đã ký, không cần mật khẩu quản trị.
     /// Trả về false (không báo lỗi lên giao diện) nếu helper cũ chưa hỗ trợ hoặc không cài được: khi đó app dùng cách
     /// cũ là nhắc cài lại helper sau khi mở lại.
@@ -229,9 +238,12 @@ final class HelperClient {
         switch error {
         case .invalidArgument:
             if case .chargeToLimitNow = command { return String(localized: "Giới hạn sạc đang tắt hoặc ở 100%.") }
+            if case .startTopUp = command { return String(localized: "Đang hiệu chuẩn pin. Hãy hủy hiệu chuẩn trước.") }
             return String(localized: "Giá trị không hợp lệ.")
         case .notPluggedIn: return String(localized: "Cần cắm sạc để dùng chức năng này.")
-        case .unsupported: return String(localized: "Helper đang cài chưa hỗ trợ lệnh này. Hãy cài lại helper.")
+        case .unsupported:
+            if case .startCalibration = command { return String(localized: "Máy Intel chưa hỗ trợ hiệu chuẩn pin.") }
+            return String(localized: "Helper đang cài chưa hỗ trợ lệnh này. Hãy cài lại helper.")
         case .notAuthorized: return String(localized: "Helper từ chối lệnh từ bản app này. Hãy cài lại helper.")
         case .failed, nil: return String(localized: "Helper không thực hiện được lệnh.")
         }

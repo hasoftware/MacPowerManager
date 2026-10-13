@@ -6,7 +6,7 @@ enum Page: String, CaseIterable, Identifiable {
     // Theo dõi
     case overview, history, health
     // Chăm sóc pin
-    case limit, heat, discharge, sleep
+    case limit, heat, discharge, calibration, sleep
     // Ứng dụng
     case menuBar, notifications, system, about
 
@@ -22,6 +22,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .limit: "Giới hạn sạc"
         case .heat: "Chống nóng"
         case .discharge: "Xả pin"
+        case .calibration: "Hiệu chuẩn"
         case .sleep: "Khi ngủ"
         case .menuBar: "Thanh menu"
         case .notifications: "Thông báo"
@@ -38,6 +39,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .limit: "battery.75percent"
         case .heat: "thermometer.medium"
         case .discharge: "arrow.down.to.line"
+        case .calibration: "arrow.triangle.2.circlepath.circle"
         case .sleep: "moon.zzz"
         case .menuBar: "menubar.rectangle"
         case .notifications: "bell.badge"
@@ -47,9 +49,9 @@ enum Page: String, CaseIterable, Identifiable {
     }
 
     static let monitor: [Page] = [.overview, .history, .health]
-    static let care: [Page] = [.limit, .heat, .discharge, .sleep]
+    static let care: [Page] = [.limit, .heat, .discharge, .calibration, .sleep]
     static let app: [Page] = [.menuBar, .notifications, .system, .about]
 
     /// Trang không áp dụng trên máy Intel (không có xả pin và tùy chọn khi ngủ).
-    var appleSiliconOnly: Bool { self == .discharge || self == .sleep }
+    var appleSiliconOnly: Bool { self == .discharge || self == .calibration || self == .sleep }
 }

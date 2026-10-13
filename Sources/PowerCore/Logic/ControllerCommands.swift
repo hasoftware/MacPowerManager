@@ -11,6 +11,8 @@ public enum ControllerCommands {
     public static func startTopUp(state: inout ControllerState, now: Date, hours: Int?,
                                   acPresent: Bool, bootSessionUUID: String) -> HelperError? {
         guard acPresent else { return .notPluggedIn }
+        // Không chen ngang hiệu chuẩn đang chạy (thường kéo dài nhiều giờ); người dùng hủy hiệu chuẩn trước.
+        guard state.calibration == nil else { return .invalidArgument }
         let clamped = min(max(hours ?? PowerConstants.topUpDefaultHours, topUpHoursRange.lowerBound),
                           topUpHoursRange.upperBound)
         state.topUp = TopUpState(startedAt: now, expiresAt: now.addingTimeInterval(TimeInterval(clamped) * 3600),
@@ -46,6 +48,28 @@ public enum ControllerCommands {
         state.holdingAtLimit = false
     }
 
+    /// Bắt đầu hiệu chuẩn pin. Cần cắm sạc. `adapterSupported` false (không ngắt được adapter) thì bước xả
+    /// cần người dùng rút sạc. Helper cũng phải tắt tạm dừng và xả trong cấu hình (xem `configForTopUp`).
+    public static func startCalibration(state: inout ControllerState, now: Date, acPresent: Bool,
+                                        adapterSupported: Bool) -> HelperError? {
+        guard acPresent else { return .notPluggedIn }
+        state.calibration = CalibrationState(startedAt: now, needsUnplug: !adapterSupported)
+        state.topUp = nil
+        state.chargeToLimitOnce = false
+        state.holdingAtLimit = false
+        state.dischargeStartedAt = nil
+        return nil
+    }
+
+    /// Hủy hiệu chuẩn. Trả về true nếu đang có phiên để hủy.
+    @discardableResult
+    public static func cancelCalibration(state: inout ControllerState) -> Bool {
+        guard state.calibration != nil else { return false }
+        state.calibration = nil
+        state.dischargeStartedAt = nil
+        return true
+    }
+
     /// Cấu hình sau khi bắt đầu sạc đầy một lần: sạc đầy hủy tạm dừng và xả.
     public static func configForTopUp(_ config: PowerConfig) -> PowerConfig {
         var c = config
@@ -77,6 +101,9 @@ public enum ControllerCommands {
         if dischargeStarted || !new.dischargeEnabled { state.dischargeStartedAt = nil }
         if (pauseStarted || dischargeStarted) && cancelTopUp(state: &state) {
             effects.append(.topUpEnded(.cancelled))
+        }
+        if (pauseStarted || dischargeStarted) && cancelCalibration(state: &state) {
+            effects.append(.calibrationEnded(.cancelled))
         }
         let oldLimit = old.chargeLimitEnabled ? old.chargeLimit : 100
         let newLimit = new.chargeLimitEnabled ? new.chargeLimit : 100
