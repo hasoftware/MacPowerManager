@@ -55,6 +55,7 @@ final class HelperSelfUpdateTests: XCTestCase {
 
     private func installOldHelper() throws {
         try "#!/bin/sh\n# old-helper\n".write(to: dir.appendingPathComponent("helper"), atomically: true, encoding: .utf8)
+        try "<plist/>".write(to: dir.appendingPathComponent("helper.plist"), atomically: true, encoding: .utf8)
         let old = TrustedClients.File(cdhashes: [String(repeating: "a", count: 40), String(repeating: "b", count: 40)])
         try JSONEncoder().encode(old).write(to: dir.appendingPathComponent("trusted-clients.json"))
     }
@@ -67,7 +68,10 @@ final class HelperSelfUpdateTests: XCTestCase {
         let version = try updater().apply(archivePath: zip.path, signature: try sign(zip))
         XCTAssertEqual(version, "0.6.1")
         XCTAssertTrue(installedHelper.contains("new-helper"))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent("helper.plist").path))
+        // Helper mới thuộc về tiến trình cài (root khi chạy thật), không phải uid/gid lưu trong zip; không ai khác ghi được.
+        let attributes = try FileManager.default.attributesOfItem(atPath: dir.appendingPathComponent("helper").path)
+        XCTAssertEqual((attributes[.ownerAccountID] as? NSNumber)?.uint32Value, geteuid())
+        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.intValue, 0o755)
         let trust = TrustedClients.hashes(from: try Data(contentsOf: dir.appendingPathComponent("trusted-clients.json")))
         XCTAssertGreaterThanOrEqual(trust.count, 3, "cdhash app mới + app đang chạy")
         XCTAssertLessThanOrEqual(trust.count, HelperSelfUpdate.maxTrustedHashes)
@@ -109,6 +113,50 @@ final class HelperSelfUpdateTests: XCTestCase {
             XCTAssertEqual($0 as? HelperSelfUpdate.Failure, .invalidBundle(.wrongBundle("com.example.evil")))
         }
         XCTAssertTrue(installedHelper.contains("old-helper"))
+    }
+
+    func testChangedLaunchDaemonPlistNeedsReinstall() throws {
+        try installOldHelper()
+        try "<plist>old</plist>".write(to: dir.appendingPathComponent("helper.plist"), atomically: true, encoding: .utf8)
+        let zip = try makeRelease(version: "0.6.1")
+        XCTAssertThrowsError(try updater().apply(archivePath: zip.path, signature: try sign(zip))) {
+            XCTAssertEqual($0 as? HelperSelfUpdate.Failure, .launchdConfigChanged)
+        }
+        XCTAssertTrue(installedHelper.contains("old-helper"))
+    }
+
+    func testIdentifierOnlyTrustIsLeftAlone() throws {
+        try installOldHelper()
+        let trustFile = dir.appendingPathComponent("trusted-clients.json")
+        try JSONEncoder().encode(TrustedClients.File(cdhashes: [])).write(to: trustFile)
+        let zip = try makeRelease(version: "0.6.1")
+        _ = try updater().apply(archivePath: zip.path, signature: try sign(zip))
+        XCTAssertTrue(installedHelper.contains("new-helper"))
+        XCTAssertEqual(TrustedClients.hashes(from: try Data(contentsOf: trustFile)), [])
+    }
+
+    func testArchiveReadRejectsSymlinkAndFIFO() throws {
+        let real = dir.appendingPathComponent("real.zip")
+        try Data([1, 2, 3]).write(to: real)
+        XCTAssertEqual(try HelperSelfUpdate.readArchive(at: real.path), Data([1, 2, 3]))
+        let link = dir.appendingPathComponent("link.zip")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        XCTAssertThrowsError(try HelperSelfUpdate.readArchive(at: link.path)) {
+            XCTAssertEqual($0 as? HelperSelfUpdate.Failure, .unreadable)
+        }
+        let fifo = dir.appendingPathComponent("fifo.zip")
+        XCTAssertEqual(mkfifo(fifo.path, 0o600), 0)
+        XCTAssertThrowsError(try HelperSelfUpdate.readArchive(at: fifo.path)) {
+            XCTAssertEqual($0 as? HelperSelfUpdate.Failure, .unreadable)
+        }
+        let sparse = dir.appendingPathComponent("big.zip")
+        FileManager.default.createFile(atPath: sparse.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: sparse)
+        try handle.truncate(atOffset: UInt64(HelperSelfUpdate.maxArchiveBytes) + 1)
+        try handle.close()
+        XCTAssertThrowsError(try HelperSelfUpdate.readArchive(at: sparse.path)) {
+            XCTAssertEqual($0 as? HelperSelfUpdate.Failure, .tooLarge)
+        }
     }
 
     func testMissingFileAndTrustMerge() {

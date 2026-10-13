@@ -198,8 +198,9 @@ private struct GlyphSheet: View {
                     Text(state.legendTitle)
                         .font(.caption)
                         .frame(width: 140, alignment: .leading)
-                    glyph(MenuBarContent(percent: percent, limit: 80, state: state), dark: dark)
-                    glyph(MenuBarContent(percent: percent, limit: 80, state: state, colored: true), dark: dark)
+                    glyph(MenuBarContent(percent: percent, limit: 80, state: state, style: .inside), dark: dark)
+                    glyph(MenuBarContent(percent: percent, limit: 80, state: state, style: .inside, colored: true), dark: dark)
+                    glyph(MenuBarContent(percent: percent, limit: 80, state: state, style: .glyph), dark: dark)
                     glyph(MenuBarContent(percent: percent, limit: 80, state: state, style: .symbol), dark: dark)
                 }
             }

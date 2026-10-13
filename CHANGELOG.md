@@ -6,6 +6,22 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Biểu tượng pin kiểu iPhone** trên thanh menu: số % nằm ngay trong viên pin, tô theo mức pin, kèm huy hiệu trạng thái
+  (tia sét khi sạc, lá khi giữ mức…). Đây là kiểu mặc định mới; đổi lại trong Cài đặt → Thanh menu → Kiểu hiển thị.
+- **Helper tự cập nhật cùng app, không cần mật khẩu**: helper đang chạy tự kiểm tra chữ ký Ed25519 của bản mới rồi tự thay
+  mình. Áp dụng từ lần cập nhật *sau* v0.6.0 (lên v0.6.0 vẫn cần cài lại helper một lần). Nếu bản mới đổi cấu hình
+  LaunchDaemon, app vẫn nhắc cài lại helper như trước.
+
+### Bảo mật
+- Helper tự cập nhật ghi file mới với chủ sở hữu root:wheel (không giữ uid/gid trong file zip), không theo symlink,
+  chỉ đọc file thường trên ổ cục bộ và có giới hạn dung lượng.
+
+### English
+- iPhone-style menu bar battery with the percentage inside (new default style).
+- The helper now updates itself with the app, without an admin password (from the update after v0.6.0 onward).
+- Hardened helper self-update: root:wheel ownership, no symlinks, local regular files only, size cap.
+
 ## [0.5.2] - 2026-10-13
 
 ### Sửa lỗi

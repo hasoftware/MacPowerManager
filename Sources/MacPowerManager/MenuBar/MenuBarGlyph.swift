@@ -6,7 +6,7 @@ struct MenuBarContent: Hashable {
     /// Vạch giới hạn (nil = không giới hạn).
     var limit: Int?
     var state: PowerState
-    var style: MenuBarStyle = .glyph
+    var style: MenuBarStyle = .inside
     var showPercent = true
     /// Tô màu phần pin theo trạng thái (mặc định: ảnh template đơn sắc).
     var colored = false
@@ -64,6 +64,7 @@ enum MenuBarRenderer {
     private static func iconWidth(_ content: MenuBarContent) -> CGFloat {
         switch content.style {
         case .glyph: glyphSize.width
+        case .inside: insideBody.width + 1 + insideNubWidth + (content.state.badge != nil ? insideBadgeGap + insideBadgeWidth : 0)
         case .symbol: symbolImage(content).map(\.size.width) ?? 0
         case .text: 0
         }
@@ -90,6 +91,8 @@ enum MenuBarRenderer {
             switch content.style {
             case .glyph:
                 drawGlyph(content, origin: CGPoint(x: x, y: 0), ink: ink)
+            case .inside:
+                drawInside(content, originX: x, ink: ink)
             case .symbol:
                 if let symbol = symbolImage(content) {
                     let rect = CGRect(origin: CGPoint(x: x, y: (height - symbol.size.height) / 2), size: symbol.size)
@@ -106,6 +109,7 @@ enum MenuBarRenderer {
     }
 
     private static func percentText(_ content: MenuBarContent) -> String? {
+        if content.style == .inside { return nil }   // số % nằm trong viên pin
         guard let percent = content.percent else { return content.style == .text ? "—" : nil }
         if content.style == .text { return "\(percent)%" }
         return content.showPercent ? "\(percent)%" : nil
@@ -166,6 +170,83 @@ enum MenuBarRenderer {
             NSGraphicsContext.restoreGraphicsState()
             symbol.tinted(ink).draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1,
                                     respectFlipped: true, hints: nil)
+        }
+    }
+
+    // MARK: Phần trăm trong pin (kiểu iPhone)
+
+    private static let insideBody = CGRect(x: 0, y: 1.5, width: 27, height: 13)
+    private static let insideNubWidth: CGFloat = 1.5
+    private static let insideBadgeGap: CGFloat = 2
+    private static let insideBadgeWidth: CGFloat = 9
+
+    private static func insideFont(digits: Int) -> NSFont {
+        let base = NSFont.monospacedDigitSystemFont(ofSize: digits >= 3 ? 9 : 10.5, weight: .bold)
+        guard let rounded = base.fontDescriptor.withDesign(.rounded) else { return base }
+        return NSFont(descriptor: rounded, size: base.pointSize) ?? base
+    }
+
+    /// Viên pin kiểu iPhone: thân mờ, phần đã sạc tô đặc, số % khoét rỗng ở giữa (đọc được trên cả phần tô lẫn phần
+    /// trống, theo mọi màu thanh menu). Vạch giới hạn là hai khấc nhỏ ở mép trên/dưới để không đè lên chữ số.
+    private static func drawInside(_ content: MenuBarContent, originX: CGFloat, ink: NSColor) {
+        let body = insideBody.offsetBy(dx: originX, dy: 0)
+        let radius: CGFloat = 4
+        let level = CGFloat(min(max(content.percent ?? 0, 0), 100)) / 100
+        let fillColor: NSColor = content.colored && content.state != .onBattery && content.state != .unknown
+            ? content.state.nsTint : ink
+
+        // Thân pin mờ và cực pin.
+        ink.withAlphaComponent(0.35).setFill()
+        NSBezierPath(roundedRect: body, xRadius: radius, yRadius: radius).fill()
+        NSBezierPath(roundedRect: CGRect(x: body.maxX + 1, y: body.midY - 2.25, width: insideNubWidth, height: 4.5),
+                     xRadius: 0.75, yRadius: 0.75).fill()
+
+        // Phần đã sạc: tô đặc theo %, cắt theo hình thân pin để giữ góc bo.
+        let filled = CGRect(x: body.minX, y: body.minY, width: level > 0 ? max(body.width * level, 2) : 0, height: body.height)
+        if level > 0 {
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(roundedRect: body, xRadius: radius, yRadius: radius).addClip()
+            fillColor.setFill()
+            NSBezierPath(rect: filled).fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
+
+        // Số % như iPhone: khoét rỗng trên phần đã sạc, tô đặc trên phần còn trống để luôn dễ đọc.
+        // Kiểu này không vẽ vạch giới hạn: viên pin nhỏ, vạch cắt ngang số khó nhìn; trạng thái giữ mức đã có huy hiệu lá.
+        if let percent = content.percent {
+            let text = "\(percent)" as NSString
+            let font = insideFont(digits: text.length)
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: ink, .kern: -0.2]
+            let size = text.size(withAttributes: attrs)
+            let point = CGPoint(x: (body.midX - size.width / 2).rounded(.toNearestOrAwayFromZero),
+                                y: body.midY - size.height / 2 + 0.5)
+            let empty = CGRect(x: filled.maxX, y: 0, width: body.maxX - filled.maxX, height: height)
+            if empty.width > 0 {
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: empty).addClip()
+                text.draw(at: point, withAttributes: attrs)
+                NSGraphicsContext.restoreGraphicsState()
+            }
+            if filled.width > 0 {
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: CGRect(x: filled.minX, y: 0, width: filled.width, height: height)).addClip()
+                NSGraphicsContext.current?.compositingOperation = .destinationOut
+                text.draw(at: point, withAttributes: attrs)
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
+
+        // Huy hiệu trạng thái bên phải viên pin (tia sét khi sạc, lá khi giữ mức…).
+        if let name = content.state.badge,
+           let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 9, weight: .bold)) {
+            let size = symbol.size
+            let x = body.maxX + 1 + insideNubWidth + insideBadgeGap
+            let rect = CGRect(x: x + (insideBadgeWidth - size.width) / 2, y: (height - size.height) / 2,
+                              width: size.width, height: size.height)
+            let color: NSColor = content.colored ? content.state.nsTint : ink
+            symbol.tinted(color).draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1,
+                                      respectFlipped: true, hints: nil)
         }
     }
 

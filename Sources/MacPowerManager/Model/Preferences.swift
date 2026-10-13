@@ -3,6 +3,8 @@ import SwiftUI
 
 /// Kiểu hiển thị trên thanh menu.
 enum MenuBarStyle: String, Codable, CaseIterable, Identifiable {
+    /// Số % nằm bên trong viên pin, kiểu thanh trạng thái iPhone (mặc định).
+    case inside
     /// Biểu tượng pin riêng của app (có vạch giới hạn và huy hiệu trạng thái).
     case glyph
     /// Biểu tượng pin SF Symbol của hệ thống.
@@ -14,6 +16,7 @@ enum MenuBarStyle: String, Codable, CaseIterable, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
+        case .inside: "Phần trăm trong pin (kiểu iPhone)"
         case .glyph: "Biểu tượng có vạch giới hạn"
         case .symbol: "Biểu tượng pin của hệ thống"
         case .text: "Chỉ phần trăm"
@@ -24,7 +27,7 @@ enum MenuBarStyle: String, Codable, CaseIterable, Identifiable {
 /// Tùy chọn của app (không phải cấu hình helper), lưu trong UserDefaults.
 struct Preferences: Codable, Equatable {
     var showPercentInMenuBar = true
-    var menuBarStyle: MenuBarStyle = .glyph
+    var menuBarStyle: MenuBarStyle = .inside
     /// Tô màu huy hiệu theo trạng thái thay vì ảnh template đơn sắc.
     var menuBarColored = false
     var hidePercentWhenFull = false
@@ -74,9 +77,24 @@ struct Preferences: Codable, Equatable {
         topUpHours = value(.topUpHours, d.topUpHours)
     }
 
+    private static let insideMigrationKey = "preferences.menuBarStyle.insideMigrated"
+
     static func load() -> Preferences {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let prefs = try? JSONDecoder().decode(Preferences.self, from: data) else { return Preferences() }
+        let defaults = UserDefaults.standard
+        guard let data = defaults.data(forKey: key),
+              var prefs = try? JSONDecoder().decode(Preferences.self, from: data) else {
+            defaults.set(true, forKey: insideMigrationKey)
+            return Preferences()
+        }
+        // v0.6.0: kiểu "số % trong pin" thành mặc định. Ai đang dùng kiểu mặc định cũ (`glyph`) được chuyển một lần;
+        // người đã chọn kiểu khác giữ nguyên, và đổi lại `glyph` sau đó cũng được giữ.
+        if !defaults.bool(forKey: insideMigrationKey) {
+            defaults.set(true, forKey: insideMigrationKey)
+            if prefs.menuBarStyle == .glyph {
+                prefs.menuBarStyle = .inside
+                prefs.save()
+            }
+        }
         return prefs
     }
 

@@ -126,8 +126,9 @@ Giao diện có cả tiếng Việt và tiếng Anh (chọn trong **Thanh menu �
 ## Cập nhật
 
 Từ v0.5.0, app tự kiểm tra bản mới. Bấm **Cập nhật ngay** trong cửa sổ **Có gì mới**: app tự tải, kiểm tra chữ ký số
-(Ed25519, khóa của HASOFTWARE) và cài bản mới rồi mở lại. Sau đó app nhắc **cài lại helper** (cần mật khẩu quản trị),
-vì helper chỉ nhận lệnh từ đúng bản app đã cài nó.
+(Ed25519, khóa của HASOFTWARE) và cài bản mới rồi mở lại. Từ các bản sau v0.6.0, **helper tự cập nhật cùng app, không cần mật khẩu**: helper kiểm tra
+lại chữ ký của bản mới rồi tự thay mình. App chỉ nhắc cài lại helper (cần mật khẩu quản trị) khi helper đang dùng quá cũ
+hoặc bản mới đổi cấu hình LaunchDaemon.
 
 ## Quyền riêng tư
 

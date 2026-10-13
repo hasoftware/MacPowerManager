@@ -566,3 +566,4 @@
 "Bản tải về (%@) không mới hơn bản đang dùng (%@)." = "The download (%1$@) isn’t newer than the installed version (%2$@).";
 "Không cài được bản cập nhật vào vị trí hiện tại của app. Hãy tải bản cập nhật thủ công." = "The update can’t be installed where the app is located. Please download it manually.";
 "Helper tự cập nhật cùng app, không cần mật khẩu. Nếu helper đang dùng còn cũ (trước v0.6.0), app sẽ nhắc cài lại helper một lần sau khi mở lại." = "The helper updates together with the app, no password needed. If the installed helper is older (before v0.6.0), the app asks you to reinstall it once after relaunching.";
+"Phần trăm trong pin (kiểu iPhone)" = "Percent Inside Battery (iPhone Style)";
