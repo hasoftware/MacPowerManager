@@ -646,3 +646,15 @@
 "Khi giữ pin ở giới hạn, macOS để đèn cam vì tưởng pin chưa đầy. Chế độ \"Báo trạng thái sạc\" cho đèn xanh khi pin đang được giữ. Cắm sạc MagSafe rồi bấm \"Thử màu\": nếu đèn không đổi màu, máy chưa hỗ trợ, hãy để macOS điều khiển. Rút sạc hoặc gỡ helper sẽ trả đèn về cho macOS." = "While the battery is held at the limit, macOS keeps the light amber because it thinks charging isn’t finished. \"Show Charging Status\" turns it green while the battery is held. Plug in MagSafe and press \"Test Color\": if the light doesn’t change, this Mac isn’t supported, so leave it to macOS. Unplugging or removing the helper returns the light to macOS.";
 "Xanh" = "Green";
 "Cam" = "Amber";
+
+/* Dòng lệnh & Phím tắt (v0.11.0) */
+"Không tìm thấy lệnh mpm trong app bundle." = "The mpm command is missing from the app bundle.";
+"Không cài được lệnh mpm." = "Couldn’t install the mpm command.";
+"Gỡ" = "Remove";
+"Cài lệnh mpm" = "Install mpm";
+"Lệnh mpm" = "mpm Command";
+"Chưa cài. Cần mật khẩu quản trị một lần." = "Not installed. Needs an administrator password once.";
+"%@ đang trỏ tới %@" = "%1$@ points to %2$@";
+"Ví dụ" = "Examples";
+"Dòng lệnh & Phím tắt" = "Command Line & Shortcuts";
+"Trong app Phím tắt (Shortcuts), dùng tác vụ \"Chạy tập lệnh shell\" với lệnh mpm, hoặc \"Mở URL\" với địa chỉ macpowermanager://. Xả pin và hiệu chuẩn chỉ chạy được bằng lệnh mpm. Gõ mpm help để xem tất cả lệnh." = "In the Shortcuts app, use \"Run Shell Script\" with the mpm command, or \"Open URLs\" with a macpowermanager:// address. Discharge and calibration are available only through mpm. Type mpm help to see every command.";

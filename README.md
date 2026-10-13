@@ -130,6 +130,26 @@ Giao diện có cả tiếng Việt và tiếng Anh (chọn trong **Thanh menu �
    **Sau mỗi lần cập nhật app phải cài lại helper** (app sẽ nhắc): helper chỉ nhận lệnh từ đúng bản app đã cài nó
    (ghim theo cdhash), nên bản app mới chưa điều khiển được sạc cho tới khi cài lại.
 
+## Tự động hóa (dòng lệnh và Phím tắt)
+
+Cài lệnh `mpm` trong **Hệ thống & helper → Dòng lệnh & Phím tắt** (cần mật khẩu quản trị một lần), rồi:
+
+```sh
+mpm status            # trạng thái pin và sạc (thêm --json cho script)
+mpm limit 80          # đặt giới hạn 80%  ·  mpm limit off
+mpm pause on          # tạm dừng sạc       ·  mpm resume
+mpm topup 4           # sạc đầy một lần, tự kết thúc sau 4 giờ  ·  mpm topup cancel
+mpm discharge 50      # xả về 50% khi đang cắm sạc  ·  mpm discharge stop
+mpm calibrate         # hiệu chuẩn pin  ·  mpm calibrate cancel
+mpm magsafe status    # đèn MagSafe: system | status | off
+```
+
+Trong app **Phím tắt** (Shortcuts): dùng tác vụ *Chạy tập lệnh shell* với `mpm …`, hoặc *Mở URL* với
+`macpowermanager://limit/100`, `macpowermanager://pause/on`, `macpowermanager://topup/4`… Xả pin và hiệu chuẩn chỉ chạy
+bằng `mpm` (URL có thể bị mở từ trang web nên không được ngắt bộ sạc).
+
+`mpm` chính là app chạy ở chế độ dòng lệnh, nên helper nhận lệnh như từ app mà không cần cấp thêm quyền.
+
 ## Cập nhật
 
 Từ v0.5.0, app tự kiểm tra bản mới. Bấm **Cập nhật ngay** trong cửa sổ **Có gì mới**: app tự tải, kiểm tra chữ ký số
@@ -268,6 +288,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 - effect verification: after blocking charging the helper checks that the battery really stopped charging and warns you if not
 - conflict detection: other charge controllers (AlDente, batt, Battery Toolkit, actuallymentor/battery) and foreign writes to the SMC keys the helper manages
 - scheduled full charge ("full by 8:00 on weekdays"), even while the Mac sleeps
+- `mpm` command line and `macpowermanager://` URLs for Shortcuts and scripts
 - MagSafe light that shows the real charging state (green while held at the limit)
 - one-click battery calibration (full → 15% → full) with a reminder every 2 months
 - battery details, health and history charts, long-term health tracking with a wear-rate estimate

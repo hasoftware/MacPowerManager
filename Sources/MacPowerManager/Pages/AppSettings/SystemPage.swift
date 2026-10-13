@@ -127,6 +127,8 @@ struct SystemPage: View {
                 Footnote("Các key điều khiển mà helper phát hiện bị tiến trình khác thay đổi so với giá trị nó đã ghi.")
             }
 
+            AutomationSection()
+
             Section {
                 LabeledContent("Máy", value: SystemInfo.model)
                 LabeledContent("macOS", value: SystemInfo.osVersion)
@@ -312,6 +314,57 @@ private struct ConflictRow: View {
             if let path = (finding.processes.first ?? finding.installedPaths.first) {
                 Text(verbatim: path).truncationMode(.middle).lineLimit(1).help(Text(verbatim: path))
             }
+        }
+    }
+}
+
+/// Dòng lệnh `mpm` và URL cho Phím tắt.
+private struct AutomationSection: View {
+    @State private var state = CommandLineInstaller.state
+    @State private var error: String?
+    @State private var busy = false
+
+    var body: some View {
+        Section {
+            LabeledContent {
+                switch state {
+                case .installed:
+                    Button("Gỡ") { run { await CommandLineInstaller.uninstall() } }
+                case .notInstalled, .other:
+                    Button("Cài lệnh mpm") { run { await CommandLineInstaller.install() } }
+                }
+            } label: {
+                Text("Lệnh mpm")
+                switch state {
+                case .installed: Text(verbatim: CommandLineInstaller.linkPath)
+                case .notInstalled: Text("Chưa cài. Cần mật khẩu quản trị một lần.")
+                case .other(let target): Text("\(CommandLineInstaller.linkPath) đang trỏ tới \(target)")
+                }
+            }
+            .disabled(busy)
+            if let error {
+                Text(verbatim: error).font(.caption).foregroundStyle(.red)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ví dụ").font(.callout).foregroundStyle(.secondary)
+                Text(verbatim: "mpm status · mpm limit 80 · mpm pause on · mpm topup 4 · mpm discharge 50")
+                Text(verbatim: "macpowermanager://limit/100 · macpowermanager://pause/off · macpowermanager://topup")
+            }
+            .font(.callout.monospaced())
+            .textSelection(.enabled)
+        } header: {
+            Text("Dòng lệnh & Phím tắt")
+        } footer: {
+            Footnote("Trong app Phím tắt (Shortcuts), dùng tác vụ \"Chạy tập lệnh shell\" với lệnh mpm, hoặc \"Mở URL\" với địa chỉ macpowermanager://. Xả pin và hiệu chuẩn chỉ chạy được bằng lệnh mpm. Gõ mpm help để xem tất cả lệnh.")
+        }
+    }
+
+    private func run(_ action: @escaping () async -> String?) {
+        busy = true
+        Task {
+            error = await action()
+            state = CommandLineInstaller.state
+            busy = false
         }
     }
 }

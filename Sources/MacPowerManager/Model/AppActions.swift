@@ -1,3 +1,4 @@
+import AppKit
 import PowerCore
 
 /// Thao tác dùng chung cho bảng nhanh, Tổng quan và các trang cài đặt.
@@ -42,6 +43,27 @@ extension AppModel {
 
     func toggleThermal() {
         helper.update { $0.thermalProtectionEnabled.toggle() }
+    }
+
+    /// URL `macpowermanager://limit/80`, `…/pause/on`, `…/topup`… từ Phím tắt hoặc script. URL không hợp lệ thì bỏ qua.
+    func handle(url: URL) {
+        guard case .success(let action) = Automation.parse(url: url) else { return }
+        switch action {
+        case .open, .status, .help, .version:
+            AppDelegate.openDashboard?()
+            NSApp.activate(ignoringOtherApps: true)
+        default:
+            Task {
+                // App vừa được mở bởi chính URL này: đọc cấu hình thật từ helper trước, nếu không sẽ ghi đè bằng mặc định.
+                if helper.status == nil { await helper.refresh() }
+                guard helper.isReady, helper.status != nil else { return }
+                if let config = action.applied(to: helper.config) {
+                    helper.update { $0 = config }
+                } else if let command = action.helperCommand {
+                    await helper.perform(command)
+                }
+            }
+        }
     }
 
     func toggleTopUp() {

@@ -6,6 +6,18 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Tính năng
+- **Lệnh `mpm`** (cài trong Hệ thống & helper → Dòng lệnh & Phím tắt): `mpm status [--json]`, `limit`, `pause`,
+  `resume`, `topup`, `discharge`, `charge-to-limit`, `calibrate`, `magsafe`. Dùng được trong script và tác vụ
+  "Chạy tập lệnh shell" của Phím tắt. `mpm` gọi chính app ở chế độ dòng lệnh nên helper nhận lệnh như từ app.
+- **URL `macpowermanager://`** cho tác vụ "Mở URL" của Phím tắt: `…/limit/80`, `…/pause/on`, `…/topup/4`… Xả pin và
+  hiệu chuẩn chỉ chạy bằng `mpm` (URL có thể bị mở từ trang web). App vừa mở bằng URL sẽ đọc cấu hình từ helper trước
+  khi áp dụng, không ghi đè cài đặt.
+
+### English
+- `mpm` command line (status, limit, pause, topup, discharge, calibrate, magsafe; `--json` for scripts) and
+  `macpowermanager://` URLs for the Shortcuts app.
+
 ## [0.10.0] - 2026-10-13
 
 ### Tính năng

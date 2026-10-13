@@ -39,6 +39,9 @@ cp "$BIN/MacPowerManager" "$APP/Contents/MacOS/MacPowerManager"
 cp "$BIN/PowerHelper" "$APP/Contents/MacOS/PowerHelper"
 cp Resources/com.hasoftware.MacPowerManager.helper.plist "$APP/Contents/Resources/"
 cp scripts/helper-install.sh "$APP/Contents/Resources/helper-install.sh"
+# Lệnh dòng lệnh `mpm` (gọi chính app với --cli).
+cp Resources/mpm "$APP/Contents/Resources/mpm"
+chmod 755 "$APP/Contents/Resources/mpm"
 # Icon app (tạo bằng scripts/make-icons.swift).
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # Bản dịch: khóa là câu tiếng Việt trong mã nguồn, en.lproj chứa tiếng Anh (Localizable.strings và

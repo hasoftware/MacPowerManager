@@ -1,0 +1,6 @@
+#!/bin/sh
+# Lệnh dòng lệnh của MacPowerManager (mpm help để xem cách dùng).
+# Gọi chính app ở chế độ --cli: helper chỉ nhận lệnh từ app đã được ghim chữ ký, nên không dùng file thực thi riêng.
+# Cài: MacPowerManager → Hệ thống & helper → Dòng lệnh, hoặc: sudo ln -sf <app>/Contents/Resources/mpm /usr/local/bin/mpm
+SELF="$(/usr/bin/readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
+exec "$(dirname "$SELF")/../MacOS/MacPowerManager" --cli "$@"

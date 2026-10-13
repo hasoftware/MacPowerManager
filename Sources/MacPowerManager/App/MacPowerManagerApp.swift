@@ -8,6 +8,10 @@ struct MacPowerManagerApp: App {
     @State private var model: AppModel
 
     init() {
+        // Lệnh `mpm` (dòng lệnh, Phím tắt): làm xong rồi thoát, không mở giao diện.
+        if let index = CommandLine.arguments.firstIndex(of: "--cli") {
+            exit(CommandLineTool.run(Array(CommandLine.arguments.dropFirst(index + 1))))
+        }
         #if DEBUG
         // Chế độ chụp giao diện để kiểm tra bố cục: vẽ các màn hình với dữ liệu giả rồi thoát.
         if let index = CommandLine.arguments.firstIndex(of: "--render-snapshots") {
@@ -25,7 +29,9 @@ struct MacPowerManagerApp: App {
             exit(0)
         }
         #endif
-        _model = State(initialValue: AppModel())
+        let model = AppModel()
+        _model = State(initialValue: model)
+        AppDelegate.handleURL = { url in model.handle(url: url) }
     }
 
     var body: some Scene {
@@ -74,6 +80,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
     /// Thông báo được bấm trước khi giao diện sẵn sàng (app vừa được mở bởi chính thông báo đó).
     @MainActor static var pendingWhatsNew = false
+    /// Xử lý URL `macpowermanager://…` (Phím tắt, script). Do `MacPowerManagerApp` gán.
+    @MainActor static var handleURL: ((URL) -> Void)?
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Task { @MainActor in urls.forEach { Self.handleURL?($0) } }
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // UNUserNotificationCenter chỉ dùng được khi chạy trong app bundle.
