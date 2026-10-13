@@ -109,7 +109,7 @@ private struct WhatsNewContent: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 20)
-            Text("Sau khi cập nhật, app tự mở lại và nhắc cài lại helper (cần mật khẩu quản trị): helper chỉ nhận lệnh từ đúng bản app đã cài nó.")
+            Text("Helper tự cập nhật cùng app, không cần mật khẩu. Nếu helper đang dùng còn cũ (trước v0.6.0), app sẽ nhắc cài lại helper một lần sau khi mở lại.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

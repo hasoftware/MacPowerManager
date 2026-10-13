@@ -29,6 +29,8 @@ final class UpdateInstaller {
     static let pendingHelperReinstallKey = "update.pendingHelperReinstall"
 
     @ObservationIgnored private var task: Task<Void, Never>?
+    /// Nhờ helper tự cập nhật (đường dẫn file .zip, chữ ký). Do AppModel gán.
+    @ObservationIgnored var updateHelper: ((String, String) async -> Bool)?
 
     /// Xóa thư mục tải tạm của lần cập nhật trước: app thoát để tự thay mình nên không kịp dọn.
     static func removeLeftovers() {
@@ -83,8 +85,12 @@ final class UpdateInstaller {
             }
             try await Self.runTool("/usr/bin/codesign", ["--verify", "--deep", "--strict", newApp.path])
 
-            // 4. Thay app sau khi thoát, rồi mở bản mới.
+            // 4. Nhờ helper đang chạy tự cập nhật (không cần mật khẩu). Helper cũ chưa hỗ trợ thì sau khi mở lại
+            //    app sẽ nhắc cài lại helper như trước.
             phase = .installing
+            let helperUpdated = await updateHelper?(zipURL.path, signatureText) ?? false
+
+            // 5. Thay app sau khi thoát, rồi mở bản mới.
             let current = Bundle.main.bundleURL
             let readOnly = (try? current.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly ?? false
             let destination = UpdatePlan.installLocation(runningBundlePath: current.path, isOnReadOnlyVolume: readOnly)
@@ -104,7 +110,7 @@ final class UpdateInstaller {
             relaunch.standardOutput = FileHandle.nullDevice
             relaunch.standardError = FileHandle.nullDevice
             try relaunch.run()
-            UserDefaults.standard.set(true, forKey: Self.pendingHelperReinstallKey)
+            UserDefaults.standard.set(!helperUpdated, forKey: Self.pendingHelperReinstallKey)
             NSApp.terminate(nil)
         } catch is CancellationError {
             try? FileManager.default.removeItem(at: work)

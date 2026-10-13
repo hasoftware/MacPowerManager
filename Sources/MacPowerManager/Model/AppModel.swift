@@ -57,6 +57,9 @@ final class AppModel {
         started = true
         notifier.requestAuthorization()
         UpdateInstaller.removeLeftovers()
+        installer.updateHelper = { [helper] path, signature in
+            await helper.installUpdate(archivePath: path, signature: signature)
+        }
         needsMove = AppMover.needsMove
         refresh()
         scanConflicts()

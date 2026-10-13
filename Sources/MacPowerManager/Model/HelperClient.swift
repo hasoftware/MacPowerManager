@@ -158,6 +158,21 @@ final class HelperClient {
         await perform(.chargeToLimitNow)
     }
 
+    /// Nhờ helper đang chạy tự cập nhật từ bản đã tải và đã ký, không cần mật khẩu quản trị.
+    /// Trả về false (không báo lỗi lên giao diện) nếu helper cũ chưa hỗ trợ hoặc không cài được: khi đó app dùng cách
+    /// cũ là nhắc cài lại helper sau khi mở lại.
+    func installUpdate(archivePath: String, signature: String) async -> Bool {
+        guard isReady,
+              let data = try? JSONEncoder().encode(HelperCommand.installUpdate(archivePath: archivePath, signature: signature))
+        else { return false }
+        do {
+            let reply: Data? = try await call { proxy, reply in proxy.perform(command: data, reply: reply) }
+            return reply.flatMap { try? JSONDecoder().decode(HelperResponse.self, from: $0) }?.ok == true
+        } catch {
+            return false
+        }
+    }
+
     /// Gửi `HelperCommand` tới helper. Trả về phản hồi, hoặc nil nếu không liên lạc được.
     @discardableResult
     func perform(_ command: HelperCommand) async -> HelperResponse? {

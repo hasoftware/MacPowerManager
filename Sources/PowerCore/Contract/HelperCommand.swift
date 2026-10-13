@@ -9,6 +9,9 @@ public enum HelperCommand: Codable, Equatable, Sendable {
     case cancelTopUp
     /// Bỏ qua khoảng sailing một lần và sạc tới giới hạn.
     case chargeToLimitNow
+    /// Helper tự cập nhật từ bản phát hành đã tải và đã ký (v0.6.0+): kiểm tra lại chữ ký, thay helper,
+    /// ghim cdhash của app mới rồi tự khởi động lại. Không cần mật khẩu quản trị.
+    case installUpdate(archivePath: String, signature: String)
 }
 
 public enum HelperError: String, Codable, Sendable {

@@ -598,6 +598,8 @@ final class ChargeDaemon {
             }
             log("Sạc tới giới hạn ngay")
             evaluate()
+        case .installUpdate(let archivePath, let signature):
+            return installUpdate(archivePath: archivePath, signature: signature)
         }
         saveRuntimeIfChanged()
         return HelperResponse(ok: true, message: reportedError, status: status())
@@ -607,6 +609,21 @@ final class ChargeDaemon {
     private var reportedError: String? {
         let parts = [lastError, dischargeError].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: "; ")
+    }
+
+    /// Tự cập nhật helper từ bản phát hành đã ký (xem `HelperSelfUpdate`). Thành công thì trả lời app trước, rồi thoát
+    /// để launchd (KeepAlive) chạy helper mới. Thoát kiểu này không trả SMC về mặc định: giới hạn vẫn giữ nguyên.
+    private func installUpdate(archivePath: String, signature: String) -> HelperResponse {
+        do {
+            let version = try HelperSelfUpdate().apply(archivePath: archivePath, signature: signature)
+            log("Đã cài helper \(version) từ bản cập nhật đã ký, khởi động lại")
+            saveRuntimeIfChanged()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { exit(0) }
+            return HelperResponse(ok: true, message: version, status: status())
+        } catch {
+            log("Không tự cập nhật được helper: \(error)")
+            return HelperResponse(ok: false, error: .failed, message: "\(error)", status: status())
+        }
     }
 
     private static func message(for error: HelperError) -> String {

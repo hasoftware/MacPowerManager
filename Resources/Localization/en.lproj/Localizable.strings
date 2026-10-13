@@ -556,7 +556,6 @@
 "Chữ ký bản cập nhật không hợp lệ. Đã hủy để bảo vệ máy của bạn." = "The update’s signature is invalid. The update was cancelled to protect your Mac.";
 "Không ghi được vào %@. Hãy tải bản cập nhật thủ công." = "Can’t write to %@. Please download the update manually.";
 "Kiểm tra bản cập nhật thất bại (%@)." = "Update verification failed (%@).";
-"Sau khi cập nhật, app tự mở lại và nhắc cài lại helper (cần mật khẩu quản trị): helper chỉ nhận lệnh từ đúng bản app đã cài nó." = "After updating, the app relaunches and asks you to reinstall the helper (administrator password required): the helper only accepts commands from the exact app build that installed it.";
 "Cập nhật ngay" = "Update Now";
 "Tải, kiểm tra chữ ký và cài bản mới, rồi mở lại app." = "Download, verify the signature, install the new version and relaunch the app.";
 "Đang tải %lld%%" = "Downloading %lld%%";
@@ -566,3 +565,4 @@
 "Bản tải về không phải MacPowerManager. Đã hủy để bảo vệ máy của bạn." = "The download isn’t MacPowerManager. The update was cancelled to protect your Mac.";
 "Bản tải về (%@) không mới hơn bản đang dùng (%@)." = "The download (%1$@) isn’t newer than the installed version (%2$@).";
 "Không cài được bản cập nhật vào vị trí hiện tại của app. Hãy tải bản cập nhật thủ công." = "The update can’t be installed where the app is located. Please download it manually.";
+"Helper tự cập nhật cùng app, không cần mật khẩu. Nếu helper đang dùng còn cũ (trước v0.6.0), app sẽ nhắc cài lại helper một lần sau khi mở lại." = "The helper updates together with the app, no password needed. If the installed helper is older (before v0.6.0), the app asks you to reinstall it once after relaunching.";
