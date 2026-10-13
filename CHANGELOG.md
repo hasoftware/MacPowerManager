@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-13
+
 ### Sửa lỗi
 - Dọn thư mục tải tạm của lần tự cập nhật trước khi mở app (khoảng 3 MB mỗi lần cập nhật).
 
@@ -142,7 +144,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.3.0...v0.4.0
