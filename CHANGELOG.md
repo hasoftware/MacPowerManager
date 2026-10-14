@@ -6,6 +6,15 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Cải tiến
+- Gom "Tổng quan hệ thống" vào trang **Tổng quan**: phần Hệ thống (CPU, bộ nhớ, GPU, ổ đĩa, mạng, năng lượng) nằm ngay
+  dưới phần pin, kèm nút chọn khoảng 1m/5m/15m/1h. Thanh bên bớt một mục.
+- Máy không có pin (Mac mini, iMac, Mac Studio) vẫn thấy phần Hệ thống trên trang Tổng quan.
+
+### English
+- System Overview merged into the Overview page (system tiles below the battery cards); Macs without a battery
+  still see the system section.
+
 ## [0.15.0] - 2026-10-13
 
 ### Tính năng

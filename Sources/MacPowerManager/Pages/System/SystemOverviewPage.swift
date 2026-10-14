@@ -1,16 +1,19 @@
 import PowerCore
 import SwiftUI
 
-/// Tổng quan hệ thống: mỗi nhóm (CPU, bộ nhớ, năng lượng) một thẻ có biểu đồ nhỏ; bấm thẻ để xem chi tiết.
-struct SystemOverviewPage: View {
+/// Phần "Hệ thống" của trang Tổng quan: mỗi nhóm (CPU, bộ nhớ, GPU, ổ đĩa, mạng, năng lượng) một thẻ có biểu đồ nhỏ;
+/// bấm thẻ để xem chi tiết.
+struct SystemOverviewGrid: View {
     @Environment(AppModel.self) private var model
     @AppStorage(Page.storageKey) private var page: Page = .overview
+    let width: CGFloat
 
     var body: some View {
         let monitor = model.system
         let latest = monitor.latest
         let memory = latest?.memory
-        MonitorPage { width in
+        VStack(alignment: .leading, spacing: Theme.Space.m) {
+            Text("Hệ thống").font(.title3.weight(.semibold)).padding(.top, Theme.Space.s)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.Space.m, alignment: .top),
                                      count: width >= 900 ? 3 : 2),
                       spacing: Theme.Space.m) {
@@ -104,7 +107,6 @@ struct SystemOverviewPage: View {
                 }
             }
         }
-        .toolbar { SystemToolbar(monitor: monitor) }
     }
 }
 

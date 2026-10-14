@@ -126,9 +126,9 @@ private struct Scenario {
         list.append(Scenario(name: "window", size: CGSize(width: 1080, height: 720)) {
             AnyView(RootView().environment(Mock.model(.holding)))
         })
-        page("overview", .overview, Mock.model(.holding), size: CGSize(width: 860, height: 1060))
-        page("overview-narrow", .overview, Mock.model(.chargingConflict), size: CGSize(width: 680, height: 1500))
-        page("overview-nohelper", .overview, Mock.model(.noHelper), size: CGSize(width: 1100, height: 1000))
+        page("overview", .overview, Mock.model(.holding), size: CGSize(width: 860, height: 1960))
+        page("overview-narrow", .overview, Mock.model(.chargingConflict), size: CGSize(width: 680, height: 2400))
+        page("overview-nohelper", .overview, Mock.model(.noHelper), size: CGSize(width: 1100, height: 1640))
         page("limit", .limit, Mock.model(.holding), size: CGSize(width: 760, height: 1100))
         page("limit-topup", .limit, Mock.model(.topUpHeat), size: CGSize(width: 760, height: 1100))
         page("calibration", .calibration, Mock.model(.holding), size: CGSize(width: 760, height: 640))
@@ -160,7 +160,6 @@ private struct Scenario {
                 AnyView(HistoryPage(fixedRange: range).environment(model))
             })
         }
-        page("system", .systemOverview, Mock.model(.holding), size: CGSize(width: 1000, height: 700))
         page("cpu", .cpu, Mock.model(.holding), size: CGSize(width: 1000, height: 1000))
         page("memory", .memory, Mock.model(.holding), size: CGSize(width: 1000, height: 780))
         page("processes", .processes, Mock.model(.holding), size: CGSize(width: 1000, height: 560))

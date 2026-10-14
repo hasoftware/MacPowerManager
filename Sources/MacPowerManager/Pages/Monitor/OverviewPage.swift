@@ -1,7 +1,7 @@
 import PowerCore
 import SwiftUI
 
-/// Tổng quan: banner, rồi lưới thẻ 4 cột (2 cột khi vùng nội dung hẹp hơn 800 pt).
+/// Tổng quan: banner, lưới thẻ pin 4 cột (2 cột khi vùng nội dung hẹp hơn 800 pt), rồi phần Hệ thống.
 struct OverviewPage: View {
     @Environment(AppModel.self) private var model
 
@@ -9,19 +9,18 @@ struct OverviewPage: View {
 
     var body: some View {
         MonitorPage { width in
-            if model.battery == nil {
-                ContentUnavailableView("Không tìm thấy pin", systemImage: "battery.0percent",
-                                       description: Text("Máy này có thể không có pin trong."))
-                    .frame(minHeight: 400)
-            } else {
-                VStack(spacing: gap) {
-                    if let banner = model.banner {
-                        BannerView(banner: banner)
-                    }
+            VStack(spacing: gap) {
+                if let banner = model.banner {
+                    BannerView(banner: banner)
+                }
+                // Máy không có pin (Mac mini, iMac…) chỉ có phần Hệ thống.
+                if model.battery != nil {
                     grid(width: width)
                 }
+                SystemOverviewGrid(width: width)
             }
         }
+        .toolbar { SystemToolbar(monitor: model.system) }
     }
 
     private func columns(_ width: CGFloat) -> Int { width < 800 ? 2 : 4 }

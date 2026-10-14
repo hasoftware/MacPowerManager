@@ -74,7 +74,6 @@ struct PageView: View {
         case .overview: OverviewPage()
         case .history: HistoryPage()
         case .health: HealthPage()
-        case .systemOverview: SystemOverviewPage()
         case .cpu: CPUPage()
         case .memory: MemoryPage()
         case .gpu: GPUPage()
