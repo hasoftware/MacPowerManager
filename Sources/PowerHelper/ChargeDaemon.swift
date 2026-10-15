@@ -71,6 +71,8 @@ final class ChargeDaemon {
     private var sleepAssertion: IOPMAssertionID = 0
     /// Giờ đánh thức máy đã hẹn với hệ thống cho lịch sạc đầy (để hủy khi lịch đổi).
     private var scheduledWake: Date?
+    /// Giờ đánh thức máy để kiểm tra mức pin khi đang sạc lúc gập máy (`SleepCharging`).
+    private var sleepCheckWake: Date?
     /// Máy có đèn MagSafe điều khiển được (key `ACLC`).
     private let hasMagSafeLED: Bool
     /// Helper đã đặt màu đèn (cần trả quyền cho hệ thống khi tắt tính năng, rút sạc hoặc helper dừng).
@@ -185,11 +187,20 @@ final class ChargeDaemon {
             effect = .notApplicable
         } else {
             let topUpActive = runtime.controller.chargesToFull
+            let holds = SleepGate.holdsLevelDuringSleep(config, topUpActive: topUpActive)
+            // Thức ngầm khi gập máy: được bật lại sạc nếu còn xa giới hạn và hẹn được lần thức dậy kế tiếp.
+            var armed = false
+            if phase != .awake, holds {
+                let plan = SleepCharging.plan(chargingAllowed: decision.chargingEnabled, reason: decision.reason,
+                                              percent: battery.percent, limit: decision.effectiveLimit, holdsLevel: holds,
+                                              acPresent: acPresent, lidClosed: lidClosed ?? false)
+                armed = plan.charging(wakeArmed: armSleepCheck(after: plan.checkAfter, now: now))
+            }
             let gated = SleepGate.constrain(charging: decision.chargingEnabled, adapter: decision.adapterEnabled,
                                             currentCharging: control.isChargingEnabled,
                                             currentAdapter: control.isAdapterEnabled, phase: phase,
-                                            reason: decision.reason,
-                                            holdsLevelDuringSleep: SleepGate.holdsLevelDuringSleep(config, topUpActive: topUpActive))
+                                            reason: decision.reason, holdsLevelDuringSleep: holds,
+                                            sleepChargingArmed: armed)
             applyToHardware(charging: gated.charging, adapter: gated.adapter)
             verifyAdapterCut(wanted: !gated.adapter, now: now, battery: battery)
             updateSleepAssertion(preventSleep: AdapterCutVerifier.holdsSleepAssertion(
@@ -350,6 +361,7 @@ final class ChargeDaemon {
             if isFullWake() {
                 log("Máy đã thức hẳn")
                 phase = .awake
+                cancelSleepCheck()
             }
         case .sleepPending:
             // Không nhận được HasPoweredOn hoặc WillNotSleep (ngủ bị hủy): thoát sau 2 phút nếu máy đang thức.
@@ -529,6 +541,7 @@ final class ChargeDaemon {
             // Dark wake (Power Nap, sạc, bảo trì): chỉ được siết lại cho tới khi máy thức hẳn.
             phase = isFullWake() ? .awake : .darkWake
             log(phase == .awake ? "Máy thức dậy" : "Máy thức ngầm (dark wake)")
+            if phase == .awake { cancelSleepCheck() }
             // SMC có thể đã bị reset khi ngủ sâu: không coi là ghi từ bên ngoài, xác minh lại từ đầu.
             auditSuppressedUntil = Date().addingTimeInterval(auditGraceSeconds)
             inhibitedSince = nil
@@ -542,10 +555,29 @@ final class ChargeDaemon {
         scheduleChargeWake()
         guard intel == nil else { return }  // Intel: firmware tự giữ giới hạn khi ngủ.
         // Không bao giờ để máy ngủ khi adapter đang bị ngắt.
-        let state = SleepGate.sleepState(config: config, currentCharging: control.isChargingEnabled,
+        var state = SleepGate.sleepState(config: config, currentCharging: control.isChargingEnabled,
                                          percent: BatteryReader.read()?.percent,
                                          topUpActive: runtime.controller.chargesToFull)
-        log("Chuẩn bị ngủ: adapter bật, sạc \(state.charging ? "bật" : "tắt")")
+        // Gập máy khi pin còn xa giới hạn: vẫn sạc, hẹn thức dậy kiểm tra trước lúc pin có thể chạm giới hạn.
+        let now = Date()
+        var checkNote = ""
+        if let battery = BatteryReader.read() {
+            let holds = SleepGate.holdsLevelDuringSleep(config, topUpActive: runtime.controller.chargesToFull)
+            let decision = previewDecision(battery: battery, now: now)
+            let plan = SleepCharging.plan(chargingAllowed: decision.chargingEnabled, reason: decision.reason,
+                                          percent: battery.percent, limit: decision.effectiveLimit, holdsLevel: holds,
+                                          acPresent: resolveACPresent(battery), lidClosed: SystemInfo.lidClosed ?? false)
+            if holds {
+                let armed = armSleepCheck(after: plan.checkAfter, now: now)
+                if plan.charging(wakeArmed: armed) { state.charging = true }
+                if let wake = sleepCheckWake { checkNote = ", kiểm tra lại lúc \(wake)" }
+            } else {
+                cancelSleepCheck()
+            }
+        } else {
+            cancelSleepCheck()
+        }
+        log("Chuẩn bị ngủ: adapter bật, sạc \(state.charging ? "bật" : "tắt")\(checkNote)")
         applyToHardware(charging: state.charging, adapter: state.adapter)
         // Đèn theo trạng thái khi ngủ: xanh nếu giữ mức, cam nếu sẽ sạc tiếp.
         if let battery = BatteryReader.read() {
@@ -579,6 +611,44 @@ final class ChargeDaemon {
         } else {
             log("Không hẹn được giờ đánh thức máy (\(result))")
         }
+    }
+
+    /// Quyết định của bộ điều khiển ở thời điểm này mà không đổi trạng thái (dùng lúc sắp ngủ, khi vòng điều khiển
+    /// có thể chưa chạy sau lần thức ngầm vừa rồi).
+    private func previewDecision(battery: BatteryInfo, now: Date) -> ControlDecision {
+        var state = runtime.controller
+        var effective = config
+        if intel != nil { effective.dischargeEnabled = false }
+        let temperature = intel?.batteryTemperature ?? control.batteryTemperature ?? battery.temperature
+        let input = ControllerInput(now: now, percent: battery.percent, temperature: temperature,
+                                    acPresent: resolveACPresent(battery), lidClosed: SystemInfo.lidClosed ?? false,
+                                    bootSessionUUID: bootSessionUUID)
+        return ChargeController.decide(input: input, config: effective, state: &state)
+    }
+
+    /// Hẹn đánh thức máy sau `interval` để kiểm tra mức pin (nil = hủy hẹn). Giữ giờ đã hẹn nếu còn sớm hơn.
+    /// Trả về true nếu có lần thức dậy trong khoảng đó.
+    private func armSleepCheck(after interval: TimeInterval?, now: Date) -> Bool {
+        guard let interval else {
+            cancelSleepCheck()
+            return false
+        }
+        let desired = now.addingTimeInterval(interval)
+        if let existing = sleepCheckWake, existing > now, existing <= desired { return true }
+        cancelSleepCheck()
+        let result = IOPMSchedulePowerEvent(desired as CFDate, PowerConstants.helperLabel as CFString, "wake" as CFString)
+        guard result == kIOReturnSuccess else {
+            log("Không hẹn được giờ thức dậy để kiểm tra pin (\(result)): tắt sạc khi ngủ")
+            return false
+        }
+        sleepCheckWake = desired
+        return true
+    }
+
+    private func cancelSleepCheck() {
+        guard let wake = sleepCheckWake else { return }
+        IOPMCancelScheduledPowerEvent(wake as CFDate, PowerConstants.helperLabel as CFString, "wake" as CFString)
+        sleepCheckWake = nil
     }
 
     private func cancelChargeWake() {
@@ -779,7 +849,10 @@ final class ChargeDaemon {
         if !control.restoreDefaults(clearing: Set(runtime.lastWritten.keys)) {
             log("Khôi phục mặc định chưa xác minh được")
         }
-        if forUninstall { cancelChargeWake() }
+        if forUninstall {
+            cancelChargeWake()
+            cancelSleepCheck()
+        }
         if forUninstall, let intel, !intel.restoreDefaults() {
             log("Không trả được BCLM về 100%")
         }

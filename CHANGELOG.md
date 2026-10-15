@@ -6,6 +6,16 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- **Gập máy đang cắm sạc thì pin gần như không lên.** Tùy chọn "Giữ nguyên mức pin khi máy ngủ" (bật mặc định) tắt sạc
+  trước khi ngủ, kể cả khi pin còn rất xa giới hạn (ví dụ 30% với giới hạn 90%), và khi thức ngầm helper chỉ được tắt
+  sạc chứ không được bật lại. Pin đứng yên tới khi mở máy. Giờ, khi nắp đóng và pin còn cách giới hạn từ 3% trở lên:
+  - helper vẫn để pin sạc và hẹn đánh thức máy (thức ngầm, màn hình không bật) trước lúc pin có thể chạm giới hạn
+    (tính theo tốc độ sạc 3%/phút, nhanh hơn sạc nhanh thực tế); mỗi lần thức, helper tính lại và hẹn lần kế tiếp;
+  - gần giới hạn thì tắt sạc như trước; không hẹn được giờ thức dậy thì giữ mức pin như cũ;
+  - đang tạm dừng vì pin nóng thì thức dậy kiểm tra lại sau 15 phút để sạc tiếp khi pin đã nguội;
+  - không đánh thức máy khi đã rút sạc hoặc khi máy ngủ với nắp mở.
+
 ## [0.16.2] - 2026-10-15
 
 ### Sửa lỗi
