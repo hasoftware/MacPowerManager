@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.16.4] - 2026-10-15
+
 ### Thay đổi
 - **Bỏ việc đánh thức máy để sạc khi gập máy (thêm ở v0.16.3).** Helper không bao giờ đánh thức máy để kiểm tra pin
   (chỉ còn lịch sạc đầy do người dùng tự đặt), để máy không thức dậy và nóng lên khi nằm trong balo. Khi khởi động,
@@ -352,7 +354,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.3...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.4...HEAD
+[0.16.4]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.3...v0.16.4
 [0.16.3]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.0...v0.16.1
