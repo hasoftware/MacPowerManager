@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-10-15
+
 ### Sửa lỗi
 - **App tốn nhiều CPU và pin** khi mở bảng điều khiển: bộ theo dõi hệ thống đo mỗi giây và trang Tiến trình dựng lại
   bảng hơn 700 dòng mỗi 2 giây, kể cả khi cửa sổ bị che, thu nhỏ hoặc màn hình đã tắt. Giờ app:
@@ -317,7 +319,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.13.0...v0.14.0
