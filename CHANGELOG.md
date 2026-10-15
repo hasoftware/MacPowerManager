@@ -6,6 +6,14 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Thay đổi
+- **Bỏ việc đánh thức máy để sạc khi gập máy (thêm ở v0.16.3).** Helper không bao giờ đánh thức máy để kiểm tra pin
+  (chỉ còn lịch sạc đầy do người dùng tự đặt), để máy không thức dậy và nóng lên khi nằm trong balo. Khi khởi động,
+  helper hủy mọi giờ đánh thức máy mà bản 0.16.3 đã hẹn.
+- "Giữ nguyên mức pin khi máy ngủ" quay về như 0.16.2: tắt sạc trước khi ngủ khi đang có giới hạn. Muốn pin sạc tiếp
+  khi gập máy cắm sạc thì tắt tùy chọn này (pin có thể vượt giới hạn trong lúc ngủ; helper dừng sạc ở lần máy thức
+  kế tiếp). Phần giải thích trong trang Khi ngủ đã ghi rõ điều này.
+
 ## [0.16.3] - 2026-10-15
 
 ### Sửa lỗi

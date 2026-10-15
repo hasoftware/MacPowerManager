@@ -12,13 +12,13 @@ struct SleepPage: View {
 
             Section {
                 Toggle(isOn: helper.binding(\.disableChargingBeforeSleep)) {
-                    Text("Không sạc vượt giới hạn khi máy ngủ")
-                    Text("Gập máy khi pin còn xa giới hạn: vẫn sạc, helper hẹn đánh thức máy (màn hình không bật) để dừng trước giới hạn. Gần giới hạn, tạm dừng sạc hoặc xả pin: tắt sạc trước khi ngủ.")
+                    Text("Giữ nguyên mức pin khi máy ngủ")
+                    Text("Tắt sạc trước khi ngủ nếu đang bật giới hạn, tạm dừng sạc hoặc xả pin.")
                 }
             } header: {
                 Text("Khi máy ngủ")
             } footer: {
-                Footnote("Khi máy ngủ, helper không theo dõi được mức pin. Nếu tắt tùy chọn này, pin có thể được sạc vượt giới hạn trong lúc ngủ. Máy ngủ với nắp mở thì không được đánh thức, pin giữ nguyên mức.")
+                Footnote("Helper không bao giờ đánh thức máy để kiểm tra pin, nên khi máy ngủ helper không theo dõi được mức pin. Muốn pin sạc tiếp khi gập máy cắm sạc thì tắt tùy chọn này: pin có thể vượt giới hạn trong lúc ngủ, helper dừng sạc ở lần máy thức kế tiếp.")
             }
             .disabled(!model.canControl)
 

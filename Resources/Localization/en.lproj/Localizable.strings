@@ -360,10 +360,10 @@
 "Phương thức và xác minh" = "Method & Verification";
 
 /* MacPowerManager/Pages/Care/SleepPage.swift */
-"Không sạc vượt giới hạn khi máy ngủ" = "Don't charge past the limit during sleep";
-"Gập máy khi pin còn xa giới hạn: vẫn sạc, helper hẹn đánh thức máy (màn hình không bật) để dừng trước giới hạn. Gần giới hạn, tạm dừng sạc hoặc xả pin: tắt sạc trước khi ngủ." = "With the lid closed and the battery well below the limit, charging continues and the helper schedules a wake (the screen stays off) to stop before the limit. Near the limit, or while paused or discharging, charging is turned off before sleep.";
+"Giữ nguyên mức pin khi máy ngủ" = "Hold battery level during sleep";
+"Tắt sạc trước khi ngủ nếu đang bật giới hạn, tạm dừng sạc hoặc xả pin." = "Turns off charging before sleep when the charge limit, Pause Charging, or Discharge is on.";
 "Khi máy ngủ" = "During Sleep";
-"Khi máy ngủ, helper không theo dõi được mức pin. Nếu tắt tùy chọn này, pin có thể được sạc vượt giới hạn trong lúc ngủ. Máy ngủ với nắp mở thì không được đánh thức, pin giữ nguyên mức." = "While the Mac sleeps the helper can't watch the battery. With this option off, the battery may charge past the limit during sleep. A Mac sleeping with the lid open is never woken; the battery level is held.";
+"Helper không bao giờ đánh thức máy để kiểm tra pin, nên khi máy ngủ helper không theo dõi được mức pin. Muốn pin sạc tiếp khi gập máy cắm sạc thì tắt tùy chọn này: pin có thể vượt giới hạn trong lúc ngủ, helper dừng sạc ở lần máy thức kế tiếp." = "The helper never wakes your Mac to check the battery, so it can't watch the level while the Mac sleeps. To keep charging with the lid closed while plugged in, turn this off: the battery may charge past the limit during sleep, and the helper stops charging the next time the Mac wakes.";
 "Trước khi ngủ, bộ sạc luôn được bật lại (việc xả pin dừng)." = "Before sleep, the power adapter is always reconnected (discharge stops).";
 "Đang sạc đầy một lần thì máy vẫn sạc trong lúc ngủ." = "While Full Charge Once is active, charging continues during sleep.";
 "Dưới %lld%% pin luôn được sạc." = "Below %lld%% the battery always charges.";
