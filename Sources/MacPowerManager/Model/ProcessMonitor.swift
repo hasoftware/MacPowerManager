@@ -3,8 +3,9 @@ import Foundation
 import Observation
 import PowerCore
 
-/// Danh sách tiến trình cho trang Tiến trình, Năng lượng và các bảng "dùng nhiều nhất". Đo mỗi 2 giây, chỉ khi có
-/// trang đang xem. Helper (root) cho danh sách đầy đủ; không có helper thì chỉ thấy tiến trình của người dùng này.
+/// Danh sách tiến trình cho trang Tiến trình, Năng lượng và các bảng "dùng nhiều nhất". Chỉ đo khi có trang cần và
+/// cửa sổ đang hiển thị, theo khoảng người dùng chọn (mặc định 5 giây, xem `RefreshPolicy`). Helper (root) cho danh
+/// sách đầy đủ; không có helper thì chỉ thấy tiến trình của người dùng này.
 @MainActor
 @Observable
 final class ProcessMonitor {
@@ -40,13 +41,20 @@ final class ProcessMonitor {
         var memory: UInt64
     }
 
-    static let interval: TimeInterval = 2
     static let historyLength = 60
+    private static let chosenIntervalKey = "processes.interval"
 
     private(set) var rows: [Row] = []
     /// Danh sách gồm cả tiến trình của hệ thống và người dùng khác (lấy từ helper).
     private(set) var includesAllUsers = false
-    private(set) var history: [Int32: [Point]] = [:]
+    /// Khoảng làm mới người dùng chọn (2/5/10 giây); khoảng thực tế có thể thưa hơn khi chạy pin.
+    var chosenInterval: TimeInterval = UserDefaults.standard.object(forKey: chosenIntervalKey) as? TimeInterval
+        ?? RefreshPolicy.defaultProcessInterval {
+        didSet { UserDefaults.standard.set(chosenInterval, forKey: Self.chosenIntervalKey) }
+    }
+    /// Lịch sử CPU/bộ nhớ của từng tiến trình. Không để SwiftUI theo dõi: cập nhật vài trăm mảng mỗi lần đo không
+    /// được làm cả bảng vẽ lại (bảng đã vẽ lại theo `rows`).
+    @ObservationIgnored private(set) var history: [Int32: [Point]] = [:]
 
     var totalPower: Double { rows.reduce(0) { $0 + $1.power } }
     var threadCount: Int { rows.reduce(0) { $0 + Int($1.threads) } }
@@ -54,6 +62,8 @@ final class ProcessMonitor {
     @ObservationIgnored private let fetchFromHelper: () async -> [ProcessSample]?
     @ObservationIgnored private var consumers = 0
     @ObservationIgnored private var timer: Timer?
+    /// Khoảng đo hiện tại; nil = tạm dừng.
+    @ObservationIgnored private(set) var interval: TimeInterval? = RefreshPolicy.defaultProcessInterval
     @ObservationIgnored private var previous: (date: Date, samples: [ProcessSample])?
     @ObservationIgnored private var refreshing = false
     @ObservationIgnored private var userNames: [UInt32: String] = [:]
@@ -76,18 +86,36 @@ final class ProcessMonitor {
     func retain() {
         consumers += 1
         guard consumers == 1, !isPreview else { return }
-        refresh()
-        let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
-        }
-        timer.tolerance = 0.3
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        start()
     }
 
     func release() {
         consumers = max(consumers - 1, 0)
         guard consumers == 0 else { return }
+        stop()
+    }
+
+    /// Đổi khoảng đo theo `RefreshPolicy` (nil = tạm dừng). Không làm gì nếu không đổi.
+    func setInterval(_ value: TimeInterval?) {
+        guard value != interval else { return }
+        interval = value
+        guard consumers > 0, !isPreview else { return }
+        stop()
+        start()
+    }
+
+    private func start() {
+        guard let interval, timer == nil else { return }
+        refresh()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+        timer.tolerance = RefreshPolicy.tolerance(for: interval)
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    private func stop() {
         timer?.invalidate()
         timer = nil
         previous = nil

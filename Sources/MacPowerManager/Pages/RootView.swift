@@ -23,7 +23,12 @@ struct RootView: View {
         // App chỉ sống trên thanh menu; hiện biểu tượng Dock khi bảng điều khiển đang mở để dễ chuyển cửa sổ.
         // Đo số liệu hệ thống chỉ khi bảng điều khiển đang mở (giá trị trên thanh bên, các trang Hệ thống).
         .onAppear { model.system.retain() }
-        .onDisappear { model.system.release() }
+        .onDisappear {
+            model.system.release()
+            model.setDashboardVisible(false)
+        }
+        // Chỉ đo khi cửa sổ thực sự hiển thị (không bị che, thu nhỏ, ở Space khác).
+        .background(WindowVisibilityReporter { model.setDashboardVisible($0) })
         .onAppear {
             guard !model.isPreview else { return }
             NSApp.setActivationPolicy(.regular)

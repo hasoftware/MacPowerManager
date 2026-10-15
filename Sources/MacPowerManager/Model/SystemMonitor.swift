@@ -2,8 +2,8 @@ import Foundation
 import Observation
 import PowerCore
 
-/// Số liệu hệ thống (CPU, bộ nhớ…) cho các trang Hệ thống. Chỉ đo khi có trang cần (bảng điều khiển đang mở),
-/// mỗi giây một lần, giữ tối đa 1 giờ trong bộ nhớ. App chăm sóc pin không được tự làm hao pin khi không ai xem.
+/// Số liệu hệ thống (CPU, bộ nhớ…) cho các trang Hệ thống. Chỉ đo khi có trang cần và cửa sổ đang thực sự hiển thị
+/// (xem `RefreshPolicy`), giữ tối đa 1 giờ trong bộ nhớ. App chăm sóc pin không được tự làm hao pin khi không ai xem.
 @MainActor
 @Observable
 final class SystemMonitor {
@@ -41,7 +41,6 @@ final class SystemMonitor {
         }
     }
 
-    static let interval: TimeInterval = 1
     static let capacity = 3600
 
     private(set) var samples: [Sample] = []
@@ -61,6 +60,9 @@ final class SystemMonitor {
 
     @ObservationIgnored private var consumers = 0
     @ObservationIgnored private var timer: Timer?
+    /// Khoảng đo hiện tại; nil = tạm dừng (cửa sổ bị che, thu nhỏ, màn hình tắt…).
+    @ObservationIgnored private(set) var interval: TimeInterval? = 1
+    @ObservationIgnored private var lastSlowRefresh: Date?
     @ObservationIgnored private var lastTicks: [CPUTicks]?
     @ObservationIgnored private var lastCounters: (date: Date, pageins: UInt64, swapouts: UInt64)?
     @ObservationIgnored private var lastDisk: DiskCounters?
@@ -98,7 +100,6 @@ final class SystemMonitor {
     func retain() {
         consumers += 1
         guard consumers == 1, !isPreview else { return }
-        refreshSlow()
         networkTotals = nil
         Task.detached(priority: .utility) {
             let totals = NetworkCounters.bootTotals()
@@ -107,29 +108,51 @@ final class SystemMonitor {
                 self.networkTotals = totals
             }
         }
-        sample()
-        let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.sample() }
-        }
-        timer.tolerance = 0.2
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        start()
     }
 
     func release() {
         consumers = max(consumers - 1, 0)
         guard consumers == 0 else { return }
+        stop()
+    }
+
+    /// Đổi khoảng đo theo `RefreshPolicy` (nil = tạm dừng). Không làm gì nếu không đổi.
+    func setInterval(_ value: TimeInterval?) {
+        guard value != interval else { return }
+        interval = value
+        guard consumers > 0, !isPreview else { return }
+        stop()
+        start()
+    }
+
+    private func start() {
+        guard let interval, timer == nil else { return }
+        refreshSlowIfDue(force: true)
+        sample()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.sample() }
+        }
+        timer.tolerance = RefreshPolicy.tolerance(for: interval)
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    private func stop() {
         timer?.invalidate()
         timer = nil
-        // Lần mở sau bắt đầu lại từ mốc mới, không tính khoảng nghỉ vào tốc độ.
+        // Lần đo sau bắt đầu lại từ mốc mới, không tính khoảng nghỉ vào tốc độ.
         lastTicks = nil
         lastCounters = nil
         lastDisk = nil
         lastNetwork = nil
     }
 
-    /// Ổ đĩa và giao diện mạng thay đổi ít: đọc lúc mở và mỗi 10 giây.
-    private func refreshSlow() {
+    /// Ổ đĩa và giao diện mạng thay đổi ít: đọc lúc bắt đầu đo và mỗi 30 giây.
+    private func refreshSlowIfDue(force: Bool = false) {
+        let now = Date()
+        if !force, let last = lastSlowRefresh, now.timeIntervalSince(last) < 30 { return }
+        lastSlowRefresh = now
         volumes = VolumeInfo.mounted()
         primaryInterface = NetworkInterfaceInfo.primary()
     }
@@ -182,7 +205,7 @@ final class SystemMonitor {
         }
         samples.append(withIO)
         self.ticks += 1
-        if self.ticks % 10 == 0 { refreshSlow() }
+        refreshSlowIfDue()
         if samples.count > Self.capacity { samples.removeFirst(samples.count - Self.capacity) }
         activity = SystemActivity.read()
     }

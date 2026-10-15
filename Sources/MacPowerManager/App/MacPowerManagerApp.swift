@@ -39,6 +39,8 @@ struct MacPowerManagerApp: App {
             PopoverView()
                 .environment(model)
                 .environment(\.locale, Format.locale)
+                .onAppear { model.setPopoverVisible(true) }
+                .onDisappear { model.setPopoverVisible(false) }
         } label: {
             MenuBarLabel()
                 .environment(model)

@@ -10,6 +10,10 @@ struct ProcessesPage: View {
     @State private var sortOrder = [KeyPathComparator(\ProcessMonitor.Row.cpu, order: .reverse)]
     @State private var selection: ProcessMonitor.Row.ID?
     @State private var confirmForceQuit: ProcessMonitor.Row?
+    /// Chỉ vẽ 100 tiến trình đầu (theo cách sắp xếp đang chọn): bảng 700+ dòng tốn CPU mỗi lần làm mới.
+    @AppStorage("processes.showAll") private var showAll = false
+
+    static let rowLimit = 100
 
     enum Filter: CaseIterable, Identifiable {
         case all, apps, mine, system
@@ -26,7 +30,8 @@ struct ProcessesPage: View {
 
     var body: some View {
         let monitor = model.processes
-        let rows = visibleRows(monitor.rows)
+        let matching = visibleRows(monitor.rows)
+        let rows = showAll ? matching : Array(matching.prefix(Self.rowLimit))
         Table(rows, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Tên", value: \.name) { row in
                 HStack(spacing: 6) {
@@ -59,6 +64,18 @@ struct ProcessesPage: View {
         .searchable(text: $search, placement: .toolbar, prompt: Text("Tìm tiến trình"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Picker("Làm mới", selection: Binding(get: { monitor.chosenInterval }, set: { value in
+                    monitor.chosenInterval = value
+                    model.applyRefreshPolicy()
+                })) {
+                    ForEach(RefreshPolicy.processChoices, id: \.self) { seconds in
+                        Text("\(Int(seconds)) giây").tag(seconds)
+                    }
+                }
+                .pickerStyle(.menu)
+                .help("Làm mới thưa hơn giúp app tốn ít CPU và pin hơn. Khi chạy pin, app tự làm mới tối thiểu mỗi 5 giây.")
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Picker("Lọc", selection: $filter) {
                     ForEach(Filter.allCases) { Text($0.title).tag($0) }
                 }
@@ -79,7 +96,17 @@ struct ProcessesPage: View {
         }
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: Theme.Space.l) {
-                Text("\(rows.count) tiến trình · \(monitor.threadCount) luồng")
+                if rows.count < matching.count {
+                    Text("\(rows.count) / \(matching.count) tiến trình · \(monitor.threadCount) luồng")
+                    Button("Hiện tất cả") { showAll = true }
+                        .buttonStyle(.link)
+                } else {
+                    Text("\(rows.count) tiến trình · \(monitor.threadCount) luồng")
+                    if showAll && matching.count > Self.rowLimit {
+                        Button("Chỉ hiện \(Self.rowLimit) tiến trình đầu") { showAll = false }
+                            .buttonStyle(.link)
+                    }
+                }
                 if !monitor.includesAllUsers {
                     Label("Chỉ thấy tiến trình của bạn. Cài helper để xem cả tiến trình hệ thống.", systemImage: "info.circle")
                 }

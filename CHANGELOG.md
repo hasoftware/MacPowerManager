@@ -6,6 +6,17 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- **App tốn nhiều CPU và pin** khi mở bảng điều khiển: bộ theo dõi hệ thống đo mỗi giây và trang Tiến trình dựng lại
+  bảng hơn 700 dòng mỗi 2 giây, kể cả khi cửa sổ bị che, thu nhỏ hoặc màn hình đã tắt. Giờ app:
+  - chỉ đo khi cửa sổ thực sự hiển thị (không bị che, không thu nhỏ, đang ở Space hiện tại, màn hình bật, chưa khóa);
+  - đo thưa hơn khi chạy pin (2 giây) và khi bật Low Power Mode (3 giây);
+  - trang Tiến trình làm mới mỗi 5 giây (chọn được 2/5/10 giây; chạy pin tối thiểu 5 giây) và mặc định chỉ hiện
+    100 tiến trình đầu ("Hiện tất cả" để xem đủ);
+  - vòng cập nhật pin chạy mỗi 30 giây khi không có giao diện nào mở (thay đổi % pin và cắm/rút sạc vẫn cập nhật
+    tức thì), danh sách ổ đĩa đọc mỗi 30 giây, biểu tượng thanh menu chỉ vẽ lại khi số liệu đổi, timer có dung sai
+    để macOS gộp các lần đánh thức CPU.
+
 ## [0.16.0] - 2026-10-14
 
 ### Cải tiến

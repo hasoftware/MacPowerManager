@@ -38,6 +38,14 @@ final class AppModel {
         }
     }
 
+    // Tần suất đo theo ngữ cảnh (RefreshPolicy): chỉ đo dày khi có giao diện đang hiển thị.
+    @ObservationIgnored private var dashboardVisible = false
+    @ObservationIgnored private var popoverVisible = false
+    /// Màn hình đang bật và phiên đăng nhập không bị khóa.
+    @ObservationIgnored private var screenAvailable = true
+    @ObservationIgnored private var batteryInterval: TimeInterval = 0
+    @ObservationIgnored private var lastOnBattery: Bool?
+    @ObservationIgnored private var systemObservers: [(NotificationCenter, NSObjectProtocol)] = []
     @ObservationIgnored private var started = false
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var observer: PowerSourceObserver?
@@ -86,18 +94,82 @@ final class AppModel {
         observer = BatteryReader.observeChanges { [weak self] in
             Task { @MainActor in self?.refresh() }
         }
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        observeSystemState()
+        applyRefreshPolicy()
+    }
+
+    // MARK: Tần suất đo
+
+    func setDashboardVisible(_ visible: Bool) {
+        guard visible != dashboardVisible else { return }
+        dashboardVisible = visible
+        applyRefreshPolicy()
+    }
+
+    func setPopoverVisible(_ visible: Bool) {
+        guard visible != popoverVisible else { return }
+        popoverVisible = visible
+        if visible { refresh() }
+        applyRefreshPolicy()
+    }
+
+    private func context(dashboardOnly: Bool) -> RefreshPolicy.Context {
+        let shown = dashboardOnly ? dashboardVisible : (dashboardVisible || popoverVisible)
+        return RefreshPolicy.Context(uiVisible: screenAvailable && shown,
+                                     onBattery: !(battery?.externalConnected ?? true),
+                                     lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled)
+    }
+
+    /// Áp dụng `RefreshPolicy` cho các bộ đo và vòng cập nhật pin. Gọi khi cửa sổ/popover hiện hoặc ẩn, màn hình
+    /// tắt/khóa, cắm/rút sạc, bật/tắt Low Power Mode.
+    func applyRefreshPolicy() {
+        guard started, !isPreview else { return }
+        let dashboard = context(dashboardOnly: true)
+        system.setInterval(RefreshPolicy.systemInterval(dashboard))
+        processes.setInterval(RefreshPolicy.processInterval(dashboard, chosen: processes.chosenInterval))
+        let interval = RefreshPolicy.batteryInterval(context(dashboardOnly: false))
+        guard interval != batteryInterval || timer == nil else { return }
+        batteryInterval = interval
+        timer?.invalidate()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 self.refresh()
                 await self.helper.refresh()
                 self.ticks += 1
-                if self.ticks % 6 == 0 {
+                // Khoảng 30 giây khi đang xem, vài phút khi không.
+                if self.ticks % max(Int(30 / interval), 1) == 0 {
                     self.scanConflicts()
                     self.needsMove = AppMover.needsMove
                 }
             }
         }
+        timer.tolerance = RefreshPolicy.tolerance(for: interval)
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    /// Màn hình tắt/bật, khóa/mở khóa, chuyển người dùng, Low Power Mode.
+    private func observeSystemState() {
+        let workspace = NSWorkspace.shared.notificationCenter
+        let distributed = DistributedNotificationCenter.default()
+        func on(_ center: NotificationCenter, _ name: Notification.Name, available: Bool?) {
+            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if let available { self.screenAvailable = available }
+                    self.applyRefreshPolicy()
+                }
+            }
+            systemObservers.append((center, token))
+        }
+        on(workspace, NSWorkspace.screensDidSleepNotification, available: false)
+        on(workspace, NSWorkspace.screensDidWakeNotification, available: true)
+        on(workspace, NSWorkspace.sessionDidResignActiveNotification, available: false)
+        on(workspace, NSWorkspace.sessionDidBecomeActiveNotification, available: true)
+        on(distributed, Notification.Name("com.apple.screenIsLocked"), available: false)
+        on(distributed, Notification.Name("com.apple.screenIsUnlocked"), available: true)
+        on(NotificationCenter.default, .NSProcessInfoPowerStateDidChange, available: nil)
     }
 
     func refresh() {
@@ -109,6 +181,12 @@ final class AppModel {
                 : $0
         }
         smcTemperature = sensors?.batteryTemperature
+        // Cắm/rút sạc đổi tần suất đo (chạy pin thì đo thưa hơn).
+        let onBattery = !(battery?.externalConnected ?? true)
+        if onBattery != lastOnBattery {
+            lastOnBattery = onBattery
+            applyRefreshPolicy()
+        }
         refreshMacOSHealthIfNeeded()
         guard let battery else { return }
         history.record(battery: battery, temperature: temperature, limit: summary.limit)

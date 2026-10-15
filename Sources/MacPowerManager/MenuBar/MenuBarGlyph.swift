@@ -25,7 +25,17 @@ enum MenuBarRenderer {
     private static var cache: [MenuBarContent: NSImage] = [:]
 
     /// Ảnh cho thanh menu thật: template (đơn sắc), hoặc màu với `labelColor` được phân giải lúc vẽ.
-    static func image(for content: MenuBarContent) -> NSImage {
+    /// Ảnh thanh menu chỉ đổi khi số liệu hiển thị đổi; vẽ lại mỗi lần cập nhật pin là phí CPU.
+    @MainActor private static var cached: (content: MenuBarContent, image: NSImage)?
+
+    @MainActor static func image(for content: MenuBarContent) -> NSImage {
+        if let cached, cached.content == content { return cached.image }
+        let image = render(content)
+        cached = (content, image)
+        return image
+    }
+
+    private static func render(_ content: MenuBarContent) -> NSImage {
         if let cached = cache[content] { return cached }
         let image = makeImage(content, ink: content.colored ? .labelColor : .black)
         image.isTemplate = !content.colored

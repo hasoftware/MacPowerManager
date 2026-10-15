@@ -801,3 +801,11 @@
 "Phần cứng" = "Hardware";
 "Phần mềm" = "Software";
 "Tên máy" = "Computer name";
+
+/* Tiết kiệm tài nguyên */
+"Làm mới" = "Refresh";
+"%lld giây" = "%lld s";
+"Làm mới thưa hơn giúp app tốn ít CPU và pin hơn. Khi chạy pin, app tự làm mới tối thiểu mỗi 5 giây." = "Refreshing less often uses less CPU and battery. On battery the list refreshes at most every 5 seconds.";
+"%lld / %lld tiến trình · %lld luồng" = "%1$lld of %2$lld processes · %3$lld threads";
+"Hiện tất cả" = "Show All";
+"Chỉ hiện %lld tiến trình đầu" = "Show Top %lld Only";
