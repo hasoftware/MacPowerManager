@@ -9,7 +9,7 @@ final class RefreshPolicyTests: XCTestCase {
     func testNothingVisiblePausesMonitors() {
         XCTAssertNil(RefreshPolicy.systemInterval(ctx(false)))
         XCTAssertNil(RefreshPolicy.processInterval(ctx(false), chosen: 2))
-        XCTAssertEqual(RefreshPolicy.batteryInterval(ctx(false)), 30)
+        XCTAssertEqual(RefreshPolicy.batteryInterval(ctx(false)), 60)
     }
 
     func testVisibleOnAC() {

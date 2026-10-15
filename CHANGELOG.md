@@ -6,6 +6,17 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- **Giảm tiếp mức tiêu thụ pin khi app chạy nền:**
+  - Hiệu ứng nét đứt của "Dòng điện năng" chạy 30 khung hình/giây kể cả khi cửa sổ bị che hoặc thu nhỏ. Giờ hiệu
+    ứng chỉ chạy khi cửa sổ đang hiển thị và máy đang cắm sạc, ở 12 khung hình/giây; chạy pin thì đứng yên.
+  - Cửa sổ bị che/thu nhỏ quá 30 giây thì nội dung "ngủ đông" (không còn tính lại biểu đồ cho cửa sổ không ai nhìn).
+  - Lịch sử của helper chỉ được đọc khi có người xem, và dữ liệu mới được nối vào cuối thay vì gộp và sắp xếp lại
+    cả 30 ngày mỗi phút.
+  - Quét ứng dụng điều khiển sạc khác mỗi 30 phút khi chạy nền (mỗi phút khi đang xem, và ngay khi helper thấy
+    một lần ghi lạ vào SMC), thay vì mỗi 30 giây.
+  - Vòng cập nhật pin chạy mỗi 60 giây khi không có giao diện nào mở; % pin và cắm/rút sạc vẫn cập nhật tức thì.
+
 ## [0.16.1] - 2026-10-15
 
 ### Sửa lỗi

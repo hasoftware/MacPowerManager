@@ -22,11 +22,18 @@ struct PowerFlowView: View {
     var animated = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppModel.self) private var model
     @State private var visible = false
 
+    /// Hiệu ứng nét đứt chỉ để trang trí: chạy 12 khung hình/giây khi cửa sổ đang hiển thị và máy cắm sạc;
+    /// dừng hẳn khi cửa sổ bị che/thu nhỏ hoặc khi chạy pin (app chăm sóc pin không được tốn pin vì hiệu ứng).
+    private var running: Bool {
+        animated && visible && !reduceMotion && model.dashboardShown && flow.pluggedIn
+    }
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !(animated && visible && !reduceMotion))) { context in
-            let phase = animated && !reduceMotion
+        TimelineView(.animation(minimumInterval: 1.0 / 12, paused: !running)) { context in
+            let phase = running
                 ? context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * -12 : 0
             GeometryReader { geo in
                 diagram(size: geo.size, phase: phase)

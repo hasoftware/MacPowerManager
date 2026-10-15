@@ -17,8 +17,15 @@ struct RootView: View {
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
-            PageView(page: current)
-                .navigationTitle(current.title)
+            // Cửa sổ ẩn lâu: thay trang bằng view rỗng để không còn gì phải tính lại hay vẽ.
+            Group {
+                if model.dashboardLive {
+                    PageView(page: current)
+                } else {
+                    Color.clear
+                }
+            }
+            .navigationTitle(current.title)
         }
         // App chỉ sống trên thanh menu; hiện biểu tượng Dock khi bảng điều khiển đang mở để dễ chuyển cửa sổ.
         // Đo số liệu hệ thống chỉ khi bảng điều khiển đang mở (giá trị trên thanh bên, các trang Hệ thống).

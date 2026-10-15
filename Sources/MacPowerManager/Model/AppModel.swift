@@ -38,6 +38,15 @@ final class AppModel {
         }
     }
 
+    /// Cửa sổ bảng điều khiển đang hiển thị (không bị che, không thu nhỏ, màn hình bật). Hiệu ứng chuyển động chỉ
+    /// chạy khi đúng.
+    private(set) var dashboardShown = false
+    /// Nội dung bảng điều khiển còn "sống": thành false khi cửa sổ bị ẩn quá `hibernateDelay`, khi đó trang được thay
+    /// bằng view rỗng để SwiftUI không tính lại biểu đồ cho một cửa sổ không ai nhìn.
+    private(set) var dashboardLive = true
+    static let hibernateDelay: Duration = .seconds(30)
+    @ObservationIgnored private var hibernateTask: Task<Void, Never>?
+
     // Tần suất đo theo ngữ cảnh (RefreshPolicy): chỉ đo dày khi có giao diện đang hiển thị.
     @ObservationIgnored private var dashboardVisible = false
     @ObservationIgnored private var popoverVisible = false
@@ -45,6 +54,8 @@ final class AppModel {
     @ObservationIgnored private var screenAvailable = true
     @ObservationIgnored private var batteryInterval: TimeInterval = 0
     @ObservationIgnored private var lastOnBattery: Bool?
+    @ObservationIgnored private var lastConflictScan: Date?
+    @ObservationIgnored private var lastForeignWriteCount = 0
     @ObservationIgnored private var systemObservers: [(NotificationCenter, NSObjectProtocol)] = []
     @ObservationIgnored private var started = false
     @ObservationIgnored private var timer: Timer?
@@ -103,7 +114,26 @@ final class AppModel {
     func setDashboardVisible(_ visible: Bool) {
         guard visible != dashboardVisible else { return }
         dashboardVisible = visible
+        updateDashboardActivity()
         applyRefreshPolicy()
+    }
+
+    /// Chuyển động dừng ngay khi cửa sổ ẩn; nội dung "ngủ đông" sau `hibernateDelay` (giữ trạng thái khi chỉ chuyển
+    /// cửa sổ chốc lát).
+    private func updateDashboardActivity() {
+        let shown = dashboardVisible && screenAvailable
+        if shown != dashboardShown { dashboardShown = shown }
+        hibernateTask?.cancel()
+        history.isLive = shown
+        if shown {
+            if !dashboardLive { dashboardLive = true }
+        } else if dashboardLive {
+            hibernateTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: Self.hibernateDelay)
+                guard let self, !Task.isCancelled, !self.dashboardShown else { return }
+                self.dashboardLive = false
+            }
+        }
     }
 
     func setPopoverVisible(_ visible: Bool) {
@@ -137,11 +167,16 @@ final class AppModel {
                 self.refresh()
                 await self.helper.refresh()
                 self.ticks += 1
-                // Khoảng 30 giây khi đang xem, vài phút khi không.
-                if self.ticks % max(Int(30 / interval), 1) == 0 {
+                // Quét ứng dụng điều khiển sạc khác (liệt kê tiến trình): mỗi phút khi đang xem, mỗi 30 phút khi
+                // không, và ngay khi helper thấy một lần ghi lạ vào SMC.
+                let foreign = self.helper.status?.foreignWrites?.count ?? 0
+                let every: TimeInterval = self.dashboardVisible || self.popoverVisible ? 60 : 1800
+                if foreign > self.lastForeignWriteCount
+                    || self.lastConflictScan.map({ Date().timeIntervalSince($0) >= every }) ?? true {
                     self.scanConflicts()
                     self.needsMove = AppMover.needsMove
                 }
+                self.lastForeignWriteCount = foreign
             }
         }
         timer.tolerance = RefreshPolicy.tolerance(for: interval)
@@ -158,6 +193,7 @@ final class AppModel {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     if let available { self.screenAvailable = available }
+                    self.updateDashboardActivity()
                     self.applyRefreshPolicy()
                 }
             }
@@ -246,6 +282,7 @@ final class AppModel {
     /// Quét ứng dụng điều khiển sạc khác ở luồng nền (đọc file và danh sách tiến trình).
     func scanConflicts() {
         guard !isPreview else { return }
+        lastConflictScan = Date()
         Task {
             let found = await Task.detached(priority: .utility) { ConflictScanner.scan() }.value
             if found != conflicts { conflicts = found }

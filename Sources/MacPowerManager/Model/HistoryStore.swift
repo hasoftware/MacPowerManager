@@ -23,6 +23,13 @@ final class HistoryStore {
     @ObservationIgnored private var helperPosition = HistoryFileTail.Position()
     @ObservationIgnored private var helperReadAt: Date?
     @ObservationIgnored private var helperReading = false
+    /// Có giao diện đang hiển thị lịch sử (cửa sổ bảng điều khiển). Không ai xem thì không đọc file của helper:
+    /// helper vẫn ghi đầy đủ, lần mở sau đọc bù phần mới.
+    @ObservationIgnored var isLive = false {
+        didSet {
+            if isLive && !oldValue && helperURL != nil { Task { await refreshHelper() } }
+        }
+    }
     /// Mẫu trước thời điểm này bị ẩn (người dùng đã xóa lịch sử; file của helper thuộc root nên app không xóa được).
     @ObservationIgnored private var clearedAt: Date?
 
@@ -70,7 +77,7 @@ final class HistoryStore {
     /// Gọi định kỳ (mỗi lần đọc pin). Đọc phần mới của lịch sử helper mỗi `helperPollInterval`; app chỉ tự ghi mẫu
     /// khi helper không ghi (chưa cài, hoặc helper cũ chưa có lịch sử) để không trùng.
     func record(battery: BatteryInfo, temperature: Double?, limit: Int?, now: Date = Date()) {
-        if helperURL != nil, !helperReading,
+        if helperURL != nil, isLive, !helperReading,
            helperReadAt.map({ now.timeIntervalSince($0) >= Self.helperPollInterval }) ?? true {
             helperReadAt = now
             Task { await refreshHelper(now: now) }
@@ -117,9 +124,28 @@ final class HistoryStore {
         } else {
             let needsSort = zip(helperSamples.last.map { [$0] } ?? [], chunk.samples.prefix(1)).contains { $0.date > $1.date }
             helperSamples.append(contentsOf: chunk.samples)
-            if needsSort { helperSamples.sort { $0.date < $1.date } }
+            if needsSort {
+                helperSamples.sort { $0.date < $1.date }
+            } else if appendIfNewer(chunk.samples) {
+                // Trường hợp thường gặp: vài mẫu mới hơn mọi thứ đang có, chỉ cần nối vào cuối thay vì gộp và sắp xếp
+                // lại cả 30 ngày.
+                return
+            }
         }
         rebuild(now: now)
+    }
+
+    /// Nối các mẫu mới của helper vào cuối `samples` nếu chúng mới hơn mọi mẫu đang có (kể cả mẫu của app).
+    /// Mẫu cuối cùng phút với mẫu mới đầu tiên được thay (giống `HistoryLog.merge`: ưu tiên mẫu của helper).
+    private func appendIfNewer(_ new: [HistorySample]) -> Bool {
+        guard let first = new.first else { return true }
+        let cutoff = clearedAt ?? .distantPast
+        if let lastApp = appSamples.last, lastApp.date >= first.date { return false }
+        guard samples.last.map({ $0.date < first.date }) ?? true else { return false }
+        func minute(_ d: Date) -> Int { Int(d.timeIntervalSinceReferenceDate / 60) }
+        if let last = samples.last, minute(last.date) == minute(first.date) { samples.removeLast() }
+        samples.append(contentsOf: new.filter { $0.date >= cutoff })
+        return true
     }
 
     func samples(within range: TimeInterval, now: Date = Date()) -> [HistorySample] {

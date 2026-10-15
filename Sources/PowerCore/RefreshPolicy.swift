@@ -37,7 +37,7 @@ public enum RefreshPolicy {
     /// Vòng cập nhật pin và trạng thái helper. Thay đổi % pin và cắm/rút sạc vẫn được cập nhật ngay nhờ thông báo
     /// của macOS, nên khi không ai xem có thể chạy thưa.
     public static func batteryInterval(_ c: Context) -> TimeInterval {
-        c.uiVisible ? 5 : 30
+        c.uiVisible ? 5 : 60
     }
 
     /// Dung sai cho timer: macOS gộp các lần đánh thức CPU gần nhau, đỡ tốn pin.
