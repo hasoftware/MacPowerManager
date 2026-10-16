@@ -21,6 +21,10 @@ let package = Package(
             dependencies: ["CSMC"],
             linkerSettings: [.linkedFramework("IOKit")]
         ),
+        // Lõi dọn dẹp (port MacTrash): chỉ mục app, bộ quét, chốt an toàn, Thùng rác, sao lưu/khôi phục.
+        .target(
+            name: "CleanCore"
+        ),
         // Daemon chạy quyền root, ghi SMC để bật/tắt sạc và adapter.
         .executableTarget(
             name: "PowerHelper",
@@ -29,7 +33,7 @@ let package = Package(
         // Ứng dụng SwiftUI (menu bar + cửa sổ).
         .executableTarget(
             name: "MacPowerManager",
-            dependencies: ["PowerCore"]
+            dependencies: ["PowerCore", "CleanCore"]
         ),
         // Công cụ CLI để kiểm tra các SMC key trên máy.
         .executableTarget(
@@ -39,6 +43,10 @@ let package = Package(
         .testTarget(
             name: "PowerCoreTests",
             dependencies: ["PowerCore"]
+        ),
+        .testTarget(
+            name: "CleanCoreTests",
+            dependencies: ["CleanCore"]
         ),
         .testTarget(
             name: "MacPowerManagerTests",

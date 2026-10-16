@@ -24,6 +24,11 @@ struct MacPowerManagerApp: App {
             Benchmark.run(Array(CommandLine.arguments.dropFirst(index + 1)))
             exit(0)
         }
+        // Quét dọn dẹp (CleanCore) trên máy thật, chỉ đọc: in mọi finding + thời gian từng bộ quét rồi thoát.
+        if CommandLine.arguments.contains("--clean-scan") {
+            CleanScanDebug.run()
+            exit(0)
+        }
         // In kết quả quét ứng dụng điều khiển sạc khác (chỉ đọc) rồi thoát.
         if CommandLine.arguments.contains("--scan-conflicts") {
             for finding in ConflictScanner.scan() {
