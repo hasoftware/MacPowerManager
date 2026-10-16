@@ -49,6 +49,9 @@ public enum SkipReason: Sendable, Equatable {
     case coveredBy(target: String)
     /// Người dùng dừng giữa chừng.
     case cancelled
+    /// Gỡ ứng dụng: gói của app `app` được chọn nhưng không gỡ được (lỗi, cần quản trị) → giữ lại dữ liệu của nó,
+    /// không để app còn cài mà mất dữ liệu.
+    case appKept(app: String)
 }
 
 /// Kết quả gỡ MỘT mục (zsh: 0 xong, 1 lỗi, 2 chỉ báo, 3 một phần).
@@ -146,7 +149,11 @@ public struct Remover: Sendable {
         default: break
         }
         guard !t.isEmpty else { return false }
-        return !env.isWritable(PathResolver.parent(t))
+        if !env.isWritable(PathResolver.parent(t)) { return true }
+        // Chuyển THƯ MỤC sang thư mục cha khác (Thùng rác) phải sửa mục `..` của nó: cần quyền ghi trên chính thư mục
+        // (đo thật: `mv` thư mục chmod 555 → Permission denied). App cài bằng pkg/App Store thuộc root -> cần admin.
+        if case .trashPath = f.action, env.isRealDirectory(t), !env.isWritable(t) { return true }
+        return false
     }
 
     /// Lệnh tương đương để người dùng tự chạy bằng quyền quản trị (P0 không chạy).
@@ -501,6 +508,8 @@ public struct Remover: Sendable {
         let covered = Remover.coveredTrashPaths(findings)
         var results: [RemovalResult] = []
         var cancelled = false
+        // Gỡ ứng dụng: app có gói được chọn mà gói không gỡ được → đường dẫn app → tên (mục SAU của app đó bị bỏ qua).
+        var keptApps: [String: String] = [:]
         for (i, f) in findings.enumerated() {
             let outcome: RemovalOutcome
             if cancellation.isCancelled {
@@ -508,10 +517,15 @@ public struct Remover: Sendable {
                 outcome = .skipped(.cancelled)
             } else if let q = covered[i] {
                 outcome = .skipped(.coveredBy(target: q))
+            } else if let kept = f.uninstallOwners.lazy.compactMap({ keptApps[$0.path] }).first {
+                outcome = .skipped(.appKept(app: kept))
             } else if needsAdmin(f) {
                 outcome = .needsAdmin(command: adminCommand(for: f))
             } else {
                 outcome = removeOne(f, session: session)
+            }
+            if case .appBundle(let ref) = f.reason, outcome.status == .failed || outcome.status == .needsAdmin {
+                keptApps[ref.path] = ref.name
             }
             let r = RemovalResult(findingID: f.id, category: f.category, name: f.name, target: f.target, outcome: outcome)
             session.log(Remover.logLine(r))

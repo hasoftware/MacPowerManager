@@ -16,9 +16,7 @@ public struct ContainersScanner: Scanner {
             var name = PathResolver.tail(c)
             // Tên thư mục thường LÀ bundle id, nhưng vài container mang chuỗi sinh tự động; khi đó lấy id thật
             // trong metadata của container manager.
-            if !Names.looksLikeBundleID(name),
-               let bid = env.plistString("\(c)/.com.apple.containermanager.metadata.plist", "MCMMetadataIdentifier"),
-               !bid.isEmpty {
+            if !Names.looksLikeBundleID(name), let bid = env.containerMetadataIdentifier(c) {
                 name = bid
             }
             if let finding = context.reportOrphan(name: name, path: c, category: .containers) { out.append(finding) }

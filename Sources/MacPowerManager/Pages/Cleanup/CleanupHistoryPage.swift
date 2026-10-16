@@ -30,7 +30,7 @@ struct CleanupHistoryView: View {
                 ContentUnavailableView {
                     Label("Chưa có lần dọn nào", systemImage: "clock.arrow.circlepath")
                 } description: {
-                    Text("Mỗi lần dọn ở trang Quét tàn dư được sao lưu tại đây và khôi phục được.")
+                    Text("Mỗi lần dọn ở trang Gỡ ứng dụng và Quét tàn dư được sao lưu tại đây và khôi phục được.")
                 }
             } else {
                 HStack(spacing: 0) {

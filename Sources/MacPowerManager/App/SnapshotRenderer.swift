@@ -209,6 +209,32 @@ private struct Scenario {
             AnyView(RemovalResultsSheet(run: CleanupMock.removalRun, close: {}, rescan: {}).background(Theme.card))
         })
 
+        func uninstall(_ name: String, _ uninstall: @escaping @MainActor () -> UninstallModel,
+                       size: CGSize = CGSize(width: 900, height: 760)) {
+            list.append(Scenario(name: "page-uninstall-\(name)", size: size) {
+                let model = Mock.model(.holding)
+                model.setPreviewUninstall(uninstall())
+                return AnyView(PageView(page: .uninstall).environment(model))
+            })
+        }
+        uninstall("list") { UninstallMock.model(.list, appSelection: UninstallMock.listSelection) }
+        uninstall("list-size", { UninstallMock.model(.list, sortOrder: .size) }, size: CGSize(width: 640, height: 640))
+        uninstall("review", { UninstallMock.model(.review) }, size: CGSize(width: 900, height: 1500))
+        uninstall("review-narrow", { UninstallMock.model(.review) }, size: CGSize(width: 640, height: 900))
+        uninstall("review-xcode", { UninstallMock.xcodeModel() }, size: CGSize(width: 900, height: 700))
+        list.append(Scenario(name: "page-uninstall-confirm", size: ConfirmRemovalSheet.size) {
+            let m = UninstallMock.model(.review)
+            return AnyView(ConfirmRemovalSheet(items: m.selectedItems, bytes: m.selectedBytes, showsSeverity: false,
+                                               warnings: m.confirmWarnings, cancel: {}, confirm: {})
+                .background(Theme.card))
+        })
+        list.append(Scenario(name: "page-uninstall-results", size: RemovalResultsSheet.size) {
+            AnyView(RemovalResultsSheet(run: CleanupMock.removalRun, close: {}, rescan: {},
+                                        rescanTitle: "Về danh sách ứng dụng",
+                                        notes: UninstallMock.resultNotes)
+                .background(Theme.card))
+        })
+
         list.append(Scenario(name: "glyphs", size: CGSize(width: 600, height: 1180), backend: .imageRenderer, scale: 2) {
             AnyView(GlyphSheet())
         })

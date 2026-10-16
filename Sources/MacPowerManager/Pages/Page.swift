@@ -10,7 +10,7 @@ enum Page: String, CaseIterable, Identifiable {
     // Chăm sóc pin
     case limit, heat, discharge, calibration, sleep
     // Dọn dẹp
-    case cleanup, cleanupHistory
+    case uninstall, cleanup, cleanupHistory
     // Ứng dụng
     case menuBar, notifications, system, about
 
@@ -36,6 +36,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .discharge: "Xả pin"
         case .calibration: "Hiệu chuẩn"
         case .sleep: "Khi ngủ"
+        case .uninstall: "Gỡ ứng dụng"
         case .cleanup: "Quét tàn dư"
         case .cleanupHistory: "Lịch sử dọn"
         case .menuBar: "Thanh menu"
@@ -72,6 +73,7 @@ enum Page: String, CaseIterable, Identifiable {
         case .discharge: "arrow.down.to.line"
         case .calibration: "arrow.triangle.2.circlepath.circle"
         case .sleep: "moon.zzz"
+        case .uninstall: "trash.square"
         case .cleanup: "sparkle.magnifyingglass"
         case .cleanupHistory: "clock.arrow.circlepath"
         case .menuBar: "menubar.rectangle"
@@ -84,7 +86,7 @@ enum Page: String, CaseIterable, Identifiable {
     static let monitor: [Page] = [.overview, .history, .health]
     static let systemGroup: [Page] = [.processes, .cpu, .memory, .gpu, .disk, .network, .energy, .aboutMac]
     static let care: [Page] = [.limit, .heat, .discharge, .calibration, .sleep]
-    static let cleanupGroup: [Page] = [.cleanup, .cleanupHistory]
+    static let cleanupGroup: [Page] = [.uninstall, .cleanup, .cleanupHistory]
     static let app: [Page] = [.menuBar, .notifications, .system, .about]
 
     /// Trang không áp dụng trên máy Intel (không có xả pin và tùy chọn khi ngủ).

@@ -617,7 +617,9 @@ final class CleanupModelTests: XCTestCase {
             .proxyRootCertificate(tool: "t"), .firewallRuleDead, .tccOrphan(service: "s"), .sysExtStale(state: "s"),
             .kextOrphan, .brokenSymlink(destination: "d"), .ghostLaunchServices(count: 2), .nativeHostDead(executable: "e"),
             .bundleBroken(executable: "e"), .pluginOrphan(owner: "o"), .hollowApp, .brokenApp(executable: "e"),
-            .trashUsage(bytes: 1_000), .appBundle, .appRelated(name: "n"), .xcodeDerived, .xcodeDeviceSupport(version: "17"),
+            .trashUsage(bytes: 1_000), .appBundle(AppRef(name: "n", path: "/A/n.app")),
+            .appRelated(AppRef(name: "n", path: "/A/n.app"), match: .bundleID),
+            .appRelatedShared(AppRef(name: "n", path: "/A/n.app"), match: .name, sharedWith: ["m"]), .xcodeDerived, .xcodeDeviceSupport(version: "17"),
             .xcodeArchive, .simulatorUnavailable, .cacheOrphan(command: "c"), .cacheActive(command: "c"), .brewOrphan,
             .brewCache, .snapshot(date: "d"), .mobileSyncBackup(date: "d"), .hostsBlock(domain: "d"),
         ]
@@ -631,6 +633,8 @@ final class CleanupModelTests: XCTestCase {
         XCTAssertNotNil(CleanupText.outcomeMessage(.skipped(.reportOnly)))
         XCTAssertNil(CleanupText.outcomeMessage(.done))
         for c in CleanCategory.allCases { XCTAssertFalse(CleanupText.category(c).isEmpty) }
+        let matches = AppFileMatch.allCases.map(CleanupText.appFileMatch)
+        XCTAssertEqual(Set(matches).count, matches.count, "mỗi kiểu khớp một câu riêng")
     }
 }
 

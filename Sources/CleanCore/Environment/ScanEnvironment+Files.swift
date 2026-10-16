@@ -123,6 +123,16 @@ extension ScanEnvironment {
     /// Toàn bộ plist (Dictionary/Array...), nil nếu không đọc được.
     public func plistObject(_ p: String) -> Any? { Plist.load(physicalPath(p)) }
 
+    /// `MCMMetadataIdentifier` của một container (`~/Library/Containers/<x>`): bundle id thật của container có tên tự
+    /// sinh (UUID của app iOS/Catalyst). macOS hiện ghi `.com.apple.containermanagerd.metadata.plist` (có "d"), bản cũ
+    /// không có "d". Đọc được cần Full Disk Access (TCC App Data): thiếu quyền thì nil, như không có metadata.
+    public func containerMetadataIdentifier(_ container: String) -> String? {
+        for name in [".com.apple.containermanagerd.metadata.plist", ".com.apple.containermanager.metadata.plist"] {
+            if let id = plistString("\(container)/\(name)", "MCMMetadataIdentifier"), !id.isEmpty { return id }
+        }
+        return nil
+    }
+
     // MARK: launchd
 
     /// `_launchd_program`: `Program` nếu có và không rỗng, ngược lại `ProgramArguments.0` nếu không rỗng.

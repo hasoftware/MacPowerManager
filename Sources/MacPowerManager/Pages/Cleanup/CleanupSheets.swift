@@ -8,6 +8,10 @@ struct ConfirmRemovalSheet: View {
     let bytes: Int64
     let cancel: () -> Void
     let confirm: () -> Void
+    /// Trang Gỡ ứng dụng: không hiện nhãn mức độ, tên mục kèm tên app.
+    private let showsSeverity: Bool
+    /// Cảnh báo cần đọc trước khi xác nhận (app còn cài sau khi xóa dữ liệu, job launchd bị bỏ lại...).
+    private let warnings: [String]
     /// Chỉ chuyển vào Thùng rác: mới được gọi là "Chuyển vào Thùng rác".
     private let trashOnly: Bool
     /// Số thao tác không hoàn tác được trong Lịch sử dọn (thu hồi quyền, dựng lại LaunchServices).
@@ -15,9 +19,12 @@ struct ConfirmRemovalSheet: View {
 
     static let size = CGSize(width: 640, height: 560)
 
-    init(items: [CleanupItem], bytes: Int64, cancel: @escaping () -> Void, confirm: @escaping () -> Void) {
+    init(items: [CleanupItem], bytes: Int64, showsSeverity: Bool = true, warnings: [String] = [],
+         cancel: @escaping () -> Void, confirm: @escaping () -> Void) {
         self.items = items
         self.bytes = bytes
+        self.showsSeverity = showsSeverity
+        self.warnings = warnings
         self.cancel = cancel
         self.confirm = confirm
         trashOnly = CleanupText.isTrashOnly(items.map(\.finding))
@@ -59,11 +66,20 @@ struct ConfirmRemovalSheet: View {
             }
             .padding(Theme.Space.l)
 
+            if !warnings.isEmpty {
+                NoteList(notes: warnings)
+                    .padding(.horizontal, Theme.Space.l)
+                    .padding(.bottom, Theme.Space.m)
+            }
             Divider()
             List(items) { item in
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        SeverityBadge(severity: item.finding.severity)
+                        if showsSeverity {
+                            SeverityBadge(severity: item.finding.severity)
+                        } else if let owner = item.finding.uninstallOwner {
+                            OwnerBadge(name: owner.name)
+                        }
                         Text(verbatim: item.displayName)
                             .fontWeight(.medium)
                             .lineLimit(1)
@@ -133,6 +149,10 @@ struct RemovalResultsSheet: View {
     let run: CleanupRemovalRun
     let close: () -> Void
     let rescan: () -> Void
+    /// Nút chính (trang Gỡ ứng dụng: về danh sách ứng dụng).
+    var rescanTitle: LocalizedStringKey = "Quét lại"
+    /// Ghi chú sau khi gỡ (app vẫn còn cài, lệnh cần tự chạy).
+    var notes: [String] = []
 
     static let size = CGSize(width: 640, height: 560)
 
@@ -155,6 +175,7 @@ struct RemovalResultsSheet: View {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
+                    if !notes.isEmpty { NoteList(notes: notes) }
                 }
             }
             .padding(Theme.Space.l)
@@ -178,13 +199,49 @@ struct RemovalResultsSheet: View {
                 Spacer()
                 Button("Đóng", action: close)
                     .keyboardShortcut(.cancelAction)
-                Button("Quét lại", action: rescan)
+                Button(rescanTitle, action: rescan)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
             .padding(Theme.Space.l)
         }
         .frame(width: Self.size.width, height: Self.size.height)
+    }
+}
+
+/// Danh sách cảnh báo màu cam (chọn chữ được, để chép lệnh).
+private struct NoteList: View {
+    let notes: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(notes, id: \.self) { note in
+                Label {
+                    Text(verbatim: note).fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
+                }
+            }
+        }
+        .font(.callout)
+        .textSelection(.enabled)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Tên app chủ của mục (bảng xác nhận gỡ ứng dụng).
+private struct OwnerBadge: View {
+    let name: String
+
+    var body: some View {
+        Text(verbatim: name)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.tint)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor.opacity(0.12), in: Capsule())
     }
 }
 

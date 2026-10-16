@@ -327,6 +327,12 @@ final class CleanupModel {
     /// Quét, gỡ và khôi phục loại trừ nhau: cùng đọc/sửa một file (vd ~/.zshrc) hoặc khôi phục phiên đang ghi dở.
     var isRestoring: Bool { restoringSession != nil }
 
+    /// Đang gỡ hoặc khôi phục (trang Gỡ ứng dụng không gỡ song song).
+    var isModifyingDisk: Bool { phase == .removing || isRestoring }
+
+    /// Trang Gỡ ứng dụng đang gỡ (nối ở `UninstallModel.link`): không gỡ/khôi phục song song.
+    @ObservationIgnored var isOtherWorkBusy: () -> Bool = { false }
+
     var hasResults: Bool { lastScanDate != nil }
 
     func isSelected(_ id: String) -> Bool { selection.contains(id) }
@@ -527,7 +533,7 @@ final class CleanupModel {
     // MARK: Gỡ
 
     func removeSelected() {
-        guard phase == .results, !isRestoring else { return }
+        guard phase == .results, !isRestoring, !isOtherWorkBusy() else { return }
         let chosen = selectedItems.map(\.finding).filter(Self.isSelectable)
         guard !chosen.isEmpty else { return }
         let token = CancellationToken()
@@ -655,6 +661,11 @@ final class CleanupModel {
         for session in list where stale.contains(session.directory) { loadEntries(for: session) }
     }
 
+    /// Có phiên sao lưu mới từ trang khác (Gỡ ứng dụng): đọc lại nếu lịch sử đã mở.
+    func refreshHistoryIfLoaded() {
+        if historyLoaded { loadHistory() }
+    }
+
     func loadEntries(for session: CleanupSession) {
         let dir = session.directory
         guard sessionEntries[dir] == nil, !loadingEntries.contains(dir) else { return }
@@ -674,7 +685,7 @@ final class CleanupModel {
     func isRestored(_ session: CleanupSession) -> Bool { restoreRuns[session.directory]?.date != nil }
 
     /// Không khôi phục khi đang quét, đang gỡ (phiên đang ghi dở) hay đang khôi phục phiên khác.
-    var canStartRestore: Bool { !isBusy && !isRestoring }
+    var canStartRestore: Bool { !isBusy && !isRestoring && !isOtherWorkBusy() }
 
     func canRestore(_ session: CleanupSession) -> Bool {
         canStartRestore && session.entryCount > 0 && !isRestored(session)

@@ -202,10 +202,16 @@ enum CleanupText {
         case .trashUsage(let bytes):
             let size = Format.bytes(UInt64(max(bytes, 0)))
             return String(localized: "Thùng rác đang chiếm \(size) - dùng mục \"Dọn Thùng rác\" để xem và chọn từng mục")
-        case .appBundle:
-            return String(localized: "Gói ứng dụng")
-        case .appRelated(let name):
-            return String(localized: "File liên quan tới ứng dụng \(name)")
+        case .appBundle(let app):
+            return String(localized: "Chính gói ứng dụng \(app.name)")
+        case .appRelated(let app, let match):
+            return String(localized: "File do \"\(app.name)\" để lại: \(appFileMatch(match))")
+        case .appRelatedShared(let app, let match, let others):
+            let list = others.joined(separator: ", ")
+            return String(localized: "Dùng chung với \(list), không gỡ cùng \"\(app.name)\" (\(appFileMatch(match)))")
+        case .appRelatedJoint(let app, let match, let coOwners):
+            let list = ([app] + coOwners).map(\.name).joined(separator: ", ")
+            return String(localized: "Dùng chung giữa \(list) (\(appFileMatch(match))). Chỉ gỡ được khi gỡ cả gói của các ứng dụng này.")
         case .xcodeDerived:
             return String(localized: "Dữ liệu build tạm của Xcode (DerivedData), Xcode tự tạo lại khi cần")
         case .xcodeDeviceSupport(let version):
@@ -228,6 +234,32 @@ enum CleanupText {
             return String(localized: "Bản sao lưu iPhone/iPad lúc \(date)")
         case .hostsBlock(let domain):
             return String(localized: "Dòng chặn \(domain) trong /etc/hosts")
+        }
+    }
+
+    /// Vì sao một file được gom cho app đang gỡ.
+    static func appFileMatch(_ m: AppFileMatch) -> String {
+        switch m {
+        case .bundleID: String(localized: "tên trùng bundle id của app")
+        case .teamPrefixedBundleID: String(localized: "tên là bundle id của app kèm Team ID")
+        case .embeddedBundleID: String(localized: "trùng bundle id của thành phần nằm trong app")
+        case .containerMetadata: String(localized: "container khai bundle id của app")
+        case .appGroup: String(localized: "App Group khai trong chữ ký của app")
+        case .launchdLabel: String(localized: "nhãn launchd trùng bundle id của app")
+        case .launchdAssociatedBundle: String(localized: "job launchd khai thuộc về app")
+        case .launchdProgramInBundle: String(localized: "job launchd chạy chương trình nằm trong app")
+        case .privilegedHelper: String(localized: "helper root do app khai báo (SMPrivilegedExecutables)")
+        case .name: String(localized: "tên trùng tên app")
+        case .bundleName: String(localized: "tên trùng tên app trong Info.plist")
+        case .vendorSubfolder: String(localized: "thư mục mang tên app nằm trong thư mục của hãng")
+        case .packageReceipt: String(localized: "biên nhận gói mang bundle id của app")
+        case .appSymlink: String(localized: "symlink trỏ tới app")
+        case .updaterCache: String(localized: "bản cập nhật tải về của app")
+        case .developerData: String(localized: "dữ liệu build của Xcode, tự tạo lại khi cần")
+        case .developerArchives: String(localized: "bản archive của Xcode (dữ liệu của bạn, chỉ báo)")
+        case .namePrefix: String(localized: "GẦN ĐÚNG: tên bắt đầu bằng tên app, hãy xem kỹ")
+        case .bundleIDWords: String(localized: "GẦN ĐÚNG: tên ghép từ bundle id của app (thường là tên cũ), hãy xem kỹ")
+        case .vendorFolder: String(localized: "GẦN ĐÚNG: thư mục của hãng, không còn ứng dụng nào khác của hãng này; hãy xem kỹ")
         }
     }
 
@@ -344,6 +376,7 @@ enum CleanupText {
         case .skipped(.reportOnly): String(localized: "Chỉ báo, không tự gỡ")
         case .skipped(.coveredBy(let target)): String(localized: "Đã nằm trong mục khác được chọn: \(target)")
         case .skipped(.cancelled): String(localized: "Đã dừng trước khi tới mục này")
+        case .skipped(.appKept(let app)): String(localized: "Không gỡ được gói \(app) nên giữ lại dữ liệu của nó")
         case .needsAdmin: String(localized: "Không ghi được vào thư mục chứa mục này. Chạy lệnh bên dưới trong Terminal nếu muốn tự gỡ.")
         case .failed(let failure): failureMessage(failure)
         }

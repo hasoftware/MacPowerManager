@@ -72,8 +72,15 @@ public enum CleanReason: Sendable, Codable, Hashable {
     // MARK: P1-P3 (khai báo sẵn để model ổn định)
     /// DTrashUse
     case trashUsage(bytes: Int64)
-    case appBundle
-    case appRelated(name: String)
+    /// DAppBundle: chính bundle của app đang gỡ (luồng gỡ ứng dụng, P1).
+    case appBundle(AppRef)
+    /// DAppRelated: file liên quan tới app, kèm vì sao khớp.
+    case appRelated(AppRef, match: AppFileMatch)
+    /// File khớp app đang gỡ nhưng CŨNG khớp app khác còn cài (`sharedWith` = tên các app đó): chỉ báo, không gỡ.
+    case appRelatedShared(AppRef, match: AppFileMatch, sharedWith: [String])
+    /// File khớp NHIỀU app cùng đang được xem lại (`coOwners` = các app kia, không có app khác còn cài dùng nó): chỉ
+    /// gỡ được khi gói của MỌI app chủ cùng được gỡ.
+    case appRelatedJoint(AppRef, match: AppFileMatch, coOwners: [AppRef])
     case xcodeDerived
     case xcodeDeviceSupport(version: String)
     case xcodeArchive

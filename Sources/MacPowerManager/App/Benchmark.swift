@@ -5,26 +5,34 @@ import SwiftUI
 /// `--bench [trang…] [--seconds N]`: đo CPU của app khi một trang đang hiển thị, với dữ liệu thật (pin, CPU, tiến
 /// trình…). Mỗi trang được dựng trong cửa sổ ngoài màn hình (vẫn được vẽ như cửa sổ thật), chạy vòng cập nhật như app
 /// rồi đo thời gian CPU của chính tiến trình. "idle" = không có cửa sổ nào, "popover" = bảng thanh menu.
+/// `--warmup N`: chờ N giây trước khi đo (mặc định 4; trang Gỡ ứng dụng cần chờ tính xong dung lượng app).
 @MainActor
 enum Benchmark {
     static func run(_ arguments: [String]) {
         var seconds = 20.0
+        var warmup = 4.0
         var names: [String] = []
         var iterator = arguments.makeIterator()
         while let argument = iterator.next() {
-            if argument == "--seconds", let value = iterator.next().flatMap(Double.init) { seconds = value } else { names.append(argument) }
+            if argument == "--seconds", let value = iterator.next().flatMap(Double.init) {
+                seconds = value
+            } else if argument == "--warmup", let value = iterator.next().flatMap(Double.init) {
+                warmup = value
+            } else {
+                names.append(argument)
+            }
         }
         if names.isEmpty { names = ["idle", "popover"] + Page.allCases.map(\.rawValue) }
         NSApplication.shared.setActivationPolicy(.prohibited)
         print("trang\tCPU %\t(trong \(Int(seconds)) giây)")
         for name in names {
-            let percent = measure(name, seconds: seconds)
+            let percent = measure(name, seconds: seconds, warmup: warmup)
             print("\(name)\t\(percent.map { String(format: "%.2f", $0) } ?? "?")")
             fflush(stdout)
         }
     }
 
-    private static func measure(_ name: String, seconds: Double) -> Double? {
+    private static func measure(_ name: String, seconds: Double, warmup: Double) -> Double? {
         let model = AppModel()
         let page = Page(rawValue: name)
         guard page != nil || name == "idle" || name == "popover" else { return nil }
@@ -54,7 +62,7 @@ enum Benchmark {
             window = w
         }
         // Khởi động (đọc lịch sử, lần đo đầu) không tính.
-        RunLoop.main.run(until: Date().addingTimeInterval(4))
+        RunLoop.main.run(until: Date().addingTimeInterval(warmup))
         let start = cpuTime()
         RunLoop.main.run(until: Date().addingTimeInterval(seconds))
         let used = cpuTime() - start

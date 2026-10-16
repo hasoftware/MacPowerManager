@@ -29,6 +29,11 @@ struct MacPowerManagerApp: App {
             CleanScanDebug.run()
             exit(0)
         }
+        // Xem trước luồng gỡ ứng dụng (chỉ đọc): in mọi mục sẽ gom cho app rồi thoát.
+        if let index = CommandLine.arguments.firstIndex(of: "--uninstall-preview") {
+            UninstallPreviewDebug.run(Array(CommandLine.arguments.dropFirst(index + 1)))
+            exit(0)
+        }
         // In kết quả quét ứng dụng điều khiển sạc khác (chỉ đọc) rồi thoát.
         if CommandLine.arguments.contains("--scan-conflicts") {
             for finding in ConflictScanner.scan() {

@@ -104,6 +104,7 @@ struct PageView: View {
         case .discharge: DischargePage()
         case .calibration: CalibrationPage()
         case .sleep: SleepPage()
+        case .uninstall: UninstallPage()
         case .cleanup: CleanupPage()
         case .cleanupHistory: CleanupHistoryPage()
         case .menuBar: MenuBarPage()

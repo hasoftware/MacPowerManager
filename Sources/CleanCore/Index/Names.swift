@@ -136,6 +136,9 @@ public enum Names {
         "provisioningprofiles", "sharedfilelist", "iconservices", "bookkeeping",
         "databases", "webpush", "mediakeys", "baseband", "privacypreservingmeasurement",
         "diagnosticreports", "powerlog", "networkserviceproxy",
+        // thư mục/plist của Apple nằm thẳng trong các gốc của luồng gỡ ứng dụng (Logs/Sync, Caches/PassKit...)
+        "sync", "devicelink", "controlcenter", "diskimages", "geoservices", "passkit", "familycircle",
+        "loginwindow", "sharedfilelistd", "mobilemeaccounts", "pbs",
     ]
 
     /// TOOLCHAIN_PREFIX: tiền tố bundle id → lệnh CLI. Lệnh còn thì tiền tố được coi là còn sống.

@@ -6,6 +6,29 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Thêm mới
+- **Gỡ ứng dụng** (Dọn dẹp → Gỡ ứng dụng, từ chế độ `--action apps` của MacTrash): danh sách app kèm icon, phiên bản,
+  dung lượng (tính ngầm) và lần dùng cuối; chọn một hoặc nhiều app → **Tìm file liên quan** → xem lại từng file kèm lý
+  do khớp → xác nhận → kết quả, ghi vào **Lịch sử dọn** để khôi phục.
+  - Gom theo bundle id và tên (khớp chính xác, như MacTrash) và thêm: App Group và Team ID từ chữ ký, thành phần nhúng
+    trong app (extension, XPC, login item), LaunchAgent/Daemon có chương trình nằm trong app, helper khai báo trong
+    `SMPrivilegedExecutables`, Preferences/ByHost, cache trình cập nhật, thư mục con của hãng
+    (`Application Support/Google/Chrome`), DerivedData/DeviceSupport của Xcode, biên nhận gói.
+  - Mục "gần đúng" (khớp theo tiền tố tên, ví dụ `ZaloData`) được gắn nhãn, không nằm trong "Chọn tất cả".
+  - **Dữ liệu dùng chung** với app khác còn cài (ví dụ `group.com.facebook.family` của Messenger và WhatsApp) chỉ được
+    báo; chỉ chọn được khi gỡ cả các app cùng dùng.
+  - **App đang chạy**: mọi mục của app bị khóa tới khi app thoát (có nút Thoát và tự kiểm tra lại); dịch vụ nền root
+    chỉ khóa gói app, kèm lệnh dừng. Kiểm tra lại danh sách app và tiến trình ngay trước khi gỡ.
+  - Gói app bị macOS bảo vệ: hướng dẫn cấp quyền **Quản lý ứng dụng** (App Management) hoặc dùng lệnh quản trị/trình
+    gỡ của hãng; chọn dữ liệu mà không chọn gói app thì có cảnh báo; gỡ Xcode đang được `xcode-select` dùng thì có
+    cảnh báo và lệnh `sudo xcode-select --reset`.
+  - Không bao giờ đề nghị gỡ app hệ thống, chính MacPowerManager, app nằm trong app khác.
+
+### Sửa lỗi
+- Quét tàn dư: đọc đúng file metadata container mới của macOS (`.com.apple.containermanagerd.metadata.plist`).
+- Mục cần quyền quản trị: thư mục không ghi được (gói app thuộc root hoặc bị macOS bảo vệ) được báo trước thay vì lỗi
+  lúc dọn.
+
 ## [0.17.0] - 2026-10-17
 
 ### Thêm mới

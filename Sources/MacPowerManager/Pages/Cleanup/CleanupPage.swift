@@ -456,6 +456,10 @@ struct FindingRowView: View {
     let item: CleanupItem
     let selected: Bool
     let enabled: Bool
+    /// Trang Gỡ ứng dụng: mọi mục cùng mức nên không hiện nhãn mức độ.
+    var showsSeverity = true
+    /// Vì sao ô chọn bị khóa dù mục chọn được (vd app chủ đang chạy).
+    var blockedHelp: Text?
     let setSelected: (Bool) -> Void
 
     var body: some View {
@@ -468,11 +472,12 @@ struct FindingRowView: View {
                 .disabled(!item.selectable || !enabled)
                 .help(checkboxHelp)
                 .accessibilityLabel(Text(verbatim: item.displayName))
+                .accessibilityValue(accessibilityDetail)
                 .accessibilityHint(checkboxHelp)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    SeverityBadge(severity: f.severity)
+                    if showsSeverity { SeverityBadge(severity: f.severity) }
                     Text(verbatim: item.displayName)
                         .fontWeight(.medium)
                         .lineLimit(1)
@@ -481,7 +486,11 @@ struct FindingRowView: View {
                     if f.needsAdmin {
                         TagBadge(text: Text("Cần quyền quản trị"), symbol: "lock.fill")
                     }
-                    if f.kind == .reportOnly {
+                    if f.isSharedAppFile || f.isJointAppFile {
+                        TagBadge(text: Text("Dùng chung"), symbol: "person.2")
+                    } else if f.appFileMatch?.isLowConfidence == true {
+                        TagBadge(text: Text("Gần đúng"), symbol: "questionmark.circle")
+                    } else if f.kind == .reportOnly {
                         TagBadge(text: Text("Chỉ báo"), symbol: "eye")
                     }
                     Spacer(minLength: Theme.Space.s)
@@ -510,7 +519,20 @@ struct FindingRowView: View {
         .opacity(item.selectable ? 1 : 0.85)
     }
 
+    /// Thư mục chứa + nhãn: hai mục cùng tên (Containers / Application Scripts) đọc ra khác nhau.
+    private var accessibilityDetail: Text {
+        let f = item.finding
+        var parts = [PathResolver.tail(PathResolver.parent(f.target))]
+        if f.needsAdmin { parts.append(String(localized: "Cần quyền quản trị")) }
+        if f.isSharedAppFile || f.isJointAppFile { parts.append(String(localized: "Dùng chung")) }
+        if f.appFileMatch?.isLowConfidence == true { parts.append(String(localized: "Gần đúng")) }
+        if let size = item.sizeText { parts.append(size) }
+        return Text(verbatim: parts.joined(separator: ", "))
+    }
+
     private var checkboxHelp: Text {
+        if item.finding.isSharedAppFile { return Text("Dùng chung với ứng dụng khác còn cài: không gỡ cùng ứng dụng này.") }
+        if let blockedHelp, !enabled { return blockedHelp }
         if item.finding.kind == .reportOnly { return Text("Chỉ báo: mục này không bao giờ được tự gỡ.") }
         if item.finding.needsAdmin { return Text("Cần quyền quản trị: chuột phải để sao chép lệnh và tự chạy trong Terminal.") }
         if !item.selectable { return Text("Chưa hỗ trợ gỡ mục kiểu này.") }

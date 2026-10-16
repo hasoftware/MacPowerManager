@@ -181,9 +181,9 @@ final class ScannersALibraryTests: XCTestCase {
         let tree = FakeTree()
         let c = "\(tree.homePath)/Library/Containers"
         tree.mkdir("\(c)/com.gone.sandboxed")
-        tree.plist("\(c)/RandomGenerated/.com.apple.containermanager.metadata.plist",
+        tree.plist("\(c)/RandomGenerated/.com.apple.containermanagerd.metadata.plist",
                    ["MCMMetadataIdentifier": "com.gone.viameta"])
-        tree.plist("\(c)/AliveGenerated/.com.apple.containermanager.metadata.plist",
+        tree.plist("\(c)/AliveGenerated/.com.apple.containermanagerd.metadata.plist",
                    ["MCMMetadataIdentifier": "com.alive.app.extension"])
         tree.plist("\(c)/EmptyMeta/.com.apple.containermanager.metadata.plist", ["MCMMetadataIdentifier": ""])
         tree.mkdir("\(c)/NoMetaThing")

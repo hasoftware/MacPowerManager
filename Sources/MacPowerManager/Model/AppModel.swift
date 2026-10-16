@@ -36,6 +36,16 @@ final class AppModel {
         return created
     }
     @ObservationIgnored private var cleanupModel: CleanupModel?
+    /// Trang Gỡ ứng dụng: chỉ tạo khi mở trang lần đầu; gỡ và lịch sử dùng chung với trang Dọn dẹp.
+    var uninstall: UninstallModel {
+        if let uninstallModel { return uninstallModel }
+        let created = UninstallModel(backend: LiveUninstallBackend(),
+                                     removal: LiveCleanupBackend.live(appVersion: AppVersion.current))
+        UninstallModel.link(created, with: cleanup)
+        uninstallModel = created
+        return created
+    }
+    @ObservationIgnored private var uninstallModel: UninstallModel?
     var prefs: Preferences {
         didSet {
             guard prefs != oldValue, !isPreview else { return }
@@ -466,6 +476,11 @@ final class AppModel {
     /// Trang Dọn dẹp với dữ liệu giả.
     func setPreviewCleanup(_ model: CleanupModel) {
         cleanupModel = model
+    }
+
+    /// Trang Gỡ ứng dụng với dữ liệu giả.
+    func setPreviewUninstall(_ model: UninstallModel) {
+        uninstallModel = model
     }
     #endif
 }
