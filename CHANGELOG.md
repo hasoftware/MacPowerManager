@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-17
+
 ### Thêm mới
 - **Gỡ ứng dụng** (Dọn dẹp → Gỡ ứng dụng, từ chế độ `--action apps` của MacTrash): danh sách app kèm icon, phiên bản,
   dung lượng (tính ngầm) và lần dùng cuối; chọn một hoặc nhiều app → **Tìm file liên quan** → xem lại từng file kèm lý
@@ -421,7 +423,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.5...v0.17.0
 [0.16.5]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.4...v0.16.5
 [0.16.4]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.3...v0.16.4
