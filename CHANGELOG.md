@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.16.5] - 2026-10-16
+
 ### Sửa lỗi
 - **App tốn CPU khi đang mở bảng điều khiển.** Đo từng trang với dữ liệu thật (bản tối ưu, máy cắm sạc):
 
@@ -374,7 +376,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.4...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.5...HEAD
+[0.16.5]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.4...v0.16.5
 [0.16.4]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.3...v0.16.4
 [0.16.3]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.1...v0.16.2
