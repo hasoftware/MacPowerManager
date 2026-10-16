@@ -2,7 +2,8 @@ import PowerCore
 import SwiftUI
 
 /// Sơ đồ dòng điện năng: Bộ sạc → Hệ thống / Pin, hoặc Pin → Hệ thống khi dùng pin.
-/// Độ dày đường theo công suất; nét đứt chỉ chạy khi đang hiển thị và không bật Giảm chuyển động.
+/// Độ dày đường theo công suất, đường có dòng điện là nét đứt màu. Không có hiệu ứng chạy: mỗi khung hình hiệu ứng phải
+/// tính và vẽ lại cả sơ đồ, tốn khoảng 10% CPU khi trang Tổng quan đang mở (đo bằng `--bench overview`).
 struct PowerFlowView: View {
     struct Flow: Equatable {
         /// Công suất bộ sạc cấp vào (W), nil khi không cắm.
@@ -19,28 +20,11 @@ struct PowerFlowView: View {
     }
 
     let flow: Flow
-    var animated = true
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(AppModel.self) private var model
-    @State private var visible = false
-
-    /// Hiệu ứng nét đứt chỉ để trang trí: chạy 12 khung hình/giây khi cửa sổ đang hiển thị và máy cắm sạc;
-    /// dừng hẳn khi cửa sổ bị che/thu nhỏ hoặc khi chạy pin (app chăm sóc pin không được tốn pin vì hiệu ứng).
-    private var running: Bool {
-        animated && visible && !reduceMotion && model.dashboardShown && flow.pluggedIn
-    }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 12, paused: !running)) { context in
-            let phase = running
-                ? context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * -12 : 0
-            GeometryReader { geo in
-                diagram(size: geo.size, phase: phase)
-            }
+        GeometryReader { geo in
+            diagram(size: geo.size, phase: 0)
         }
-        .onAppear { visible = true }
-        .onDisappear { visible = false }
         .accessibilityElement(children: .combine)
     }
 

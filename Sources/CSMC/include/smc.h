@@ -19,6 +19,10 @@ void smc_close(io_connect_t conn);
 /// lỗi của IOKit (ví dụ kIOReturnNotPrivileged) nếu bị từ chối, kIOReturnError nếu SMC báo lỗi khác.
 kern_return_t smc_read_key(io_connect_t conn, const char *key, SMCValue *out);
 
+/// Đọc key khi đã biết thông tin key (dataSize, dataType, dataAttributes trong `value`, lấy từ một lần
+/// `smc_read_key` trước đó): chỉ một lần gọi SMC thay vì hai. Chỉ ghi lại `bytes`.
+kern_return_t smc_read_key_known(io_connect_t conn, const char *key, SMCValue *value);
+
 /// Tên key thứ `index` (0 … giá trị của key "#KEY" - 1), ghi 4 ký tự + '\0' vào `out` (ít nhất 5 byte).
 kern_return_t smc_key_at_index(io_connect_t conn, uint32_t index, char *out);
 

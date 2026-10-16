@@ -29,7 +29,11 @@ struct RootView: View {
         }
         // App chỉ sống trên thanh menu; hiện biểu tượng Dock khi bảng điều khiển đang mở để dễ chuyển cửa sổ.
         // Đo số liệu hệ thống chỉ khi bảng điều khiển đang mở (giá trị trên thanh bên, các trang Hệ thống).
-        .onAppear { model.system.retain() }
+        .onAppear {
+            model.setDashboardPage(current)
+            model.system.retain()
+        }
+        .onChange(of: current) { _, page in model.setDashboardPage(page) }
         .onDisappear {
             model.system.release()
             model.setDashboardVisible(false)
@@ -48,7 +52,7 @@ struct RootView: View {
     }
 
     private func badge(for page: Page) -> Text? {
-        let latest = model.system.latest
+        let latest = model.system.sidebarSample
         switch page {
         case .system: return model.hasSystemIssue ? Text("!") : nil
         case .cpu: return latest.map { Text(verbatim: Format.percent($0.cpu.total * 100)) }

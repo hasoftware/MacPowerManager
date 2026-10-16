@@ -6,6 +6,26 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Sửa lỗi
+- **App tốn CPU khi đang mở bảng điều khiển.** Đo từng trang với dữ liệu thật (bản tối ưu, máy cắm sạc):
+
+  | Trang | Trước | Sau |
+  |---|---|---|
+  | Tổng quan | 16,8% | 1,9% |
+  | Tiến trình | 5,7% | 2,8% |
+  | CPU / Bộ nhớ / GPU / Ổ đĩa / Mạng / Năng lượng | 2,2–3,7% | 1,4–2,5% |
+  | Các trang pin và cài đặt | 1,8–2,8% | 0,8–1,7% |
+  | Popover | 0,5% | 0,5% |
+  | Chạy nền (không mở cửa sổ) | 0,01% | 0% |
+
+  - Bỏ hiệu ứng nét đứt chạy liên tục của "Dòng điện năng": mỗi khung hình phải tính và vẽ lại cả sơ đồ. Đường có
+    dòng điện vẫn là nét đứt màu.
+  - Đọc cảm biến SMC chỉ còn một lần gọi thay vì hai (nhớ thông tin key), cho cả app và helper. Nhiệt độ CPU/GPU
+    (khoảng 60 cảm biến) đọc mỗi 10 giây thay vì 3 giây.
+  - Số liệu hệ thống chỉ đo mỗi 1–3 giây khi trang đang mở có biểu đồ hệ thống; các trang khác đo mỗi 5 giây cho
+    các số nhỏ ở thanh bên, và các số này cũng chỉ đổi mỗi 5 giây.
+  - Không còn làm các trang vẽ lại khi dữ liệu pin, trạng thái helper và cấu hình không đổi.
+
 ## [0.16.4] - 2026-10-15
 
 ### Thay đổi

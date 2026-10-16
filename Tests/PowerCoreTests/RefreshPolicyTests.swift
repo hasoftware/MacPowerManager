@@ -19,6 +19,11 @@ final class RefreshPolicyTests: XCTestCase {
         XCTAssertEqual(RefreshPolicy.batteryInterval(ctx(true)), 5)
     }
 
+    func testSidebarOnlyPagesSampleSlowly() {
+        XCTAssertEqual(RefreshPolicy.systemInterval(ctx(true), detailed: false), 5)
+        XCTAssertNil(RefreshPolicy.systemInterval(ctx(false), detailed: false))
+    }
+
     func testBatteryAndLowPowerSlowDown() {
         XCTAssertEqual(RefreshPolicy.systemInterval(ctx(true, battery: true)), 2)
         XCTAssertEqual(RefreshPolicy.processInterval(ctx(true, battery: true), chosen: 2), 5)

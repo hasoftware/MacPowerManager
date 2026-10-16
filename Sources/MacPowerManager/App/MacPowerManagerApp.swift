@@ -19,6 +19,11 @@ struct MacPowerManagerApp: App {
             SnapshotRenderer.run(directory: URL(fileURLWithPath: path))
             exit(0)
         }
+        // Đo CPU của từng trang với dữ liệu thật trong cửa sổ ngoài màn hình rồi thoát.
+        if let index = CommandLine.arguments.firstIndex(of: "--bench") {
+            Benchmark.run(Array(CommandLine.arguments.dropFirst(index + 1)))
+            exit(0)
+        }
         // In kết quả quét ứng dụng điều khiển sạc khác (chỉ đọc) rồi thoát.
         if CommandLine.arguments.contains("--scan-conflicts") {
             for finding in ConflictScanner.scan() {

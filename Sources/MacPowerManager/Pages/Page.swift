@@ -41,6 +41,15 @@ enum Page: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Trang có biểu đồ hoặc số liệu hệ thống trực tiếp: đo mỗi 1–3 giây. Các trang khác chỉ cần số nhỏ ở thanh bên,
+    /// đo mỗi 5 giây (`RefreshPolicy.systemInterval`).
+    var showsLiveSystemData: Bool {
+        switch self {
+        case .overview, .cpu, .memory, .gpu, .disk, .network, .energy: true
+        default: false
+        }
+    }
+
     var symbol: String {
         switch self {
         case .overview: "square.grid.2x2"

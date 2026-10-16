@@ -48,29 +48,31 @@ final class HelperClient {
         guard !isPreview else { return }
         do {
             let version: String = try await call { proxy, reply in proxy.version(reply: reply) }
+            // Chỉ gán khi giá trị đổi: với @Observable, mỗi lần gán (kể cả cùng giá trị) làm mọi view đọc nó vẽ lại,
+            // và vòng làm mới chạy mỗi 5 giây.
             failures = 0
-            helperVersion = version
+            if helperVersion != version { helperVersion = version }
             guard version == AppVersion.current else {
-                installState = .outdated(version)
+                if installState != .outdated(version) { installState = .outdated(version) }
                 return
             }
             let data: Data? = try await call { proxy, reply in proxy.status(reply: reply) }
             guard let data, let status = try? JSONDecoder().decode(HelperStatus.self, from: data) else { return }
-            self.status = status
-            installState = .installed
+            if self.status != status { self.status = status }
+            if installState != .installed { installState = .installed }
             // Không ghi đè khi người dùng đang chỉnh và chưa gửi xong.
-            if applyTask == nil { config = status.config }
+            if applyTask == nil, config != status.config { config = status.config }
         } catch {
             failures += 1
             if FileManager.default.fileExists(atPath: PowerConstants.launchDaemonPath) {
                 // Một lần lỗi khi đang chạy tốt có thể chỉ là helper đang khởi động lại.
                 if installState == .installed && failures < 2 { return }
                 // Helper v0.3.0 chỉ nhận app có cdhash được ghi lúc cài: bản app mới bị từ chối tới khi cài lại.
-                installState = .outdated("?")
-            } else {
+                if installState != .outdated("?") { installState = .outdated("?") }
+            } else if installState != .notInstalled {
                 installState = .notInstalled
             }
-            status = nil
+            if status != nil { status = nil }
         }
     }
 

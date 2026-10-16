@@ -20,9 +20,14 @@ public enum RefreshPolicy {
     public static let processChoices: [TimeInterval] = [2, 5, 10]
     public static let defaultProcessInterval: TimeInterval = 5
 
-    /// Số liệu hệ thống (CPU, bộ nhớ, ổ đĩa, mạng). nil = tạm dừng.
-    public static func systemInterval(_ c: Context) -> TimeInterval? {
+    /// Khoảng đo khi chỉ cần các số nhỏ ở thanh bên (trang đang mở không hiện số liệu hệ thống).
+    public static let sidebarSystemInterval: TimeInterval = 5
+
+    /// Số liệu hệ thống (CPU, bộ nhớ, ổ đĩa, mạng). nil = tạm dừng. `detailed` = trang đang mở có biểu đồ hoặc số liệu
+    /// hệ thống trực tiếp; ngược lại chỉ cập nhật số nhỏ ở thanh bên.
+    public static func systemInterval(_ c: Context, detailed: Bool = true) -> TimeInterval? {
         guard c.uiVisible else { return nil }
+        guard detailed else { return sidebarSystemInterval }
         if c.lowPowerMode { return 3 }
         return c.onBattery ? 2 : 1
     }

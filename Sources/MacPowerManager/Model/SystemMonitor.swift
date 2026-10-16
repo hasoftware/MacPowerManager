@@ -57,6 +57,9 @@ final class SystemMonitor {
     let topology: CPUTopology
 
     var latest: Sample? { samples.last }
+    /// Mẫu cho các số nhỏ ở thanh bên: đổi tối đa mỗi `RefreshPolicy.sidebarSystemInterval` giây, để danh sách thanh bên
+    /// không phải dựng lại mỗi giây khi đang mở trang hệ thống.
+    private(set) var sidebarSample: Sample?
 
     @ObservationIgnored private var consumers = 0
     @ObservationIgnored private var timer: Timer?
@@ -72,7 +75,8 @@ final class SystemMonitor {
     @ObservationIgnored private var temperatureKeys: [String]?
     @ObservationIgnored private var gpuTemperatureKeys: [String] = []
     @ObservationIgnored private var discoveringKeys = false
-    /// Đọc nhiệt độ mỗi 3 giây (khoảng 60 cảm biến), các lần giữa dùng lại giá trị trước.
+    /// Đọc nhiệt độ mỗi 10 giây (khoảng 60 cảm biến SMC, phần tốn nhất của mỗi lần đo), các lần giữa dùng lại giá trị
+    /// trước.
     @ObservationIgnored private var lastTemperature: (date: Date, value: (average: Double, hottest: Double)?, gpu: Double?)?
     @ObservationIgnored private let isPreview: Bool
 
@@ -86,6 +90,7 @@ final class SystemMonitor {
          primaryInterface: NetworkInterfaceInfo? = nil, diskTotals: DiskCounters? = nil,
          networkTotals: (received: UInt64, sent: UInt64)? = nil) {
         self.samples = samples
+        sidebarSample = samples.last
         self.activity = activity
         self.topology = topology
         self.volumes = volumes
@@ -176,7 +181,7 @@ final class SystemMonitor {
         func rate(_ current: UInt64, _ before: UInt64) -> Double { current >= before ? Double(current - before) / elapsed : 0 }
         let temperature: (average: Double, hottest: Double)?
         let gpuTemperature: Double?
-        if let last = lastTemperature, now.timeIntervalSince(last.date) < 3 {
+        if let last = lastTemperature, now.timeIntervalSince(last.date) < 10 {
             temperature = last.value
             gpuTemperature = last.gpu
         } else {
@@ -204,6 +209,9 @@ final class SystemMonitor {
             }
         }
         samples.append(withIO)
+        if sidebarSample.map({ now.timeIntervalSince($0.date) >= RefreshPolicy.sidebarSystemInterval - 0.5 }) ?? true {
+            sidebarSample = withIO
+        }
         self.ticks += 1
         refreshSlowIfDue()
         if samples.count > Self.capacity { samples.removeFirst(samples.count - Self.capacity) }

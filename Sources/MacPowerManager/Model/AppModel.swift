@@ -49,6 +49,8 @@ final class AppModel {
 
     // Tần suất đo theo ngữ cảnh (RefreshPolicy): chỉ đo dày khi có giao diện đang hiển thị.
     @ObservationIgnored private var dashboardVisible = false
+    /// Trang đang mở trong bảng điều khiển có hiện số liệu hệ thống trực tiếp không (đo dày hay chỉ cho thanh bên).
+    @ObservationIgnored private var dashboardShowsSystem = true
     @ObservationIgnored private var popoverVisible = false
     /// Màn hình đang bật và phiên đăng nhập không bị khóa.
     @ObservationIgnored private var screenAvailable = true
@@ -111,6 +113,30 @@ final class AppModel {
 
     // MARK: Tần suất đo
 
+    #if DEBUG
+    /// Bộ đo hiệu năng: chạy vòng cập nhật như app thật nhưng không xin quyền thông báo, không hỏi chuyển app,
+    /// không kiểm tra cập nhật.
+    func startForBenchmark(dashboardVisible: Bool, popoverVisible: Bool) {
+        guard !started, !isPreview else { return }
+        started = true
+        refresh()
+        observer = BatteryReader.observeChanges { [weak self] in
+            Task { @MainActor in self?.refresh() }
+        }
+        self.dashboardVisible = dashboardVisible
+        self.popoverVisible = popoverVisible
+        dashboardShown = dashboardVisible
+        history.isLive = dashboardVisible
+        applyRefreshPolicy()
+    }
+    #endif
+
+    func setDashboardPage(_ page: Page) {
+        guard page.showsLiveSystemData != dashboardShowsSystem else { return }
+        dashboardShowsSystem = page.showsLiveSystemData
+        applyRefreshPolicy()
+    }
+
     func setDashboardVisible(_ visible: Bool) {
         guard visible != dashboardVisible else { return }
         dashboardVisible = visible
@@ -155,7 +181,7 @@ final class AppModel {
     func applyRefreshPolicy() {
         guard started, !isPreview else { return }
         let dashboard = context(dashboardOnly: true)
-        system.setInterval(RefreshPolicy.systemInterval(dashboard))
+        system.setInterval(RefreshPolicy.systemInterval(dashboard, detailed: dashboardShowsSystem))
         processes.setInterval(RefreshPolicy.processInterval(dashboard, chosen: processes.chosenInterval))
         let interval = RefreshPolicy.batteryInterval(context(dashboardOnly: false))
         guard interval != batteryInterval || timer == nil else { return }
@@ -174,7 +200,7 @@ final class AppModel {
                 if foreign > self.lastForeignWriteCount
                     || self.lastConflictScan.map({ Date().timeIntervalSince($0) >= every }) ?? true {
                     self.scanConflicts()
-                    self.needsMove = AppMover.needsMove
+                    if self.needsMove != AppMover.needsMove { self.needsMove = AppMover.needsMove }
                 }
                 self.lastForeignWriteCount = foreign
             }
@@ -211,12 +237,15 @@ final class AppModel {
     func refresh() {
         guard !isPreview else { return }
         // IOKit làm mới khoảng mỗi phút; dòng điện từ SMC cho trạng thái sạc tức thì (Apple Silicon).
-        battery = BatteryReader.read().map {
+        // Chỉ gán khi đổi (với @Observable, gán cùng giá trị vẫn làm các view vẽ lại).
+        let battery = BatteryReader.read().map {
             Platform.isAppleSilicon
                 ? $0.applyingLiveTelemetry(currentmA: sensors?.batteryCurrentmA, voltagemV: sensors?.batteryVoltagemV)
                 : $0
         }
-        smcTemperature = sensors?.batteryTemperature
+        if battery != self.battery { self.battery = battery }
+        let temperature = sensors?.batteryTemperature
+        if temperature != smcTemperature { smcTemperature = temperature }
         // Cắm/rút sạc đổi tần suất đo (chạy pin thì đo thưa hơn).
         let onBattery = !(battery?.externalConnected ?? true)
         if onBattery != lastOnBattery {

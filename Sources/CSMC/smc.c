@@ -117,6 +117,23 @@ kern_return_t smc_read_key(io_connect_t conn, const char *key, SMCValue *value) 
     return KERN_SUCCESS;
 }
 
+kern_return_t smc_read_key_known(io_connect_t conn, const char *key, SMCValue *value) {
+    if (!key || strlen(key) != 4 || !value || value->dataSize == 0 || value->dataSize > 32) return kIOReturnBadArgument;
+    SMCKeyData_t in, out;
+    memset(&in, 0, sizeof(in));
+    memset(&out, 0, sizeof(out));
+    in.key = fourcc(key);
+    in.keyInfo.dataSize = value->dataSize;
+    in.data8 = SMC_CMD_READ_BYTES;
+    kern_return_t r = smc_call(conn, &in, &out);
+    if (r != KERN_SUCCESS) return r;
+    r = smc_result(out.result);
+    if (r != KERN_SUCCESS) return r;
+    memset(value->bytes, 0, sizeof(value->bytes));
+    memcpy(value->bytes, out.bytes, value->dataSize);
+    return KERN_SUCCESS;
+}
+
 kern_return_t smc_write_key(io_connect_t conn, const char *key, const uint8_t *bytes, uint32_t size) {
     if (!key || strlen(key) != 4 || size == 0 || size > 32) return kIOReturnBadArgument;
     SMCKeyData_keyInfo_t info;

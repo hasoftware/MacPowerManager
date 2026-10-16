@@ -79,6 +79,9 @@ public protocol SMCAccess: AnyObject {
 /// Kết nối tới AppleSMC. Đọc không cần quyền root, ghi thì cần.
 public final class SMC: SMCAccess {
     private var connection: io_connect_t = 0
+    /// Thông tin key (kích thước, kiểu) không đổi: nhớ lại để mỗi lần đọc chỉ gọi SMC một lần thay vì hai.
+    private var keyInfo: [String: SMCValue] = [:]
+    private let keyInfoLock = NSLock()
 
     public init() throws {
         let result = smc_open(&connection)
@@ -89,7 +92,16 @@ public final class SMC: SMCAccess {
 
     public func read(_ key: String) -> SMCReading? {
         var value = SMCValue()
-        guard smc_read_key(connection, key, &value) == KERN_SUCCESS else { return nil }
+        if let known = keyInfoLock.withLock({ keyInfo[key] }) {
+            value = known
+            guard smc_read_key_known(connection, key, &value) == KERN_SUCCESS else {
+                keyInfoLock.withLock { keyInfo[key] = nil }
+                return nil
+            }
+        } else {
+            guard smc_read_key(connection, key, &value) == KERN_SUCCESS else { return nil }
+            keyInfoLock.withLock { keyInfo[key] = value }
+        }
         let size = Int(value.dataSize)
         let bytes = withUnsafeBytes(of: value.bytes) { Array($0.prefix(size)) }
         let t = value.dataType
