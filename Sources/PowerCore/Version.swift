@@ -3,5 +3,5 @@
 
 public enum AppVersion {
     /// Phiên bản app, đồng thời là phiên bản helper: app sẽ đề nghị cài lại helper khi khác nhau.
-    public static let current = "0.16.5"
+    public static let current = "0.17.0"
 }

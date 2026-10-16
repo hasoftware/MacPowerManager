@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-17
+
 ### Thêm mới
 - **Dọn dẹp**: tích hợp [MacTrash](https://github.com/hasoftware/MacTrash) 1.5.0, viết lại bằng Swift (thư viện
   `CleanCore`). Nhóm trang mới **Dọn dẹp** trên thanh bên:
@@ -396,7 +398,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.5...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.5...v0.17.0
 [0.16.5]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.4...v0.16.5
 [0.16.4]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.3...v0.16.4
 [0.16.3]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.2...v0.16.3
