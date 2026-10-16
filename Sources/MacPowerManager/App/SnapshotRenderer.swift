@@ -170,6 +170,45 @@ private struct Scenario {
         page("network", .network, Mock.model(.holding), size: CGSize(width: 1000, height: 600))
         page("health", .health, Mock.model(.holding), size: CGSize(width: 860, height: 900))
 
+        func cleanup(_ name: String, _ page: Page, _ cleanup: CleanupModel, size: CGSize = CGSize(width: 900, height: 760)) {
+            list.append(Scenario(name: "page-cleanup-\(name)", size: size) {
+                let model = Mock.model(.holding)
+                model.setPreviewCleanup(cleanup)
+                return AnyView(PageView(page: page).environment(model))
+            })
+        }
+        cleanup("idle", .cleanup, CleanupMock.model(.idle, fullDiskAccess: false))
+        cleanup("scanning", .cleanup, CleanupMock.model(.scanning(CleanupScanStatus(stage: .scanner("Caches"), done: 3, total: 22))))
+        cleanup("results", .cleanup, CleanupMock.results(), size: CGSize(width: 900, height: 1500))
+        cleanup("results-narrow", .cleanup, CleanupMock.model(.results, findings: CleanupMock.findings, fullDiskAccess: false),
+                size: CGSize(width: 640, height: 900))
+        cleanup("removing", .cleanup, CleanupMock.model(.removing, findings: CleanupMock.findings, selection: CleanupMock.selected,
+                                                        progress: CleanupProgress(done: 2, total: 4)),
+                size: CGSize(width: 900, height: 520))
+        cleanup("results-hidden", .cleanup, CleanupMock.model(.results, findings: CleanupMock.findings,
+                                                              selection: CleanupMock.selected, filter: .info),
+                size: CGSize(width: 900, height: 700))
+        cleanup("results-wide", .cleanup, CleanupMock.model(.results, findings: CleanupMock.findings),
+                size: CGSize(width: 1500, height: 700))
+        cleanup("empty", .cleanup, CleanupMock.model(.results), size: CGSize(width: 900, height: 520))
+        cleanup("history", .cleanupHistory, CleanupMock.history())
+        cleanup("history-empty", .cleanupHistory, CleanupMock.model(.idle), size: CGSize(width: 900, height: 480))
+        list.append(Scenario(name: "page-cleanup-confirm", size: ConfirmRemovalSheet.size) {
+            AnyView(ConfirmRemovalSheet(items: CleanupMock.selectedItems,
+                                        bytes: CleanupMock.selectedItems.reduce(0) { $0 + $1.finding.sizeBytes },
+                                        cancel: {}, confirm: {})
+                .background(Theme.card))
+        })
+        list.append(Scenario(name: "page-cleanup-confirm-mixed", size: ConfirmRemovalSheet.size) {
+            let items = CleanupMock.items(CleanupMock.mixedSelection)
+            return AnyView(ConfirmRemovalSheet(items: items, bytes: items.reduce(0) { $0 + $1.finding.sizeBytes },
+                                               cancel: {}, confirm: {})
+                .background(Theme.card))
+        })
+        list.append(Scenario(name: "page-cleanup-outcomes", size: RemovalResultsSheet.size) {
+            AnyView(RemovalResultsSheet(run: CleanupMock.removalRun, close: {}, rescan: {}).background(Theme.card))
+        })
+
         list.append(Scenario(name: "glyphs", size: CGSize(width: 600, height: 1180), backend: .imageRenderer, scale: 2) {
             AnyView(GlyphSheet())
         })

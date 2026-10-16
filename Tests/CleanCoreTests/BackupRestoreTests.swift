@@ -234,6 +234,32 @@ final class BackupRestoreTests: XCTestCase {
         XCTAssertEqual(tree.read(rc), "export X_HOME=/nope\n")
     }
 
+    /// Ghi đè chỉ các entry được chọn: mục đã khôi phục trước đó không bị chạy lại (không mất sửa đổi sau đó).
+    func testRestoreOnlySelectedEntries() throws {
+        let tree = FakeTree()
+        let a = "\(tree.homePath)/.zshrc", b = "\(tree.homePath)/.zprofile"
+        tree.write(a, "export A_HOME=/nope\n")
+        tree.write(b, "export B_HOME=/nope\n")
+        let fa = Finding(category: .envVar, severity: .high, name: "A_HOME", target: "/nope",
+                         reason: .envVarDead(name: "A_HOME", file: a), action: .envLine(file: a, line: "export A_HOME=/nope"))
+        let fb = Finding(category: .envVar, severity: .high, name: "B_HOME", target: "/nope",
+                         reason: .envVarDead(name: "B_HOME", file: b), action: .envLine(file: b, line: "export B_HOME=/nope"))
+        let report = Remover(env: tree.env, runner: StubRunner(), trasher: tree.trasher).removeSelected([fa, fb], appVersion: "t")
+        let dir = try XCTUnwrap(report.backupDirectory)
+        tree.write(b, "người dùng sửa b\n")
+        let restorer = Restorer(env: tree.env, runner: StubRunner())
+        let first = restorer.restore(backupDirectory: dir)
+        XCTAssertEqual(first.results.map(\.index), [0, 1])
+        XCTAssertEqual(first.results.map(\.status), [.restored, .manual(.modifiedSinceCleanup)])
+        // người dùng sửa a sau khi khôi phục; ghi đè chỉ entry 1 không được đụng tới a
+        tree.write(a, "sửa sau khôi phục\n")
+        let second = restorer.restore(backupDirectory: dir, overwriteModifiedFiles: true, onlyEntries: [1])
+        XCTAssertEqual(second.results.map(\.index), [1])
+        XCTAssertEqual(second.results.map(\.status), [.restored])
+        XCTAssertEqual(tree.read(a), "sửa sau khôi phục\n")
+        XCTAssertEqual(tree.read(b), "export B_HOME=/nope\n")
+    }
+
     // MARK: LaunchdJob
 
     func testLaunchdJobRoundTrip() throws {

@@ -44,6 +44,10 @@ giới hạn sạc, sạc đầy một lần, xả pin, chống nóng, lịch s�
 - **Theo dõi hệ thống**: tiến trình (Thoát / Buộc thoát), CPU (từng nhân, nhiệt độ, tải), bộ nhớ (áp lực, swap), GPU,
   ổ đĩa, mạng, năng lượng theo ứng dụng, với biểu đồ 1 phút – 1 giờ;
   chỉ đo khi bảng điều khiển đang mở.
+- **Dọn dẹp** (từ [MacTrash](https://github.com/hasoftware/MacTrash)): tìm phần còn sót của ứng dụng đã gỡ trong
+  `~/Library`, mục khởi động, helper, PATH và biến môi trường, symlink gãy, plugin, quyền riêng tư, LaunchServices.
+  Quét chỉ đọc, không mục nào được chọn sẵn, mỗi mục ghi rõ lý do; mục được chọn chuyển vào Thùng rác (hoặc sửa file
+  cấu hình có sao lưu) và khôi phục được trong trang **Lịch sử dọn**. Mục cần quyền quản trị chỉ được báo kèm lệnh.
 - **Thông tin pin**: %, dung lượng (mAh), sức khỏe, chu kỳ, điện áp, dòng, công suất, nhiệt độ (SMC + IOKit), adapter.
 - **Sạc đầy theo lịch**: chọn ngày và giờ cần pin đầy (ví dụ 8:00 các ngày làm việc), helper tự sạc sớm vừa đủ, kể cả
   khi máy đang ngủ, rồi trở về giới hạn.
@@ -292,6 +296,7 @@ MacPowerManager is a free, open-source (GPL-3.0) menu bar app for Apple Silicon 
 - conflict detection: other charge controllers (AlDente, batt, Battery Toolkit, actuallymentor/battery) and foreign writes to the SMC keys the helper manages
 - scheduled full charge ("full by 8:00 on weekdays"), even while the Mac sleeps
 - system monitor: processes (quit / force quit), CPU per core and temperature, memory pressure and swap, GPU, disk, network, energy by app
+- Cleanup (ported from [MacTrash](https://github.com/hasoftware/MacTrash)): finds leftovers of uninstalled apps in `~/Library`, startup items, helpers, PATH and environment variables, broken symlinks, plug-ins, privacy permissions and LaunchServices. Scanning is read-only, nothing is preselected and every item says why it was flagged; selected items go to the Trash (or config lines are commented out with a backup) and can be restored from **Cleanup History**. Items that need admin rights are only reported, with the command to run
 - `mpm` command line and `macpowermanager://` URLs for Shortcuts and scripts
 - MagSafe light that shows the real charging state (green while held at the limit)
 - one-click battery calibration (full → 15% → full) with a reminder every 2 months

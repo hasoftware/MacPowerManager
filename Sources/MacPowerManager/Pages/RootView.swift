@@ -2,7 +2,7 @@ import AppKit
 import PowerCore
 import SwiftUI
 
-/// Cửa sổ bảng điều khiển: thanh bên chia nhóm Theo dõi / Chăm sóc pin / Ứng dụng.
+/// Cửa sổ bảng điều khiển: thanh bên chia nhóm Theo dõi / Hệ thống / Chăm sóc pin / Dọn dẹp / Ứng dụng.
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @AppStorage(Page.storageKey) private var page: Page = .overview
@@ -13,6 +13,7 @@ struct RootView: View {
                 Section("Theo dõi") { rows(Page.monitor) }
                 Section("Hệ thống") { rows(Page.systemGroup) }
                 Section("Chăm sóc pin") { rows(Page.care.filter(isVisible)) }
+                Section("Dọn dẹp") { rows(Page.cleanupGroup) }
                 Section("Ứng dụng") { rows(Page.app) }
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
@@ -103,6 +104,8 @@ struct PageView: View {
         case .discharge: DischargePage()
         case .calibration: CalibrationPage()
         case .sleep: SleepPage()
+        case .cleanup: CleanupPage()
+        case .cleanupHistory: CleanupHistoryPage()
         case .menuBar: MenuBarPage()
         case .notifications: NotificationsPage()
         case .system: SystemPage()

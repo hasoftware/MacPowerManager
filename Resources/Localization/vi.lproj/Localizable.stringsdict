@@ -72,5 +72,173 @@
 			<string>%lld lần sạc</string>
 		</dict>
 	</dict>
+	<key>%lld mục</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@items@</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Chuyển %lld mục vào Thùng rác</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Chuyển %#@items@ vào Thùng rác</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Chuyển %lld mục vào Thùng rác?</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Chuyển %#@items@ vào Thùng rác?</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Đang ẩn %lld mục đã bỏ qua</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Đang ẩn %#@items@ đã bỏ qua</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Chuyển %lld mục vào Thùng rác…</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Chuyển %#@items@ vào Thùng rác…</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Dọn %lld mục…</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Dọn %#@items@…</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Dọn %lld mục?</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Dọn %#@items@?</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Dọn %lld mục</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Dọn %#@items@</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>%lld thao tác không hoàn tác được</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@actions@ không hoàn tác được</string>
+		<key>actions</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld thao tác</string>
+		</dict>
+	</dict>
+	<key>%lld mục đã chọn đang bị bộ lọc ẩn</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@items@ đã chọn đang bị bộ lọc ẩn</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld mục</string>
+		</dict>
+	</dict>
+	<key>Không có ứng dụng hay lệnh nào tên "%@" (sửa lần cuối %lld ngày trước)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Không có ứng dụng hay lệnh nào tên "%1$@" (sửa lần cuối %2$#@days@)</string>
+		<key>days</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%2$lld ngày trước</string>
+		</dict>
+	</dict>
+	<key>LaunchServices còn %lld bản ghi trỏ tới app đã xóa (gây trùng menu "Open With")</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>LaunchServices còn %#@records@ trỏ tới app đã xóa (gây trùng menu "Open With")</string>
+		<key>records</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>other</key>
+			<string>%lld bản ghi</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

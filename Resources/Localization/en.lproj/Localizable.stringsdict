@@ -82,5 +82,197 @@
 			<string>%lld charge cycles</string>
 		</dict>
 	</dict>
+	<key>%lld mục</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@items@</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld items</string>
+		</dict>
+	</dict>
+	<key>Chuyển %lld mục vào Thùng rác</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Move %#@items@ to Trash</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld Item</string>
+			<key>other</key>
+			<string>%lld Items</string>
+		</dict>
+	</dict>
+	<key>Chuyển %lld mục vào Thùng rác?</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Move %#@items@ to Trash?</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld items</string>
+		</dict>
+	</dict>
+	<key>Đang ẩn %lld mục đã bỏ qua</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@items@</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld ignored item is hidden</string>
+			<key>other</key>
+			<string>%lld ignored items are hidden</string>
+		</dict>
+	</dict>
+	<key>Chuyển %lld mục vào Thùng rác…</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Move %#@items@ to Trash…</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld Item</string>
+			<key>other</key>
+			<string>%lld Items</string>
+		</dict>
+	</dict>
+	<key>Dọn %lld mục…</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Clean Up %#@items@…</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld Item</string>
+			<key>other</key>
+			<string>%lld Items</string>
+		</dict>
+	</dict>
+	<key>Dọn %lld mục?</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Clean up %#@items@?</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld item</string>
+			<key>other</key>
+			<string>%lld items</string>
+		</dict>
+	</dict>
+	<key>Dọn %lld mục</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Clean Up %#@items@</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld Item</string>
+			<key>other</key>
+			<string>%lld Items</string>
+		</dict>
+	</dict>
+	<key>%lld thao tác không hoàn tác được</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@actions@</string>
+		<key>actions</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld action can’t be undone</string>
+			<key>other</key>
+			<string>%lld actions can’t be undone</string>
+		</dict>
+	</dict>
+	<key>%lld mục đã chọn đang bị bộ lọc ẩn</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@items@</string>
+		<key>items</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld selected item is hidden by the filters</string>
+			<key>other</key>
+			<string>%lld selected items are hidden by the filters</string>
+		</dict>
+	</dict>
+	<key>Không có ứng dụng hay lệnh nào tên "%@" (sửa lần cuối %lld ngày trước)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>No installed app or command named "%1$@" (last modified %2$#@days@)</string>
+		<key>days</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%2$lld day ago</string>
+			<key>other</key>
+			<string>%2$lld days ago</string>
+		</dict>
+	</dict>
+	<key>LaunchServices còn %lld bản ghi trỏ tới app đã xóa (gây trùng menu "Open With")</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>LaunchServices still holds %#@records@ for deleted apps (duplicate "Open With" entries)</string>
+		<key>records</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld record</string>
+			<key>other</key>
+			<string>%lld records</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

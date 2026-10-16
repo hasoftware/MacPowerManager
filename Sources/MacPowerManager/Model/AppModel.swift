@@ -28,6 +28,14 @@ final class AppModel {
     let updates: UpdateChecker
     /// Tải và cài bản cập nhật ngay trong app.
     let installer = UpdateInstaller()
+    /// Trang Dọn dẹp: chỉ tạo khi mở trang lần đầu, không tốn gì trước đó.
+    var cleanup: CleanupModel {
+        if let cleanupModel { return cleanupModel }
+        let created = CleanupModel(backend: LiveCleanupBackend.live(appVersion: AppVersion.current))
+        cleanupModel = created
+        return created
+    }
+    @ObservationIgnored private var cleanupModel: CleanupModel?
     var prefs: Preferences {
         didSet {
             guard prefs != oldValue, !isPreview else { return }
@@ -453,6 +461,11 @@ final class AppModel {
         self.conflicts = conflicts
         self.needsMove = needsMove
         helper.setPreview(status: status, installState: installState)
+    }
+
+    /// Trang Dọn dẹp với dữ liệu giả.
+    func setPreviewCleanup(_ model: CleanupModel) {
+        cleanupModel = model
     }
     #endif
 }

@@ -25,31 +25,12 @@ struct BannerView: View {
     }
 
     private var full: some View {
-        HStack(alignment: .top, spacing: Theme.Space.m) {
-            Image(systemName: banner.symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(banner.tint)
-                .frame(width: 32, height: 32)
-                .background(banner.tint.opacity(0.15), in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
-                Text(banner.title).font(.headline)
-                Text(banner.message)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-            }
-            Spacer(minLength: Theme.Space.m)
+        BannerLayout(symbol: banner.symbol, tint: banner.tint, title: Text(banner.title), message: Text(banner.message)) {
             actionButton(short: false)
                 .controlSize(.regular)
                 .fixedSize()
                 .frame(minHeight: 32)
         }
-        .padding(Theme.Space.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(banner.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-            .strokeBorder(banner.tint.opacity(0.3), lineWidth: 1))
     }
 
     private var compact: some View {
@@ -101,6 +82,41 @@ struct BannerView: View {
             openWindow(id: WindowID.whatsNew)
             NSApp.activate(ignoringOtherApps: true)
         }
+    }
+}
+
+/// Bố cục thông báo lớn dùng chung: biểu tượng tròn, tiêu đề, mô tả, nút bên phải, nền và viền theo màu nhấn.
+struct BannerLayout<Actions: View>: View {
+    let symbol: String
+    let tint: Color
+    let title: Text
+    let message: Text
+    @ViewBuilder var actions: Actions
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Theme.Space.m) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(tint.opacity(0.15), in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                title.font(.headline)
+                message
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
+            Spacer(minLength: Theme.Space.m)
+            actions
+        }
+        .padding(Theme.Space.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+            .strokeBorder(tint.opacity(0.3), lineWidth: 1))
     }
 }
 

@@ -38,6 +38,8 @@ public enum RestoreStatus: Sendable, Equatable {
 }
 
 public struct RestoreItemResult: Sendable, Equatable {
+    /// Vị trí của entry trong manifest (đếm từ 0).
+    public var index: Int
     public var entry: ManifestEntry
     public var status: RestoreStatus
 }
@@ -99,7 +101,10 @@ public struct Restorer: Sendable {
 
     /// Khôi phục mọi entry theo thứ tự manifest.
     /// `overwriteModifiedFiles`: file cấu hình đã bị sửa sau lần dọn vẫn bị chép đè (chỉ khi người dùng xác nhận).
-    public func restore(backupDirectory dir: URL, overwriteModifiedFiles: Bool = false) -> RestoreReport {
+    /// `onlyEntries`: chỉ khôi phục các entry ở các vị trí này (vd chỉ ghi đè file đã sửa, không chạy lại mục đã
+    /// khôi phục); kết quả chỉ có các entry đó.
+    public func restore(backupDirectory dir: URL, overwriteModifiedFiles: Bool = false,
+                        onlyEntries: Set<Int>? = nil) -> RestoreReport {
         guard let entries = Restorer.loadEntries(directory: dir) else {
             return RestoreReport(results: [], manifestFound: false)
         }
@@ -108,10 +113,10 @@ public struct Restorer: Sendable {
         for e in entries where e.contentHashAfter != nil { lastHash[e.original] = e.contentHashAfter }
         var restoredFiles = Set<String>()
         var results: [RestoreItemResult] = []
-        for e in entries {
+        for (i, e) in entries.enumerated() where onlyEntries?.contains(i) ?? true {
             let st = restoreOne(e, dir: dir, lastHash: lastHash, restoredFiles: &restoredFiles,
                                 overwrite: overwriteModifiedFiles)
-            results.append(RestoreItemResult(entry: e, status: st))
+            results.append(RestoreItemResult(index: i, entry: e, status: st))
         }
         return RestoreReport(results: results, manifestFound: true)
     }

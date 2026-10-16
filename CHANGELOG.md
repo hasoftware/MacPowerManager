@@ -6,6 +6,26 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Thêm mới
+- **Dọn dẹp**: tích hợp [MacTrash](https://github.com/hasoftware/MacTrash) 1.5.0, viết lại bằng Swift (thư viện
+  `CleanCore`). Nhóm trang mới **Dọn dẹp** trên thanh bên:
+  - **Quét tàn dư**: 22 bộ quét tìm phần còn sót của ứng dụng đã gỡ trong `~/Library` (Application Support, Caches,
+    Preferences, Containers, Group Containers, Saved State, HTTPStorages, WebKit, Application Scripts…), LaunchAgents,
+    mục đăng nhập, helper và biên nhận gói mồ côi, PATH và biến môi trường chết, DYLD, chứng chỉ proxy, tường lửa,
+    quyền riêng tư (TCC), system/kernel extension, symlink gãy, LaunchServices, native messaging, plugin, vỏ `.app`
+    rỗng, Docker. Mỗi mục có mức độ (Cao / Vừa / Thông tin) và lý do bị đánh dấu.
+  - Quét chỉ đọc và chỉ chạy khi bấm; không mục nào được chọn sẵn; mục chỉ báo và mục cần quyền quản trị không chọn
+    được (có nút sao chép lệnh); hộp xác nhận ghi rõ việc sẽ làm với từng mục và thao tác nào không hoàn tác được.
+  - Mục được chọn chuyển vào Thùng rác, symlink gãy và dòng cấu hình được sao lưu trước khi sửa (kiểm tra cú pháp
+    bằng `zsh -n`, không an toàn thì yêu cầu sửa tay). Bỏ qua vĩnh viễn từng mục (tương thích `ignore.txt` của
+    MacTrash).
+  - **Lịch sử dọn**: mỗi lần dọn có manifest và `restore.sh`; khôi phục từng lần dọn trong app, không ghi đè file
+    đã sửa sau khi dọn trừ khi bạn xác nhận riêng.
+  - So với MacTrash: không còn báo nhầm dữ liệu Microsoft Office (nhận ra App Group/Team ID của app đang cài), app
+    nằm ngoài thư mục chuẩn (tìm qua Spotlight), ổ ngoài chưa cắm hay thiếu quyền đọc không bị coi là "đã mất", và
+    biên nhận gói mồ côi được phát hiện đúng.
+  - Không tốn pin: không có timer hay quét ngầm; hai trang mới dùng khoảng 0,7% CPU khi đang mở.
+
 ## [0.16.5] - 2026-10-16
 
 ### Sửa lỗi
