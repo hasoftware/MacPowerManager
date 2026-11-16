@@ -53,6 +53,7 @@ final class AppModel {
             if started && prefs.autoCheckUpdates != oldValue.autoCheckUpdates {
                 updates.setAutomatic(prefs.autoCheckUpdates)
             }
+            if prefs.systemMonitoring != oldValue.systemMonitoring { applyRefreshPolicy() }
         }
     }
 
@@ -199,8 +200,10 @@ final class AppModel {
     func applyRefreshPolicy() {
         guard started, !isPreview else { return }
         let dashboard = context(dashboardOnly: true)
-        system.setInterval(RefreshPolicy.systemInterval(dashboard, detailed: dashboardShowsSystem))
-        processes.setInterval(RefreshPolicy.processInterval(dashboard, chosen: processes.chosenInterval))
+        // Giám sát hệ thống tắt trong cài đặt: không bộ đo nào chạy, dù trang nào đang mở.
+        let monitoring = prefs.systemMonitoring
+        system.setInterval(monitoring ? RefreshPolicy.systemInterval(dashboard, detailed: dashboardShowsSystem) : nil)
+        processes.setInterval(monitoring ? RefreshPolicy.processInterval(dashboard, chosen: processes.chosenInterval) : nil)
         let interval = RefreshPolicy.batteryInterval(context(dashboardOnly: false))
         guard interval != batteryInterval || timer == nil else { return }
         batteryInterval = interval

@@ -49,6 +49,11 @@ struct Preferences: Codable, Equatable {
     /// Tự kiểm tra bản mới trên GitHub lúc mở app và mỗi 24 giờ.
     var autoCheckUpdates = true
 
+    /// Giám sát hệ thống (CPU, bộ nhớ, GPU, ổ đĩa, mạng, tiến trình). Tắt mặc định: app chăm sóc pin không đo những
+    /// thứ người dùng không cần. Tắt thì không có bộ đo nào chạy, nhóm Hệ thống trên thanh bên và phần Hệ thống của
+    /// trang Tổng quan được ẩn.
+    var systemMonitoring = false
+
     /// Thời hạn mặc định của "Sạc đầy một lần".
     var topUpHours = 24
 
@@ -79,6 +84,7 @@ struct Preferences: Codable, Equatable {
         notifyCalibration = value(.notifyCalibration, d.notifyCalibration)
         calibrationReminder = value(.calibrationReminder, d.calibrationReminder)
         autoCheckUpdates = value(.autoCheckUpdates, d.autoCheckUpdates)
+        systemMonitoring = value(.systemMonitoring, d.systemMonitoring)
         topUpHours = value(.topUpHours, d.topUpHours)
     }
 

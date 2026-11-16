@@ -6,6 +6,17 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+### Thêm mới
+- **Tùy chọn Giám sát hệ thống** (Hệ thống & helper → Giám sát hệ thống), **tắt mặc định**. Khi tắt, không bộ đo nào
+  chạy (CPU, bộ nhớ, GPU, ổ đĩa, mạng, tiến trình), các trang đo trong nhóm Hệ thống của thanh bên và phần Hệ thống
+  của trang Tổng quan được ẩn; trang Tổng quan có thẻ để bật lại ngay. Đo bằng `--bench`: trang Tổng quan từ 4,1%
+  xuống 0,8% CPU khi tắt. Giới hạn sạc, lịch sử pin và Dọn dẹp không phụ thuộc tùy chọn này.
+
+### Sửa lỗi
+- **Vỡ bố cục ở các trang Dọn dẹp** (Quét tàn dư, Gỡ ứng dụng, Lịch sử dọn): nội dung trang trống, danh sách thanh bên
+  trượt lên dưới các nút của cửa sổ. Một trang đòi chiều cao lớn hơn cửa sổ làm cả bố cục bị căn giữa và tràn; vùng
+  nội dung giờ được tách khỏi kích thước tối thiểu của trang.
+
 ## [0.18.0] - 2026-10-17
 
 ### Thêm mới

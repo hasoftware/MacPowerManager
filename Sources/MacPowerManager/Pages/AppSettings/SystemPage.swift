@@ -74,6 +74,17 @@ struct SystemPage: View {
             HelperErrorSection()
 
             Section {
+                Toggle(isOn: Bindable(model).prefs.systemMonitoring) {
+                    Text("Giám sát hệ thống")
+                    Text("Đo CPU, bộ nhớ, GPU, ổ đĩa, mạng và tiến trình khi bảng điều khiển đang mở. Tắt thì nhóm Hệ thống trên thanh bên và phần Hệ thống của trang Tổng quan được ẩn, app không đo gì cả.")
+                }
+            } header: {
+                Text("Giám sát hệ thống")
+            } footer: {
+                Footnote("Giới hạn sạc, lịch sử pin và các tính năng Dọn dẹp không phụ thuộc tùy chọn này.")
+            }
+
+            Section {
                 if let keys = status?.capabilities?.keys, !keys.isEmpty {
                     CapabilityTable(keys: keys, chargeMethod: status?.capabilities?.chargeMethod,
                                     adapterMethod: status?.capabilities?.adapterMethod)

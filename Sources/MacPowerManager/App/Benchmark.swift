@@ -36,6 +36,8 @@ enum Benchmark {
         let model = AppModel()
         let page = Page(rawValue: name)
         guard page != nil || name == "idle" || name == "popover" else { return nil }
+        // Đo như khi người dùng đã bật Giám sát hệ thống; MPM_BENCH_MONITORING=0 để đo lúc tắt.
+        model.prefs.systemMonitoring = ProcessInfo.processInfo.environment["MPM_BENCH_MONITORING"] != "0"
         model.startForBenchmark(dashboardVisible: page != nil, popoverVisible: name == "popover")
         var window: NSWindow?
         if name != "idle" {

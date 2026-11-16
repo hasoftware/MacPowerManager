@@ -17,10 +17,16 @@ struct OverviewPage: View {
                 if model.battery != nil {
                     grid(width: width)
                 }
-                SystemOverviewGrid(width: width)
+                if model.prefs.systemMonitoring {
+                    SystemOverviewGrid(width: width)
+                } else {
+                    SystemMonitoringOffCard()
+                }
             }
         }
-        .toolbar { SystemToolbar(monitor: model.system) }
+        .toolbar {
+            if model.prefs.systemMonitoring { SystemToolbar(monitor: model.system) }
+        }
     }
 
     private func columns(_ width: CGFloat) -> Int { width < 800 ? 2 : 4 }
@@ -352,5 +358,31 @@ func installText(_ state: HelperClient.InstallState) -> String {
     case .outdated(let version): String(localized: "Phiên bản cũ (v\(version))")
     case .notInstalled: String(localized: "Chưa cài")
     case .unknown: String(localized: "Đang kiểm tra…")
+    }
+}
+
+/// Thay cho phần Hệ thống khi giám sát hệ thống đang tắt: nói rõ vì sao trống và bật được ngay tại chỗ.
+private struct SystemMonitoringOffCard: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        HStack(spacing: Theme.Space.m) {
+            Image(systemName: "cpu")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Giám sát hệ thống đang tắt").font(.callout.weight(.semibold))
+                Text("CPU, bộ nhớ, GPU, ổ đĩa, mạng và tiến trình không được đo để tiết kiệm pin. Bật lại trong Hệ thống & helper.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Theme.Space.m)
+            Button("Bật") { model.prefs.systemMonitoring = true }
+        }
+        .padding(Theme.Space.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
     }
 }

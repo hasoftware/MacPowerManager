@@ -109,6 +109,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         if Bundle.main.bundleIdentifier != nil {
             UNUserNotificationCenter.current().delegate = self
         }
+        #if DEBUG
+        // `--open-page <trang>`: mở bảng điều khiển ở trang đó ngay khi chạy (kiểm tra bố cục trong cửa sổ thật).
+        if let index = CommandLine.arguments.firstIndex(of: "--open-page"),
+           let raw = CommandLine.arguments.dropFirst(index + 1).first, Page(rawValue: raw) != nil {
+            UserDefaults.standard.set(raw, forKey: Page.storageKey)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { Self.openDashboard?() }
+        }
+        #endif
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,

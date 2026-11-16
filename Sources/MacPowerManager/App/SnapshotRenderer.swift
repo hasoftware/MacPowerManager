@@ -460,6 +460,7 @@ private enum Mock {
         var temperature = 33.4
         var prefs = Preferences()
         prefs.menuBarStyle = .inside
+        prefs.systemMonitoring = true
 
         switch kind {
         case .holding:

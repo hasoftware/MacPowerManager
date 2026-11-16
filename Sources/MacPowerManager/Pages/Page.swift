@@ -84,6 +84,9 @@ enum Page: String, CaseIterable, Identifiable {
     }
 
     static let monitor: [Page] = [.overview, .history, .health]
+    /// Trang của bộ giám sát hệ thống (ẩn khi tắt Giám sát hệ thống trong cài đặt).
+    var isSystemMonitor: Bool { Page.systemGroup.contains(self) && self != .aboutMac }
+
     static let systemGroup: [Page] = [.processes, .cpu, .memory, .gpu, .disk, .network, .energy, .aboutMac]
     static let care: [Page] = [.limit, .heat, .discharge, .calibration, .sleep]
     static let cleanupGroup: [Page] = [.uninstall, .cleanup, .cleanupHistory]

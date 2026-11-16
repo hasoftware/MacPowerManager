@@ -1150,3 +1150,11 @@
 "MacPowerManager không được phép sửa gói này. Ứng dụng đang chạy: thoát nó (và dừng dịch vụ nền của nó) trước khi gỡ bằng bất kỳ cách nào." = "MacPowerManager isn't allowed to modify this bundle. The app is running: quit it (and stop its background services) before removing it in any way.";
 "Gói này được cài bằng trình cài đặt (thuộc root, hoặc kèm helper/dịch vụ chạy quyền root). Dùng trình gỡ của hãng nếu có; hoặc chạy lệnh quản trị của các mục bên dưới (chuột phải → Sao chép lệnh) trước, rồi mới bỏ gói vào Thùng rác." = "This app was installed by an installer (owned by root, or it comes with a root helper or service). Use the vendor's uninstaller if there is one; otherwise run the administrator commands of the items below first (right-click → Copy Command), then move the bundle to the Trash.";
 "MacPowerManager không được phép sửa gói này (macOS chặn vì chưa cấp quyền Quản lý ứng dụng). Cấp quyền rồi bấm Tìm lại, hoặc kéo nó vào Thùng rác trong Finder." = "MacPowerManager isn't allowed to modify this bundle (macOS blocks it because App Management permission hasn't been granted). Grant the permission and click Search Again, or drag it to the Trash in Finder.";
+
+/* Giám sát hệ thống */
+"Giám sát hệ thống" = "System Monitoring";
+"Đo CPU, bộ nhớ, GPU, ổ đĩa, mạng và tiến trình khi bảng điều khiển đang mở. Tắt thì nhóm Hệ thống trên thanh bên và phần Hệ thống của trang Tổng quan được ẩn, app không đo gì cả." = "Measures CPU, memory, GPU, disk, network and processes while the dashboard is open. When off, the System group in the sidebar and the System section of Overview are hidden and nothing is measured.";
+"Giới hạn sạc, lịch sử pin và các tính năng Dọn dẹp không phụ thuộc tùy chọn này." = "Charge limit, battery history and Cleanup don't depend on this option.";
+"Giám sát hệ thống đang tắt" = "System monitoring is off";
+"CPU, bộ nhớ, GPU, ổ đĩa, mạng và tiến trình không được đo để tiết kiệm pin. Bật lại trong Hệ thống & helper." = "CPU, memory, GPU, disk, network and processes aren't measured, to save battery. Turn it on in System & Helper.";
+"Bật" = "Turn On";

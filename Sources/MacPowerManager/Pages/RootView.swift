@@ -11,7 +11,7 @@ struct RootView: View {
         NavigationSplitView {
             List(selection: Binding<Page?>(get: { current }, set: { if let p = $0 { page = p } })) {
                 Section("Theo dõi") { rows(Page.monitor) }
-                Section("Hệ thống") { rows(Page.systemGroup) }
+                Section("Hệ thống") { rows(Page.systemGroup.filter(isVisible)) }
                 Section("Chăm sóc pin") { rows(Page.care.filter(isVisible)) }
                 Section("Dọn dẹp") { rows(Page.cleanupGroup) }
                 Section("Ứng dụng") { rows(Page.app) }
@@ -26,6 +26,10 @@ struct RootView: View {
                     Color.clear
                 }
             }
+            // Cửa sổ lấy kích thước tối thiểu theo nội dung (`.contentMinSize`): một trang đòi cao hơn cửa sổ sẽ làm cả
+            // bố cục bị căn giữa và tràn (thanh bên trượt dưới thanh tiêu đề, nội dung trang ra ngoài vùng nhìn thấy).
+            // Khung co giãn từ 0 tách kích thước tối thiểu của trang khỏi cửa sổ; trang tự cuộn bên trong.
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
             .navigationTitle(current.title)
         }
         // App chỉ sống trên thanh menu; hiện biểu tượng Dock khi bảng điều khiển đang mở để dễ chuyển cửa sổ.
@@ -71,7 +75,10 @@ struct RootView: View {
     private var current: Page { isVisible(page) ? page : .overview }
 
     private func isVisible(_ page: Page) -> Bool {
-        !(page.appleSiliconOnly && model.isIntel)
+        if page.appleSiliconOnly && model.isIntel { return false }
+        // Giám sát hệ thống tắt: ẩn các trang đo (Giới thiệu máy này chỉ là thông tin tĩnh nên vẫn hiện).
+        if !model.prefs.systemMonitoring && page.isSystemMonitor { return false }
+        return true
     }
 
     private func rows(_ pages: [Page]) -> some View {
