@@ -6,6 +6,8 @@ Mọi thay đổi đáng chú ý của MacPowerManager được ghi ở đây.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-16
+
 ### Thêm mới
 - **Tùy chọn Giám sát hệ thống** (Hệ thống & helper → Giám sát hệ thống), **tắt mặc định**. Khi tắt, không bộ đo nào
   chạy (CPU, bộ nhớ, GPU, ổ đĩa, mạng, tiến trình), các trang đo trong nhóm Hệ thống của thanh bên và phần Hệ thống
@@ -434,7 +436,8 @@ Bản phát hành đầu tiên.
 - Version theo SemVer (`VERSION`), CHANGELOG, lệnh `make bump-patch|minor|major`.
 - GitHub Actions tự build bản universal, đóng gói `.dmg`/`.zip`, checksum và build provenance attestation khi đẩy tag.
 
-[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/hasoftware/MacPowerManager/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.5...v0.17.0
 [0.16.5]: https://github.com/hasoftware/MacPowerManager/compare/v0.16.4...v0.16.5
